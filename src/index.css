@@ -6,50 +6,141 @@
   Theme tokens as space-separated RGB triples so Tailwind's `rgb(var(...) / <alpha>)`
   pattern can apply opacity modifiers (e.g. text-ink/60) even though the values
   are swapped at runtime via the [data-theme] attribute on <html>.
+
+  Each theme defines:
+  - ink / ink-light / ink-softer     → text colors (high to low emphasis)
+  - paper / paper-card / paper-line  → background, card surface, border
+  - sage / sage-dark / sage-light    → positive/primary accent triad
+  - gold / gold-dark / gold-light    → brand/highlight accent triad
+  - clay / clay-dark / clay-light    → warning/negative accent triad
+  - nav-bg / nav-bg-light / nav-text → sidebar chrome (its own dark "spine")
 */
+
 :root,
 [data-theme='light'] {
   --color-ink: 22 35 42;
   --color-ink-light: 34 52 60;
   --color-ink-softer: 60 81 88;
-
   --color-paper: 244 246 244;
   --color-paper-card: 255 255 255;
   --color-paper-line: 226 231 227;
-
   --color-sage: 124 152 133;
   --color-sage-dark: 94 122 103;
   --color-sage-light: 220 230 223;
-
   --color-gold: 201 161 92;
   --color-gold-dark: 168 129 63;
   --color-gold-light: 241 228 200;
-
   --color-clay: 193 102 107;
   --color-clay-dark: 160 75 80;
   --color-clay-light: 244 219 220;
+  --color-nav-bg: 22 35 42;
+  --color-nav-bg-light: 34 52 60;
+  --color-nav-text: 244 246 244;
 }
 
 [data-theme='dark'] {
   --color-ink: 237 239 234;
   --color-ink-light: 213 217 208;
   --color-ink-softer: 147 166 172;
-
   --color-paper: 16 22 26;
   --color-paper-card: 26 34 41;
   --color-paper-line: 43 52 59;
-
   --color-sage: 143 176 152;
   --color-sage-dark: 159 199 168;
   --color-sage-light: 30 46 35;
-
   --color-gold: 217 179 110;
   --color-gold-dark: 232 195 132;
   --color-gold-light: 46 36 17;
-
   --color-clay: 217 129 135;
   --color-clay-dark: 231 154 160;
   --color-clay-light: 51 27 29;
+  --color-nav-bg: 22 35 42;
+  --color-nav-bg-light: 34 52 60;
+  --color-nav-text: 244 246 244;
+}
+
+[data-theme='cyber'] {
+  --color-ink: 233 251 224;
+  --color-ink-light: 200 242 154;
+  --color-ink-softer: 127 163 131;
+  --color-paper: 10 12 11;
+  --color-paper-card: 18 21 18;
+  --color-paper-line: 38 51 41;
+  --color-sage: 198 255 61;
+  --color-sage-dark: 159 230 46;
+  --color-sage-light: 27 42 14;
+  --color-gold: 77 232 224;
+  --color-gold-dark: 127 243 236;
+  --color-gold-light: 14 44 42;
+  --color-clay: 255 62 165;
+  --color-clay-dark: 255 127 194;
+  --color-clay-light: 51 16 35;
+  --color-nav-bg: 13 17 13;
+  --color-nav-bg-light: 26 36 26;
+  --color-nav-text: 233 251 224;
+}
+
+[data-theme='red'] {
+  --color-ink: 245 245 243;
+  --color-ink-light: 216 216 213;
+  --color-ink-softer: 154 154 151;
+  --color-paper: 15 15 16;
+  --color-paper-card: 26 26 27;
+  --color-paper-line: 46 46 48;
+  --color-sage: 95 203 131;
+  --color-sage-dark: 126 219 158;
+  --color-sage-light: 16 40 26;
+  --color-gold: 228 40 47;
+  --color-gold-dark: 255 90 96;
+  --color-gold-light: 46 17 19;
+  --color-clay: 255 138 61;
+  --color-clay-dark: 255 173 112;
+  --color-clay-light: 51 32 14;
+  --color-nav-bg: 10 10 11;
+  --color-nav-bg-light: 28 28 30;
+  --color-nav-text: 245 245 243;
+}
+
+[data-theme='pinky'] {
+  --color-ink: 245 237 251;
+  --color-ink-light: 220 199 239;
+  --color-ink-softer: 167 143 196;
+  --color-paper: 23 11 39;
+  --color-paper-card: 35 18 58;
+  --color-paper-line: 59 33 84;
+  --color-sage: 79 224 192;
+  --color-sage-dark: 124 240 216;
+  --color-sage-light: 15 46 40;
+  --color-gold: 233 79 209;
+  --color-gold-dark: 245 135 228;
+  --color-gold-light: 51 18 48;
+  --color-clay: 255 100 120;
+  --color-clay-dark: 255 151 166;
+  --color-clay-light: 51 20 25;
+  --color-nav-bg: 18 8 32;
+  --color-nav-bg-light: 33 18 58;
+  --color-nav-text: 245 237 251;
+}
+
+[data-theme='caramel'] {
+  --color-ink: 59 42 30;
+  --color-ink-light: 90 68 51;
+  --color-ink-softer: 138 115 89;
+  --color-paper: 243 233 220;
+  --color-paper-card: 255 251 246;
+  --color-paper-line: 228 211 188;
+  --color-sage: 125 139 90;
+  --color-sage-dark: 95 107 65;
+  --color-sage-light: 232 235 221;
+  --color-gold: 192 133 82;
+  --color-gold-dark: 156 107 63;
+  --color-gold-light: 243 226 208;
+  --color-clay: 193 96 74;
+  --color-clay-dark: 156 73 54;
+  --color-clay-light: 243 218 210;
+  --color-nav-bg: 59 42 30;
+  --color-nav-bg-light: 90 68 51;
+  --color-nav-text: 243 233 220;
 }
 
 * {
@@ -59,7 +150,10 @@
 html {
   color-scheme: light;
 }
-html[data-theme='dark'] {
+html[data-theme='dark'],
+html[data-theme='cyber'],
+html[data-theme='red'],
+html[data-theme='pinky'] {
   color-scheme: dark;
 }
 

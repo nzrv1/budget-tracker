@@ -1,6 +1,8 @@
-import { LayoutGrid, Receipt, PieChart, Wallet, Target, Bell, Settings, BookOpen, Sun, Moon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { LayoutGrid, Receipt, PieChart, Wallet, Target, Bell, Settings, BookOpen, Palette, Check } from 'lucide-react'
 import { ViewKey } from '../App'
-import { Settings as SettingsType } from '../types'
+import { ThemeKey } from '../types'
+import { THEMES } from '../lib/themes'
 
 const NAV: { key: ViewKey; label: string; icon: React.ElementType }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -17,24 +19,24 @@ export default function Sidebar({
   setView,
   notificationCount,
   theme,
-  toggleTheme,
+  setTheme,
 }: {
   view: ViewKey
   setView: (v: ViewKey) => void
   notificationCount: number
-  theme: SettingsType['theme']
-  toggleTheme: () => void
+  theme: ThemeKey
+  setTheme: (t: ThemeKey) => void
 }) {
   return (
     <>
-      {/* Desktop sidebar — always dark "ledger spine", independent of light/dark content theme */}
+      {/* Desktop sidebar — dark "ledger spine" chrome; its shade adapts per theme (see index.css) */}
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-64 bg-nav text-nav-text px-5 py-7">
         <div className="flex items-center justify-between px-2 mb-10">
           <div className="flex items-center gap-2.5">
             <BookOpen size={22} className="text-gold" strokeWidth={1.75} />
             <span className="font-display font-semibold text-lg tracking-tight">Ledger</span>
           </div>
-          <ThemeToggleButton theme={theme} toggleTheme={toggleTheme} />
+          <ThemePickerButton theme={theme} setTheme={setTheme} />
         </div>
 
         <nav className="flex-1 flex flex-col gap-1">
@@ -72,7 +74,7 @@ export default function Sidebar({
           <BookOpen size={20} className="text-gold" strokeWidth={1.75} />
           <span className="font-display font-semibold text-base tracking-tight">Ledger</span>
         </div>
-        <ThemeToggleButton theme={theme} toggleTheme={toggleTheme} />
+        <ThemePickerButton theme={theme} setTheme={setTheme} />
       </div>
 
       {/* Mobile bottom nav */}
@@ -109,15 +111,50 @@ export default function Sidebar({
   )
 }
 
-function ThemeToggleButton({ theme, toggleTheme }: { theme: SettingsType['theme']; toggleTheme: () => void }) {
-  const isDark = theme === 'dark'
+function ThemePickerButton({ theme, setTheme }: { theme: ThemeKey; setTheme: (t: ThemeKey) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   return (
-    <button
-      onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="w-8 h-8 rounded flex items-center justify-center text-nav-text/60 hover:text-nav-text hover:bg-nav-light transition-colors shrink-0"
-    >
-      {isDark ? <Sun size={16} strokeWidth={1.75} /> : <Moon size={16} strokeWidth={1.75} />}
-    </button>
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Choose theme"
+        className="w-8 h-8 rounded flex items-center justify-center text-nav-text/60 hover:text-nav-text hover:bg-nav-light transition-colors shrink-0"
+      >
+        <Palette size={16} strokeWidth={1.75} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-1.5 w-44 bg-paper-card border border-paper-line rounded-lg shadow-lg shadow-ink/20 overflow-hidden z-40 text-ink">
+          {THEMES.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => {
+                setTheme(t.key)
+                setOpen(false)
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-paper text-left"
+            >
+              <span className="flex shrink-0 -space-x-1">
+                {t.preview.map((c, i) => (
+                  <span key={i} className="w-3 h-3 rounded-full border border-paper-card" style={{ background: c }} />
+                ))}
+              </span>
+              <span className="flex-1 truncate">{t.label}</span>
+              {theme === t.key && <Check size={14} className="text-sage-dark shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

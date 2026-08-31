@@ -32,12 +32,11 @@ export default {
           dark: 'rgb(var(--color-clay-dark) / <alpha-value>)',
           light: 'rgb(var(--color-clay-light) / <alpha-value>)',
         },
-        // Fixed "ledger spine" chrome — always dark navy regardless of theme,
-        // used only for the sidebar/nav so the brand mark stays constant.
+        // Sidebar/nav chrome — its own dark "spine" color per theme (see index.css).
         nav: {
-          DEFAULT: '#16232A',
-          light: '#22343C',
-          text: '#F4F6F4',
+          DEFAULT: 'rgb(var(--color-nav-bg) / <alpha-value>)',
+          light: 'rgb(var(--color-nav-bg-light) / <alpha-value>)',
+          text: 'rgb(var(--color-nav-text) / <alpha-value>)',
         },
       },
       fontFamily: {

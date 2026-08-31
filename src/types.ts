@@ -52,8 +52,10 @@ export interface Goal {
 export interface Settings {
   currency: string
   monthlyIncome: number
-  theme: 'light' | 'dark'
+  theme: ThemeKey
 }
+
+export type ThemeKey = 'light' | 'dark' | 'cyber' | 'red' | 'pinky' | 'caramel'
 
 export interface Insight {
   id: string

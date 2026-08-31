@@ -1,7 +1,8 @@
-import { AppState, DEFAULT_CATEGORY_DEFS } from '../types'
+import { AppState, DEFAULT_CATEGORY_DEFS, ThemeKey } from '../types'
 import { mockState } from './mockData'
 
 const STORAGE_KEY = 'ledger_app_state_v1'
+const VALID_THEMES: ThemeKey[] = ['light', 'dark', 'cyber', 'red', 'pinky', 'caramel']
 
 /** Fills in fields added after a person's data was first saved, so old localStorage data keeps working. */
 function migrate(state: AppState): AppState {
@@ -11,7 +12,8 @@ function migrate(state: AppState): AppState {
     limit: b.limit,
     period: b.period || 'month',
   }))
-  return { ...state, categories, budgets }
+  const theme = VALID_THEMES.includes(state.settings?.theme) ? state.settings.theme : 'light'
+  return { ...state, categories, budgets, settings: { ...state.settings, theme } }
 }
 
 export function loadState(): AppState {

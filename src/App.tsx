@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AppState, Transaction, CategoryBudget, Goal, CategoryDef } from './types'
+import { AppState, Transaction, CategoryBudget, Goal, CategoryDef, ThemeKey } from './types'
 import { loadState, saveState, uid, clearState } from './lib/storage'
 import { generateInsights } from './lib/insights'
 import Sidebar from './components/Sidebar'
@@ -95,11 +95,8 @@ export default function App() {
     setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))
   }
 
-  function toggleTheme() {
-    setState((prev) => ({
-      ...prev,
-      settings: { ...prev.settings, theme: prev.settings.theme === 'dark' ? 'light' : 'dark' },
-    }))
+  function setTheme(theme: ThemeKey) {
+    setState((prev) => ({ ...prev, settings: { ...prev.settings, theme } }))
   }
 
   function resetData() {
@@ -114,7 +111,7 @@ export default function App() {
         setView={setView}
         notificationCount={insights.filter((i) => i.tone === 'warning').length}
         theme={state.settings.theme}
-        toggleTheme={toggleTheme}
+        setTheme={setTheme}
       />
 
       <main className="flex-1 min-w-0 lg:ml-64 pb-24 lg:pb-8">
@@ -144,7 +141,7 @@ export default function App() {
           )}
           {view === 'notifications' && <NotificationsView insights={insights} />}
           {view === 'settings' && (
-            <SettingsView state={state} updateSettings={updateSettings} resetData={resetData} toggleTheme={toggleTheme} />
+            <SettingsView state={state} updateSettings={updateSettings} resetData={resetData} setTheme={setTheme} />
           )}
         </div>
       </main>

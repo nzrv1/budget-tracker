@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Trash2, Sun, Moon } from 'lucide-react'
-import { AppState } from '../types'
+import { Trash2, Check } from 'lucide-react'
+import { AppState, ThemeKey } from '../types'
 import { Card, SectionHeading } from './shared'
+import { THEMES } from '../lib/themes'
 
 const CURRENCIES = [
   { code: 'EUR', label: 'Euro (€)' },
@@ -14,12 +15,12 @@ export default function SettingsView({
   state,
   updateSettings,
   resetData,
-  toggleTheme,
+  setTheme,
 }: {
   state: AppState
   updateSettings: (patch: Partial<AppState['settings']>) => void
   resetData: () => void
-  toggleTheme: () => void
+  setTheme: (t: ThemeKey) => void
 }) {
   const [confirmReset, setConfirmReset] = useState(false)
 
@@ -30,27 +31,30 @@ export default function SettingsView({
       <Card className="p-5 mb-5">
         <h3 className="font-display font-semibold text-base mb-4">Appearance</h3>
         <label className="block text-xs font-medium text-ink-softer mb-2">Theme</label>
-        <div className="flex bg-paper rounded p-1 border border-paper-line">
-          <button
-            type="button"
-            onClick={() => state.settings.theme !== 'light' && toggleTheme()}
-            className={`flex-1 inline-flex items-center justify-center gap-2 py-2 rounded text-sm font-medium transition-colors ${
-              state.settings.theme === 'light' ? 'bg-ink text-paper' : 'text-ink-softer'
-            }`}
-          >
-            <Sun size={15} strokeWidth={1.75} />
-            Light
-          </button>
-          <button
-            type="button"
-            onClick={() => state.settings.theme !== 'dark' && toggleTheme()}
-            className={`flex-1 inline-flex items-center justify-center gap-2 py-2 rounded text-sm font-medium transition-colors ${
-              state.settings.theme === 'dark' ? 'bg-ink text-paper' : 'text-ink-softer'
-            }`}
-          >
-            <Moon size={15} strokeWidth={1.75} />
-            Dark
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {THEMES.map((t) => {
+            const active = state.settings.theme === t.key
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTheme(t.key)}
+                className={`flex flex-col gap-2.5 p-3 rounded-lg border text-left transition-colors ${
+                  active ? 'border-sage bg-sage-light' : 'border-paper-line hover:border-ink-softer/40'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex -space-x-1">
+                    {t.preview.map((c, i) => (
+                      <span key={i} className="w-4 h-4 rounded-full border-2 border-paper-card" style={{ background: c }} />
+                    ))}
+                  </span>
+                  {active && <Check size={14} className="text-sage-dark" />}
+                </div>
+                <span className="text-sm font-medium text-ink">{t.label}</span>
+              </button>
+            )
+          })}
         </div>
       </Card>
 
