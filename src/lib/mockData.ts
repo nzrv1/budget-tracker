@@ -1,4 +1,4 @@
-import { AppState, Transaction } from '../types'
+import { AppState, Transaction, DEFAULT_CATEGORY_DEFS } from '../types'
 
 function isoDaysAgo(days: number): string {
   const d = new Date()
@@ -50,13 +50,14 @@ export function mockState(): AppState {
   return {
     transactions,
     budgets: [
-      { category: 'Food', limit: 300 },
-      { category: 'Transport', limit: 100 },
-      { category: 'Shopping', limit: 150 },
-      { category: 'Entertainment', limit: 120 },
-      { category: 'Bills', limit: 250 },
-      { category: 'Health', limit: 80 },
+      { category: 'Food', limit: 300, period: 'month' },
+      { category: 'Transport', limit: 100, period: 'month' },
+      { category: 'Shopping', limit: 150, period: 'month' },
+      { category: 'Entertainment', limit: 120, period: 'month' },
+      { category: 'Bills', limit: 250, period: 'month' },
+      { category: 'Health', limit: 80, period: 'month' },
     ],
+    categories: DEFAULT_CATEGORY_DEFS,
     goals: [
       {
         id: 'g1',

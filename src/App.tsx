@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AppState, Transaction, CategoryBudget, Goal } from './types'
+import { AppState, Transaction, CategoryBudget, Goal, CategoryDef } from './types'
 import { loadState, saveState, uid, clearState } from './lib/storage'
 import { generateInsights } from './lib/insights'
 import Sidebar from './components/Sidebar'
@@ -23,6 +23,10 @@ export default function App() {
   useEffect(() => {
     saveState(state)
   }, [state])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.settings.theme)
+  }, [state.settings.theme])
 
   const insights = useMemo(() => generateInsights(state), [state])
 
@@ -64,6 +68,14 @@ export default function App() {
     setState((prev) => ({ ...prev, budgets }))
   }
 
+  function addCategory(def: CategoryDef) {
+    setState((prev) => {
+      const exists = prev.categories.some((c) => c.name.toLowerCase() === def.name.toLowerCase())
+      if (exists) return prev
+      return { ...prev, categories: [...prev.categories, def] }
+    })
+  }
+
   function addGoal(g: Omit<Goal, 'id' | 'createdAt'>) {
     setState((prev) => ({
       ...prev,
@@ -83,6 +95,13 @@ export default function App() {
     setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))
   }
 
+  function toggleTheme() {
+    setState((prev) => ({
+      ...prev,
+      settings: { ...prev.settings, theme: prev.settings.theme === 'dark' ? 'light' : 'dark' },
+    }))
+  }
+
   function resetData() {
     clearState()
     window.location.reload()
@@ -90,12 +109,24 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-paper flex text-ink font-body">
-      <Sidebar view={view} setView={setView} notificationCount={insights.filter((i) => i.tone === 'warning').length} />
+      <Sidebar
+        view={view}
+        setView={setView}
+        notificationCount={insights.filter((i) => i.tone === 'warning').length}
+        theme={state.settings.theme}
+        toggleTheme={toggleTheme}
+      />
 
       <main className="flex-1 min-w-0 lg:ml-64 pb-24 lg:pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
           {view === 'dashboard' && (
-            <Dashboard state={state} insights={insights} addTransaction={addTransaction} setView={setView} />
+            <Dashboard
+              state={state}
+              insights={insights}
+              addTransaction={addTransaction}
+              addCategory={addCategory}
+              setView={setView}
+            />
           )}
           {view === 'transactions' && (
             <TransactionsView
@@ -103,15 +134,18 @@ export default function App() {
               addTransaction={addTransaction}
               updateTransaction={updateTransaction}
               deleteTransaction={deleteTransaction}
+              addCategory={addCategory}
             />
           )}
           {view === 'reports' && <ReportsView state={state} />}
-          {view === 'budgets' && <BudgetsView state={state} setBudgets={setBudgets} />}
+          {view === 'budgets' && <BudgetsView state={state} setBudgets={setBudgets} addCategory={addCategory} />}
           {view === 'goals' && (
             <GoalsView state={state} addGoal={addGoal} updateGoal={updateGoal} deleteGoal={deleteGoal} />
           )}
           {view === 'notifications' && <NotificationsView insights={insights} />}
-          {view === 'settings' && <SettingsView state={state} updateSettings={updateSettings} resetData={resetData} />}
+          {view === 'settings' && (
+            <SettingsView state={state} updateSettings={updateSettings} resetData={resetData} toggleTheme={toggleTheme} />
+          )}
         </div>
       </main>
 

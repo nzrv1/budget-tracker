@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
-import { AppState, Transaction } from '../types'
+import { AppState, Transaction, CategoryDef } from '../types'
 import { formatMoney } from '../lib/utils'
+import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import { Card, SectionHeading } from './shared'
 import AddTransactionModal from './AddTransactionModal'
 import { EmptyState } from './Dashboard'
@@ -11,11 +12,13 @@ export default function TransactionsView({
   addTransaction,
   updateTransaction,
   deleteTransaction,
+  addCategory,
 }: {
   state: AppState
   addTransaction: (t: Omit<Transaction, 'id'>) => void
   updateTransaction: (id: string, patch: Partial<Transaction>) => void
   deleteTransaction: (id: string) => void
+  addCategory: (def: CategoryDef) => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<Transaction | null>(null)
@@ -23,7 +26,10 @@ export default function TransactionsView({
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
 
-  const categories = useMemo(() => Array.from(new Set(state.transactions.map((t) => t.category))).sort(), [state.transactions])
+  const categoryNames = useMemo(
+    () => Array.from(new Set([...state.categories.map((c) => c.name), ...state.transactions.map((t) => t.category)])).sort(),
+    [state.categories, state.transactions]
+  )
 
   const filtered = useMemo(() => {
     return [...state.transactions]
@@ -80,7 +86,7 @@ export default function TransactionsView({
             className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
           >
             <option value="all">All categories</option>
-            {categories.map((c) => (
+            {categoryNames.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -98,6 +104,9 @@ export default function TransactionsView({
           <div className="divide-y divide-paper-line">
             {filtered.map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-3 px-5 py-3.5 group">
+                <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0">
+                  <CategoryIconGlyph icon={iconForCategory(state.categories, t.category)} size={14} className="text-ink-softer" />
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-ink truncate">{t.note || t.category}</span>
@@ -136,14 +145,20 @@ export default function TransactionsView({
       </Card>
 
       {showAdd && (
-        <AddTransactionModal onClose={() => setShowAdd(false)} onSave={addTransaction} extraCategories={categories} />
+        <AddTransactionModal
+          onClose={() => setShowAdd(false)}
+          onSave={addTransaction}
+          categories={state.categories}
+          onAddCategory={addCategory}
+        />
       )}
       {editing && (
         <AddTransactionModal
           initial={editing}
           onClose={() => setEditing(null)}
           onSave={(patch) => updateTransaction(editing.id, patch)}
-          extraCategories={categories}
+          categories={state.categories}
+          onAddCategory={addCategory}
         />
       )}
     </div>

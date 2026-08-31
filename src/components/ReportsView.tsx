@@ -33,8 +33,11 @@ export default function ReportsView({ state }: { state: AppState }) {
   const expenseChange = prevTotals.expense > 0 ? ((currentTotals.expense - prevTotals.expense) / prevTotals.expense) * 100 : null
 
   const budgetComparison = state.budgets.map((b) => {
-    const spent = current.filter((t) => t.type === 'expense' && t.category === b.category).reduce((s, t) => s + t.amount, 0)
-    return { category: b.category, spent, limit: b.limit }
+    const { from: bFrom, to: bTo } = periodRange(b.period)
+    const spent = filterByRange(state.transactions, bFrom, bTo)
+      .filter((t) => t.type === 'expense' && t.category === b.category)
+      .reduce((s, t) => s + t.amount, 0)
+    return { category: b.category, spent, limit: b.limit, period: b.period }
   })
 
   return (
@@ -125,7 +128,7 @@ export default function ReportsView({ state }: { state: AppState }) {
       </div>
 
       <Card className="p-5">
-        <h3 className="font-display font-semibold text-base mb-4">Budget vs. actual — {PERIOD_LABEL[period].toLowerCase()} view</h3>
+        <h3 className="font-display font-semibold text-base mb-4">Budget vs. actual</h3>
         {budgetComparison.length === 0 ? (
           <EmptyState text="Set category budgets to see this comparison." />
         ) : (
@@ -133,9 +136,11 @@ export default function ReportsView({ state }: { state: AppState }) {
             {budgetComparison.map((b) => {
               const ratio = b.limit > 0 ? b.spent / b.limit : 0
               return (
-                <div key={b.category}>
+                <div key={`${b.category}-${b.period}`}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-ink">{b.category}</span>
+                    <span className="text-ink">
+                      {b.category} <span className="text-ink-softer text-xs">· {PERIOD_LABEL[b.period]}</span>
+                    </span>
                     <span className="font-tabular text-ink-softer">
                       {formatMoney(b.spent, state.settings.currency)} / {formatMoney(b.limit, state.settings.currency)}
                     </span>

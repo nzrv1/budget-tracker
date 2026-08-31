@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, PiggyBank, Wallet2, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { AppState, Transaction, Insight } from '../types'
+import { AppState, Transaction, Insight, CategoryDef } from '../types'
 import { formatMoney, periodRange, filterByRange, totals } from '../lib/utils'
 import { Card, ProgressBar, budgetTone } from './shared'
+import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import { ViewKey } from '../App'
 
@@ -10,11 +11,13 @@ export default function Dashboard({
   state,
   insights,
   addTransaction,
+  addCategory,
   setView,
 }: {
   state: AppState
   insights: Insight[]
   addTransaction: (t: Omit<Transaction, 'id'>) => void
+  addCategory: (def: CategoryDef) => void
   setView: (v: ViewKey) => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
@@ -25,8 +28,9 @@ export default function Dashboard({
   const balance = totals(state.transactions).net
   const saved = income - expense
 
-  const totalBudget = state.budgets.reduce((s, b) => s + b.limit, 0)
-  const budgetSpent = state.budgets.reduce((s, b) => {
+  const monthlyBudgets = state.budgets.filter((b) => b.period === 'month')
+  const totalBudget = monthlyBudgets.reduce((s, b) => s + b.limit, 0)
+  const budgetSpent = monthlyBudgets.reduce((s, b) => {
     const spent = monthTx
       .filter((t) => t.type === 'expense' && t.category === b.category)
       .reduce((acc, t) => acc + t.amount, 0)
@@ -42,8 +46,6 @@ export default function Dashboard({
 
   const today = new Date()
   const dayLabel = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-
-  const extraCategories = Array.from(new Set(state.transactions.map((t) => t.category)))
 
   return (
     <div>
@@ -101,7 +103,9 @@ export default function Dashboard({
             </div>
             <ProgressBar ratio={budgetRatio} tone={budgetTone(budgetRatio)} />
             <p className="text-sm text-ink-softer mt-3">
-              {budgetRatio >= 1
+              {monthlyBudgets.length === 0
+                ? 'No monthly budgets set yet — set some in Budgets to track this.'
+                : budgetRatio >= 1
                 ? 'You have gone over your combined monthly budget.'
                 : budgetRatio >= 0.75
                 ? "You're pacing close to your monthly limit — worth watching the next few weeks."
@@ -125,11 +129,16 @@ export default function Dashboard({
               <div className="flex flex-col divide-y divide-paper-line">
                 {recent.map((t) => (
                   <div key={t.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink truncate">{t.note || t.category}</p>
-                      <p className="text-xs text-ink-softer">
-                        {t.category} · {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0">
+                        <CategoryIconGlyph icon={iconForCategory(state.categories, t.category)} size={14} className="text-ink-softer" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink truncate">{t.note || t.category}</p>
+                        <p className="text-xs text-ink-softer">
+                          {t.category} · {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
                     </div>
                     <span
                       className={`font-tabular text-sm font-medium shrink-0 ml-3 ${
@@ -182,7 +191,12 @@ export default function Dashboard({
       </div>
 
       {showAdd && (
-        <AddTransactionModal onClose={() => setShowAdd(false)} onSave={addTransaction} extraCategories={extraCategories} />
+        <AddTransactionModal
+          onClose={() => setShowAdd(false)}
+          onSave={addTransaction}
+          categories={state.categories}
+          onAddCategory={addCategory}
+        />
       )}
     </div>
   )

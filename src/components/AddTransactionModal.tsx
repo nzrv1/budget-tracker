@@ -1,27 +1,27 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { Transaction, TransactionType, DEFAULT_CATEGORIES } from '../types'
+import { Transaction, TransactionType, CategoryDef, DEFAULT_CATEGORIES } from '../types'
+import CategorySelect from './CategorySelect'
 
 export default function AddTransactionModal({
   onClose,
   onSave,
   initial,
-  extraCategories,
+  categories,
+  onAddCategory,
 }: {
   onClose: () => void
   onSave: (t: Omit<Transaction, 'id'>) => void
   initial?: Transaction
-  extraCategories: string[]
+  categories: CategoryDef[]
+  onAddCategory: (def: CategoryDef) => void
 }) {
   const [type, setType] = useState<TransactionType>(initial?.type || 'expense')
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [category, setCategory] = useState(initial?.category || DEFAULT_CATEGORIES[0])
-  const [customCategory, setCustomCategory] = useState('')
   const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(initial?.note || '')
   const [error, setError] = useState('')
-
-  const allCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...extraCategories]))
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -30,17 +30,16 @@ export default function AddTransactionModal({
       setError('Enter an amount greater than zero.')
       return
     }
-    const finalCategory = category === '__custom__' ? customCategory.trim() : category
-    if (!finalCategory) {
-      setError('Enter a category name.')
+    if (!category.trim()) {
+      setError('Choose or add a category.')
       return
     }
-    onSave({ type, amount: num, category: finalCategory, date, note: note.trim() })
+    onSave({ type, amount: num, category: category.trim(), date, note: note.trim() })
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40 backdrop-blur-[2px] px-0 sm:px-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] px-0 sm:px-4">
       <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
           <h3 className="font-display font-semibold text-lg">{initial ? 'Edit transaction' : 'Add transaction'}</h3>
@@ -81,27 +80,7 @@ export default function AddTransactionModal({
 
           <div>
             <label className="block text-xs font-medium text-ink-softer mb-1.5">Category</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none bg-white"
-            >
-              {allCategories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-              <option value="__custom__">+ Add custom category</option>
-            </select>
-            {category === '__custom__' && (
-              <input
-                type="text"
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="Category name"
-                className="w-full mt-2 px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
-              />
-            )}
+            <CategorySelect categories={categories} value={category} onChange={setCategory} onAddCategory={onAddCategory} />
           </div>
 
           <div>

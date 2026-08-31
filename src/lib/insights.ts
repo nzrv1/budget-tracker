@@ -1,5 +1,6 @@
 import { AppState, Insight, Transaction } from '../types'
 import { uid } from './storage'
+import { periodRange } from './utils'
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
@@ -37,14 +38,16 @@ export function generateInsights(state: AppState): Insight[] {
 
   // 1. Budget category warnings/praise
   for (const budget of state.budgets) {
-    const spent = categorySpend(state.transactions, budget.category, startOfMonth, now)
+    const { from: bFrom, to: bTo } = periodRange(budget.period)
+    const spent = categorySpend(state.transactions, budget.category, bFrom, bTo)
     const ratio = budget.limit > 0 ? spent / budget.limit : 0
+    const periodWord = budget.period === 'day' ? 'daily' : budget.period === 'week' ? 'weekly' : budget.period === 'year' ? 'yearly' : 'monthly'
     if (ratio >= 1) {
       insights.push({
         id: uid(),
         tone: 'warning',
         title: `${budget.category} budget exceeded`,
-        message: `You've spent ${spent.toFixed(0)} of your ${budget.limit.toFixed(0)} ${budget.category} budget this month. Consider holding off on further ${budget.category.toLowerCase()} purchases.`,
+        message: `You've spent ${spent.toFixed(0)} of your ${budget.limit.toFixed(0)} ${periodWord} ${budget.category} budget. Consider holding off on further ${budget.category.toLowerCase()} purchases.`,
         createdAt: now.toISOString(),
       })
     } else if (ratio >= 0.8) {
@@ -52,7 +55,7 @@ export function generateInsights(state: AppState): Insight[] {
         id: uid(),
         tone: 'warning',
         title: `${budget.category} budget almost used up`,
-        message: `You're at ${Math.round(ratio * 100)}% of your ${budget.category} budget this month — worth pacing the rest of your spending here.`,
+        message: `You're at ${Math.round(ratio * 100)}% of your ${periodWord} ${budget.category} budget — worth pacing the rest of your spending here.`,
         createdAt: now.toISOString(),
       })
     }

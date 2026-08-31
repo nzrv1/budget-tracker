@@ -1,33 +1,43 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
+        // Theme-aware tokens — values swap at runtime via [data-theme] CSS variables.
+        // rgb(var(...) / <alpha-value>) pattern keeps Tailwind's /opacity modifiers working.
         ink: {
-          DEFAULT: '#16232A',
-          light: '#22343C',
-          softer: '#3C5158',
+          DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
+          light: 'rgb(var(--color-ink-light) / <alpha-value>)',
+          softer: 'rgb(var(--color-ink-softer) / <alpha-value>)',
         },
         paper: {
-          DEFAULT: '#F4F6F4',
-          card: '#FFFFFF',
-          line: '#E2E7E3',
+          DEFAULT: 'rgb(var(--color-paper) / <alpha-value>)',
+          card: 'rgb(var(--color-paper-card) / <alpha-value>)',
+          line: 'rgb(var(--color-paper-line) / <alpha-value>)',
         },
         sage: {
-          DEFAULT: '#7C9885',
-          dark: '#5E7A67',
-          light: '#DCE6DF',
+          DEFAULT: 'rgb(var(--color-sage) / <alpha-value>)',
+          dark: 'rgb(var(--color-sage-dark) / <alpha-value>)',
+          light: 'rgb(var(--color-sage-light) / <alpha-value>)',
         },
         gold: {
-          DEFAULT: '#C9A15C',
-          dark: '#A8813F',
-          light: '#F1E4C8',
+          DEFAULT: 'rgb(var(--color-gold) / <alpha-value>)',
+          dark: 'rgb(var(--color-gold-dark) / <alpha-value>)',
+          light: 'rgb(var(--color-gold-light) / <alpha-value>)',
         },
         clay: {
-          DEFAULT: '#C1666B',
-          dark: '#A04B50',
-          light: '#F4DBDC',
+          DEFAULT: 'rgb(var(--color-clay) / <alpha-value>)',
+          dark: 'rgb(var(--color-clay-dark) / <alpha-value>)',
+          light: 'rgb(var(--color-clay-light) / <alpha-value>)',
+        },
+        // Fixed "ledger spine" chrome — always dark navy regardless of theme,
+        // used only for the sidebar/nav so the brand mark stays constant.
+        nav: {
+          DEFAULT: '#16232A',
+          light: '#22343C',
+          text: '#F4F6F4',
         },
       },
       fontFamily: {
