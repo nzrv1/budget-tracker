@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Theme tokens as space-separated RGB triples so Tailwind's `rgb(var(...) / <alpha>)`
+  pattern can apply opacity modifiers (e.g. text-ink/60) even though the values
+  are swapped at runtime via the [data-theme] attribute on <html>.
+*/
+:root,
+[data-theme='light'] {
+  --color-ink: 22 35 42;
+  --color-ink-light: 34 52 60;
+  --color-ink-softer: 60 81 88;
+
+  --color-paper: 244 246 244;
+  --color-paper-card: 255 255 255;
+  --color-paper-line: 226 231 227;
+
+  --color-sage: 124 152 133;
+  --color-sage-dark: 94 122 103;
+  --color-sage-light: 220 230 223;
+
+  --color-gold: 201 161 92;
+  --color-gold-dark: 168 129 63;
+  --color-gold-light: 241 228 200;
+
+  --color-clay: 193 102 107;
+  --color-clay-dark: 160 75 80;
+  --color-clay-light: 244 219 220;
+}
+
+[data-theme='dark'] {
+  --color-ink: 237 239 234;
+  --color-ink-light: 213 217 208;
+  --color-ink-softer: 147 166 172;
+
+  --color-paper: 16 22 26;
+  --color-paper-card: 26 34 41;
+  --color-paper-line: 43 52 59;
+
+  --color-sage: 143 176 152;
+  --color-sage-dark: 159 199 168;
+  --color-sage-light: 30 46 35;
+
+  --color-gold: 217 179 110;
+  --color-gold-dark: 232 195 132;
+  --color-gold-light: 46 36 17;
+
+  --color-clay: 217 129 135;
+  --color-clay-dark: 231 154 160;
+  --color-clay-light: 51 27 29;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  color-scheme: light;
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html, body {
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-ink));
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.font-tabular {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-paper-line));
+  border-radius: 8px;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--color-sage));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
