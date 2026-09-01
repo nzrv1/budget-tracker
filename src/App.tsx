@@ -20,6 +20,7 @@ import ReportsView from './components/ReportsView'
 import BudgetsView from './components/BudgetsView'
 import GoalsView from './components/GoalsView'
 import ImportantDatesView from './components/ImportantDatesView'
+import CalendarView from './components/CalendarView'
 import NotificationsView from './components/NotificationsView'
 import SettingsView from './components/SettingsView'
 import ToastStack from './components/ToastStack'
@@ -31,6 +32,7 @@ export type ViewKey =
   | 'budgets'
   | 'goals'
   | 'important-dates'
+  | 'calendar'
   | 'notifications'
   | 'settings'
 
@@ -211,6 +213,7 @@ export default function App() {
               deleteImportantDate={deleteImportantDate}
             />
           )}
+          {view === 'calendar' && <CalendarView state={state} />}
           {view === 'notifications' && (
             <NotificationsView insights={insights} reminders={reminders} currency={state.settings.currency} />
           )}

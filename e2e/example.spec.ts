@@ -14,7 +14,7 @@ test('app loads', async ({ page }) => {
 //
 // To screenshot just ONE tab instead of all of them, run e.g.:
 //   npx playwright test -g "reports tab"
-const TABS = ['Dashboard', 'Transactions', 'Reports', 'Budgets', 'Goals', 'Important Dates', 'Notifications', 'Settings']
+const TABS = ['Dashboard', 'Transactions', 'Reports', 'Budgets', 'Goals', 'Important Dates', 'Calendar', 'Notifications', 'Settings']
 
 for (const tab of TABS) {
   const slug = tab.toLowerCase().replace(/\s+/g, '-')
@@ -24,3 +24,13 @@ for (const tab of TABS) {
     await page.screenshot({ path: `e2e/screenshots/${slug}.png`, fullPage: true })
   })
 }
+
+// Calendar has a Monthly/Weekly toggle — the generic loop above only captures the
+// default Monthly view, so grab Weekly separately.
+//   npx playwright test -g "calendar weekly"
+test('calendar weekly tab screenshot', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Calendar' }).click()
+  await page.getByRole('button', { name: 'Weekly' }).click()
+  await page.screenshot({ path: `e2e/screenshots/calendar-weekly.png`, fullPage: true })
+})

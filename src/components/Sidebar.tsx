@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Bell, Settings, BookOpen, Palette, Check } from 'lucide-react'
+import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Calendar, Bell, Settings, BookOpen, Palette, Check } from 'lucide-react'
 import { ViewKey } from '../App'
 import { ThemeKey } from '../types'
 import { THEMES } from '../lib/themes'
@@ -11,6 +11,7 @@ const NAV: { key: ViewKey; label: string; icon: React.ElementType }[] = [
   { key: 'budgets', label: 'Budgets', icon: Wallet },
   { key: 'goals', label: 'Goals', icon: Target },
   { key: 'important-dates', label: 'Important Dates', icon: CalendarDays },
+  { key: 'calendar', label: 'Calendar', icon: Calendar },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'settings', label: 'Settings', icon: Settings },
 ]
