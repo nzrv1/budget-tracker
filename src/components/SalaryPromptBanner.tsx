@@ -26,7 +26,42 @@ export default function SalaryPromptBanner({
 
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
 
-  if (items.length === 0) return null
+  const paydayLabel =
+    dueSources.length === 0
+      ? 'Payday'
+      : dueSources.length === 1
+      ? dueSources[0].label
+      : dueSources.map((s) => s.label).join(' + ')
+
+  // Payday still landed even when there's nothing to set aside — say so instead of showing
+  // nothing at all, so this doesn't look like the notification is broken.
+  if (items.length === 0) {
+    return (
+      <Card className="p-5 mb-6 border-gold/50 bg-gold-light/30">
+        <div className="flex items-start gap-3">
+          <span className="shrink-0 w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center">
+            <PiggyBank size={17} strokeWidth={1.75} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-ink">{paydayLabel} — nothing to set aside yet</p>
+            <p className="text-sm text-ink-softer mt-1 leading-relaxed">
+              None of your goals or important dates need funding this month. Add a savings target to a Goal or
+              Important Date to get suggestions here on future paydays.
+            </p>
+            <button
+              onClick={onDismiss}
+              className="mt-3.5 px-3.5 py-2 rounded text-sm font-medium text-ink-softer hover:bg-paper-card transition-colors border border-paper-line"
+            >
+              Got it
+            </button>
+          </div>
+          <button onClick={onDismiss} aria-label="Dismiss" className="text-ink-softer hover:text-ink shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+      </Card>
+    )
+  }
 
   function itemKey(it: (typeof items)[number]) {
     return `${it.kind}:${it.id}`
@@ -44,13 +79,6 @@ export default function SalaryPromptBanner({
   const included = items.filter((it) => !excluded.has(itemKey(it)))
   const total = included.reduce((sum, it) => sum + it.amount, 0)
   const pct = salary > 0 ? (total / salary) * 100 : null
-
-  const paydayLabel =
-    dueSources.length === 0
-      ? 'Payday'
-      : dueSources.length === 1
-      ? dueSources[0].label
-      : dueSources.map((s) => s.label).join(' + ')
 
   return (
     <Card className="p-5 mb-6 border-gold/50 bg-gold-light/30">

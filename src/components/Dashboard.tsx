@@ -55,7 +55,6 @@ export default function Dashboard({
   const income = settingsMonthlyIncome * monthsInPeriod + periodLogged.income
   const expense = periodLogged.expense
   const balance = totals(state.transactions).net
-  const saved = income - expense
   const periodLabel = period === 'month' ? 'this month' : 'this year'
 
   const monthlyBudgets = state.budgets.filter((b) => b.period === 'month')
@@ -68,9 +67,23 @@ export default function Dashboard({
   }, 0)
   const budgetRatio = totalBudget > 0 ? budgetSpent / totalBudget : 0
 
-  const savingsGoalTotal = planForMonth(state, startOfMonth(today0)).goalsTotal
+  // Everything you're already committed to spending or setting aside this month — every
+  // Budget (day/week/month/year budgets are all normalized to a monthly-equivalent figure
+  // here, so a yearly budget still counts), plus what active Goals and Important Dates need
+  // this month to stay on track. This is the number "actual money spent so far" (above)
+  // doesn't capture, since most of it hasn't been logged as transactions yet.
+  const plan = planForMonth(state, startOfMonth(today0))
+  const savingsGoalTotal = plan.goalsTotal
   const savingsGoalRatio = savingsGoalTotal > 0 ? currentMonthSaved / savingsGoalTotal : 0
   const savingsGoalPercent = Math.max(0, Math.round(savingsGoalRatio * 100))
+
+  // "In theory" projected savings: income for the selected period minus everything that
+  // period is already committed to (budgets scaled the same way income is, plus goals and
+  // important dates). This is what's realistically left over, not just what's left over
+  // from transactions logged so far.
+  const periodObligations = plan.total * monthsInPeriod
+  const theoreticalSaved = income - periodObligations
+  const theoreticalSavedPercent = income > 0 ? Math.round((theoreticalSaved / income) * 100) : 0
 
   const recent = [...state.transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -150,8 +163,9 @@ export default function Dashboard({
           tone="clay"
         />
         <StatCard
-          label={`Saved ${periodLabel}`}
-          value={formatMoney(saved, state.settings.currency)}
+          label={`In theory, you can save ${periodLabel}`}
+          value={formatMoney(theoreticalSaved, state.settings.currency)}
+          sub={`${theoreticalSavedPercent}% of income · after budgets, goals & important dates`}
           icon={PiggyBank}
           tone="gold"
         />
@@ -295,11 +309,13 @@ export default function Dashboard({
 function StatCard({
   label,
   value,
+  sub,
   icon: Icon,
   tone,
 }: {
   label: string
   value: string
+  sub?: string
   icon: React.ElementType
   tone: 'ink' | 'sage' | 'clay' | 'gold'
 }) {
@@ -316,6 +332,7 @@ function StatCard({
       </div>
       <p className="text-xs text-ink-softer mb-1">{label}</p>
       <p className="font-tabular font-semibold text-lg sm:text-xl text-ink truncate">{value}</p>
+      {sub && <p className="text-xs text-ink-softer mt-1 leading-snug">{sub}</p>}
     </Card>
   )
 }

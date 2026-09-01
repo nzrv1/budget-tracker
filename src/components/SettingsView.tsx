@@ -181,7 +181,15 @@ export default function SettingsView({
         <label className="block text-xs font-medium text-ink-softer mb-1.5 mt-4">Payday</label>
         <select
           value={state.settings.salaryDay ?? ''}
-          onChange={(e) => updateSettings({ salaryDay: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+          onChange={(e) => {
+            const salaryDay = e.target.value ? parseInt(e.target.value, 10) : undefined
+            // Changing the payday date makes any earlier "handled this month" flag stale —
+            // clear it so the new date can trigger the payday prompt this month too, instead
+            // of silently waiting for next month.
+            const handledPaydays = { ...(state.settings.handledPaydays || {}) }
+            delete handledPaydays.primary
+            updateSettings({ salaryDay, handledPaydays })
+          }}
           className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
         >
           <option value="">Not set</option>
