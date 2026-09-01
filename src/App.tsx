@@ -13,6 +13,7 @@ import {
 import { loadState, saveState, uid, clearState } from './lib/storage'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
+import { planForMonth, startOfMonth, monthKey } from './lib/planning'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import TransactionsView from './components/TransactionsView'
@@ -161,6 +162,25 @@ export default function App() {
     setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))
   }
 
+  // On (or after) payday, offer to move this month's planned goal/important-date
+  // contributions out of "spendable" and into each target's saved amount.
+  function applyAutoAllocations() {
+    const plan = planForMonth(state, startOfMonth(new Date()))
+    for (const item of plan.goalItems) {
+      const goal = state.goals.find((g) => g.id === item.id)
+      if (goal) updateGoal(goal.id, { savedAmount: goal.savedAmount + item.amount })
+    }
+    for (const item of plan.dateItems) {
+      const date = state.importantDates.find((d) => d.id === item.id)
+      if (date) updateImportantDate(date.id, { savedAmount: (date.savedAmount ?? 0) + item.amount })
+    }
+    updateSettings({ lastSalaryPromptMonth: monthKey(new Date()) })
+  }
+
+  function dismissSalaryPrompt() {
+    updateSettings({ lastSalaryPromptMonth: monthKey(new Date()) })
+  }
+
   function setTheme(theme: ThemeKey) {
     setState((prev) => ({ ...prev, settings: { ...prev.settings, theme } }))
   }
@@ -189,6 +209,8 @@ export default function App() {
               addTransaction={addTransaction}
               addCategory={addCategory}
               setView={setView}
+              applyAutoAllocations={applyAutoAllocations}
+              dismissSalaryPrompt={dismissSalaryPrompt}
             />
           )}
           {view === 'transactions' && (

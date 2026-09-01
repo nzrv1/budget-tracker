@@ -85,8 +85,10 @@ export interface Goal {
 
 export interface Settings {
   currency: string
-  monthlyIncome: number
+  monthlyIncome: number // baseline income; treated as the person's basic salary
   theme: ThemeKey
+  salaryDay?: number // day of month (1-31) the basic salary is paid — powers the payday auto-savings prompt
+  lastSalaryPromptMonth?: string // 'YYYY-MM' of the last month the payday prompt was applied or dismissed
 }
 
 export type ThemeKey = 'light' | 'dark' | 'cyber' | 'red' | 'pinky' | 'caramel'

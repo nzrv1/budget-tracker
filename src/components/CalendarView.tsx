@@ -2,8 +2,18 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Wallet, Target, CalendarDays } from 'lucide-react'
 import { AppState } from '../types'
 import { formatMoney } from '../lib/utils'
-import { Card, SectionHeading } from './shared'
-import { planForMonth, planForWeek, eventsInMonth, startOfMonth, startOfWeek, addDays, addMonths } from '../lib/planning'
+import { Card, GoalIconGlyph, ProgressBar, SectionHeading } from './shared'
+import { ImportantDateIconGlyph } from '../lib/importantDates'
+import {
+  planForMonth,
+  planForWeek,
+  eventsInMonth,
+  startOfMonth,
+  startOfWeek,
+  addDays,
+  addMonths,
+  CalendarEvent,
+} from '../lib/planning'
 
 const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -89,7 +99,14 @@ function MonthGridView({ state, year, setYear }: { state: AppState; year: number
 function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date }) {
   const plan = planForMonth(state, monthStart)
   const events = eventsInMonth(state, monthStart)
-  const eventDays = new Set(events.map((e) => e.day))
+  const [openDay, setOpenDay] = useState<number | null>(null)
+
+  const eventsByDay = new Map<number, CalendarEvent[]>()
+  for (const e of events) {
+    const arr = eventsByDay.get(e.day) || []
+    arr.push(e)
+    eventsByDay.set(e.day, arr)
+  }
 
   const year = monthStart.getFullYear()
   const month = monthStart.getMonth()
@@ -105,6 +122,7 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
 
   const currency = state.settings.currency
   const hasBreakdown = plan.budgetsTotal > 0 || plan.goalsTotal > 0 || plan.datesTotal > 0
+  const openDayEvents = openDay !== null ? eventsByDay.get(openDay) : undefined
 
   return (
     <Card className="p-4">
@@ -120,15 +138,20 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
           </span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-y-1 text-center mb-3">
+      <div className="grid grid-cols-7 gap-y-1 text-center mb-3" onMouseLeave={() => setOpenDay(null)}>
         {cells.map((d, i) => {
-          const hasEvent = d !== null && eventDays.has(d)
+          const dayEvents = d !== null ? eventsByDay.get(d) : undefined
+          const hasEvent = !!dayEvents && dayEvents.length > 0
           const isToday = isCurrentMonth && d === today.getDate()
           return (
             <span
               key={i}
-              className={`relative text-[11px] font-tabular w-6 h-6 mx-auto flex items-center justify-center rounded-full ${
+              onClick={() => hasEvent && d !== null && setOpenDay(openDay === d ? null : d)}
+              onMouseEnter={() => hasEvent && d !== null && setOpenDay(d)}
+              className={`relative text-[11px] font-tabular w-6 h-6 mx-auto flex items-center justify-center rounded-full transition-colors ${
                 isToday ? 'bg-ink text-paper' : 'text-ink-softer'
+              } ${hasEvent ? 'cursor-pointer hover:bg-sage-light hover:text-sage-dark' : ''} ${
+                hasEvent && openDay === d && !isToday ? 'bg-sage-light text-sage-dark' : ''
               }`}
             >
               {d ?? ''}
@@ -137,6 +160,39 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
           )
         })}
       </div>
+
+      {openDayEvents && openDayEvents.length > 0 && (
+        <div className="mb-3 p-3 rounded bg-paper border border-paper-line flex flex-col gap-3">
+          {openDayEvents.map((ev) => {
+            const hasTarget = ev.kind === 'goal' ? true : ev.hasTarget
+            const remaining = Math.max(ev.target - ev.saved, 0)
+            const ratio = ev.target > 0 ? ev.saved / ev.target : 0
+            return (
+              <div key={`${ev.kind}-${ev.id}`}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {ev.kind === 'goal' ? (
+                    <GoalIconGlyph icon={ev.icon} size={13} className="text-ink-softer shrink-0" />
+                  ) : (
+                    <ImportantDateIconGlyph category={ev.category} size={13} className="text-ink-softer shrink-0" />
+                  )}
+                  <span className="text-xs font-medium text-ink truncate">{ev.name}</span>
+                </div>
+                {hasTarget ? (
+                  <>
+                    <div className="flex justify-between text-[11px] font-tabular text-ink-softer mb-1">
+                      <span>{formatMoney(ev.saved, currency)} saved</span>
+                      <span>{formatMoney(remaining, currency)} left</span>
+                    </div>
+                    <ProgressBar ratio={ratio} tone={ratio >= 0.9 ? 'gold' : 'sage'} />
+                  </>
+                ) : (
+                  <p className="text-[11px] text-ink-softer">No savings target set for this one.</p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {hasBreakdown && (
         <div className="flex flex-col gap-1 pt-3 border-t border-paper-line text-xs">

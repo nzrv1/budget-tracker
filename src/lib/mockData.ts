@@ -126,6 +126,7 @@ export function mockState(): AppState {
       currency: 'EUR',
       monthlyIncome: 3200,
       theme: 'light',
+      salaryDay: 1,
     },
   }
 }

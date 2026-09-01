@@ -145,7 +145,7 @@ export default function SettingsView({
           ))}
         </select>
 
-        <label className="block text-xs font-medium text-ink-softer mb-1.5">Monthly income</label>
+        <label className="block text-xs font-medium text-ink-softer mb-1.5">Basic salary</label>
         <input
           type="number"
           min="0"
@@ -154,7 +154,27 @@ export default function SettingsView({
           onChange={(e) => updateSettings({ monthlyIncome: parseFloat(e.target.value) || 0 })}
           className="w-full px-3 py-2.5 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
         />
-        <p className="text-xs text-ink-softer mt-1.5">Used as a baseline for savings-rate insights.</p>
+        <p className="text-xs text-ink-softer mt-1.5">
+          Your regular monthly income — used as a baseline for savings-rate insights.
+        </p>
+
+        <label className="block text-xs font-medium text-ink-softer mb-1.5 mt-4">Payday</label>
+        <select
+          value={state.settings.salaryDay ?? ''}
+          onChange={(e) => updateSettings({ salaryDay: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
+        >
+          <option value="">Not set</option>
+          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+            <option key={day} value={day}>
+              {day}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-ink-softer mt-1.5">
+          The day each month your basic salary lands. From that day, we'll suggest setting money aside for your
+          goals and important dates automatically.
+        </p>
       </CollapsibleCard>
 
       <CollapsibleCard

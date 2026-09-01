@@ -1,6 +1,6 @@
 // Turns Budgets, Goals, and Important Dates into a "how much do I need to set aside"
 // figure for a given month or week — powering the Calendar view.
-import { AppState, CategoryBudget, Goal, ImportantDate } from '../types'
+import { AppState, CategoryBudget, GoalIcon, ImportantDateCategory } from '../types'
 import { nextOccurrence } from './importantDates'
 
 function startOfDay(d: Date): Date {
@@ -15,6 +15,21 @@ export function startOfMonth(d: Date): Date {
 
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate()
+}
+
+/** 'YYYY-MM' for a date — used to track "has this month's payday prompt been handled". */
+export function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * True from payday onward for the rest of the month. Clamps to the month's last day so a
+ * salary day of e.g. 31 still fires in shorter months.
+ */
+export function isPaydayReached(salaryDay: number | undefined, now: Date = new Date()): boolean {
+  if (!salaryDay || salaryDay < 1) return false
+  const effectiveDay = Math.min(salaryDay, daysInMonth(now.getFullYear(), now.getMonth()))
+  return now.getDate() >= effectiveDay
 }
 
 function monthsBetweenInclusive(from: Date, to: Date): number {
@@ -185,18 +200,58 @@ export function planForWeek(state: AppState, weekStart: Date): PeriodPlan {
   }
 }
 
-/** Which important dates land on which day of a given month, for the mini calendar grid. */
-export function eventsInMonth(state: AppState, monthStart: Date): { date: ImportantDate; day: number }[] {
+export type CalendarEvent =
+  | { kind: 'goal'; id: string; name: string; day: number; saved: number; target: number; icon: GoalIcon }
+  | {
+      kind: 'importantDate'
+      id: string
+      name: string
+      day: number
+      saved: number
+      target: number
+      hasTarget: boolean
+      category: ImportantDateCategory
+    }
+
+/** Which goals and important dates land on which day of a given month, for the mini calendar grid. */
+export function eventsInMonth(state: AppState, monthStart: Date): CalendarEvent[] {
   const year = monthStart.getFullYear()
   const month = monthStart.getMonth()
-  const results: { date: ImportantDate; day: number }[] = []
+  const results: CalendarEvent[] = []
+
   for (const d of state.importantDates) {
     const base = new Date(d.date)
-    if (d.recurring) {
-      if (base.getMonth() === month) results.push({ date: d, day: base.getDate() })
-    } else if (base.getFullYear() === year && base.getMonth() === month) {
-      results.push({ date: d, day: base.getDate() })
+    const matches = d.recurring
+      ? base.getMonth() === month
+      : base.getFullYear() === year && base.getMonth() === month
+    if (matches) {
+      results.push({
+        kind: 'importantDate',
+        id: d.id,
+        name: d.name,
+        day: base.getDate(),
+        saved: d.savedAmount ?? 0,
+        target: d.targetAmount ?? 0,
+        hasTarget: !!d.targetAmount && d.targetAmount > 0,
+        category: d.category,
+      })
     }
   }
+
+  for (const g of state.goals) {
+    const target = new Date(g.targetDate)
+    if (target.getFullYear() === year && target.getMonth() === month) {
+      results.push({
+        kind: 'goal',
+        id: g.id,
+        name: g.name,
+        day: target.getDate(),
+        saved: g.savedAmount,
+        target: g.targetAmount,
+        icon: g.icon,
+      })
+    }
+  }
+
   return results
 }

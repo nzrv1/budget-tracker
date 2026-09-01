@@ -5,6 +5,8 @@ import { formatMoney, periodRange, filterByRange, totals } from '../lib/utils'
 import { Card, ProgressBar, budgetTone } from './shared'
 import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
+import SalaryPromptBanner from './SalaryPromptBanner'
+import { isPaydayReached, monthKey } from '../lib/planning'
 import { ViewKey } from '../App'
 
 export default function Dashboard({
@@ -13,12 +15,16 @@ export default function Dashboard({
   addTransaction,
   addCategory,
   setView,
+  applyAutoAllocations,
+  dismissSalaryPrompt,
 }: {
   state: AppState
   insights: Insight[]
   addTransaction: (t: Omit<Transaction, 'id'>) => void
   addCategory: (def: CategoryDef) => void
   setView: (v: ViewKey) => void
+  applyAutoAllocations: () => void
+  dismissSalaryPrompt: () => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
 
@@ -47,8 +53,15 @@ export default function Dashboard({
   const today = new Date()
   const dayLabel = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 
+  const showSalaryPrompt =
+    isPaydayReached(state.settings.salaryDay, today) && state.settings.lastSalaryPromptMonth !== monthKey(today)
+
   return (
     <div>
+      {showSalaryPrompt && (
+        <SalaryPromptBanner state={state} onApply={applyAutoAllocations} onDismiss={dismissSalaryPrompt} />
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <p className="text-sm text-ink-softer mb-1">{dayLabel}</p>
