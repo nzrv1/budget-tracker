@@ -88,7 +88,19 @@ export interface Settings {
   monthlyIncome: number // baseline income; treated as the person's basic salary
   theme: ThemeKey
   salaryDay?: number // day of month (1-31) the basic salary is paid — powers the payday auto-savings prompt
-  lastSalaryPromptMonth?: string // 'YYYY-MM' of the last month the payday prompt was applied or dismissed
+  // Tracks which paydays have already been applied/dismissed this month, so the prompt
+  // doesn't repeat. Keyed by 'primary' for the basic salary above, or an IncomeSource id
+  // for an extra income source — each pays on its own day and gets its own reminder.
+  handledPaydays?: Record<string, string> // key -> 'YYYY-MM'
+}
+
+/** An extra source of income beyond the basic salary — a second job, freelance work, etc. —
+ * with its own monthly amount and payday, for people with more than one income. */
+export interface IncomeSource {
+  id: string
+  name: string
+  amount: number
+  payDay: number // day of month, 1-31
 }
 
 export type ThemeKey = 'light' | 'dark' | 'cyber' | 'red' | 'pinky' | 'caramel'
@@ -134,6 +146,7 @@ export interface AppState {
   categories: CategoryDef[]
   importantDates: ImportantDate[]
   reminderRules: ReminderRule[]
+  incomeSources: IncomeSource[]
   settings: Settings
 }
 

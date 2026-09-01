@@ -6,6 +6,7 @@ import {
   Goal,
   CategoryDef,
   ImportantDate,
+  IncomeSource,
   ReminderOffsetKey,
   ReminderTargetKind,
   ThemeKey,
@@ -13,7 +14,7 @@ import {
 import { loadState, saveState, uid, clearState } from './lib/storage'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
-import { planForMonth, startOfMonth, monthKey } from './lib/planning'
+import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/planning'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import TransactionsView from './components/TransactionsView'
@@ -162,23 +163,48 @@ export default function App() {
     setState((prev) => ({ ...prev, settings: { ...prev.settings, ...patch } }))
   }
 
+  // Extra income sources — a second job, freelance work — each with its own payday, for
+  // people with more than one income.
+  function addIncomeSource(s: Omit<IncomeSource, 'id'>) {
+    setState((prev) => ({ ...prev, incomeSources: [...prev.incomeSources, { ...s, id: uid() }] }))
+  }
+
+  function deleteIncomeSource(id: string) {
+    setState((prev) => ({ ...prev, incomeSources: prev.incomeSources.filter((s) => s.id !== id) }))
+  }
+
+  // Marks every currently-due payday (basic salary and/or any extra income source whose day
+  // has arrived) as handled for this month, so the prompt doesn't repeat until next month —
+  // or until a later payday from a different income source comes due.
+  function markDuePaydaysHandled() {
+    const due = duePaydaySources(state.settings.salaryDay, state.incomeSources, state.settings.handledPaydays)
+    const monthK = monthKey(new Date())
+    const handledPaydays = { ...(state.settings.handledPaydays || {}) }
+    for (const s of due) handledPaydays[s.key] = monthK
+    updateSettings({ handledPaydays })
+  }
+
   // On (or after) payday, offer to move this month's planned goal/important-date
-  // contributions out of "spendable" and into each target's saved amount.
-  function applyAutoAllocations() {
+  // contributions out of "spendable" and into each target's saved amount. excludeKeys lets
+  // the person skip specific items (as `${kind}:${id}`) they don't want to fund this time.
+  function applyAutoAllocations(excludeKeys: string[] = []) {
+    const excluded = new Set(excludeKeys)
     const plan = planForMonth(state, startOfMonth(new Date()))
     for (const item of plan.goalItems) {
+      if (excluded.has(`${item.kind}:${item.id}`)) continue
       const goal = state.goals.find((g) => g.id === item.id)
       if (goal) updateGoal(goal.id, { savedAmount: goal.savedAmount + item.amount })
     }
     for (const item of plan.dateItems) {
+      if (excluded.has(`${item.kind}:${item.id}`)) continue
       const date = state.importantDates.find((d) => d.id === item.id)
       if (date) updateImportantDate(date.id, { savedAmount: (date.savedAmount ?? 0) + item.amount })
     }
-    updateSettings({ lastSalaryPromptMonth: monthKey(new Date()) })
+    markDuePaydaysHandled()
   }
 
   function dismissSalaryPrompt() {
-    updateSettings({ lastSalaryPromptMonth: monthKey(new Date()) })
+    markDuePaydaysHandled()
   }
 
   function setTheme(theme: ThemeKey) {
@@ -248,6 +274,8 @@ export default function App() {
               addCategory={addCategory}
               setReminderRule={setReminderRule}
               removeReminderRule={removeReminderRule}
+              addIncomeSource={addIncomeSource}
+              deleteIncomeSource={deleteIncomeSource}
             />
           )}
         </div>

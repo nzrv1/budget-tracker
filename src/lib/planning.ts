@@ -1,6 +1,6 @@
 // Turns Budgets, Goals, and Important Dates into a "how much do I need to set aside"
 // figure for a given month or week — powering the Calendar view.
-import { AppState, CategoryBudget, GoalIcon, ImportantDateCategory } from '../types'
+import { AppState, CategoryBudget, GoalIcon, ImportantDateCategory, IncomeSource } from '../types'
 import { nextOccurrence } from './importantDates'
 
 function startOfDay(d: Date): Date {
@@ -22,14 +22,36 @@ export function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+export interface PaydaySource {
+  key: string // 'primary' for the basic salary, or an IncomeSource id
+  label: string
+  payDay: number
+}
+
 /**
- * True from payday onward for the rest of the month. Clamps to the month's last day so a
- * salary day of e.g. 31 still fires in shorter months.
+ * Which paydays (basic salary plus any extra income sources — useful for more than one job)
+ * have been reached this month and haven't already been applied or dismissed. Clamps each
+ * day to the month's last day so a payday of e.g. 31 still fires in shorter months.
  */
-export function isPaydayReached(salaryDay: number | undefined, now: Date = new Date()): boolean {
-  if (!salaryDay || salaryDay < 1) return false
-  const effectiveDay = Math.min(salaryDay, daysInMonth(now.getFullYear(), now.getMonth()))
-  return now.getDate() >= effectiveDay
+export function duePaydaySources(
+  salaryDay: number | undefined,
+  incomeSources: IncomeSource[],
+  handledPaydays: Record<string, string> | undefined,
+  now: Date = new Date()
+): PaydaySource[] {
+  const monthK = monthKey(now)
+  const dim = daysInMonth(now.getFullYear(), now.getMonth())
+  const all: PaydaySource[] = []
+  if (salaryDay && salaryDay >= 1) all.push({ key: 'primary', label: 'Basic salary', payDay: salaryDay })
+  for (const src of incomeSources) {
+    if (src.payDay && src.payDay >= 1) all.push({ key: src.id, label: src.name || 'Income', payDay: src.payDay })
+  }
+  return all.filter((s) => {
+    const effectiveDay = Math.min(s.payDay, dim)
+    const reached = now.getDate() >= effectiveDay
+    const alreadyHandled = handledPaydays?.[s.key] === monthK
+    return reached && !alreadyHandled
+  })
 }
 
 function monthsBetweenInclusive(from: Date, to: Date): number {
@@ -76,6 +98,7 @@ function budgetDailyRate(b: CategoryBudget): number {
 
 export interface ContributionItem {
   id: string
+  kind: 'goal' | 'importantDate'
   label: string
   amount: number
 }
@@ -120,7 +143,7 @@ export function planForMonth(state: AppState, monthStart: Date): PeriodPlan {
     const months = monthsBetweenInclusive(from, to)
     const amount = remaining / months
     goalsTotal += amount
-    goalItems.push({ id: goal.id, label: goal.name, amount })
+    goalItems.push({ id: goal.id, kind: 'goal', label: goal.name, amount })
   }
 
   let datesTotal = 0
@@ -135,7 +158,7 @@ export function planForMonth(state: AppState, monthStart: Date): PeriodPlan {
     const months = monthsBetweenInclusive(from, to)
     const amount = remaining / months
     datesTotal += amount
-    dateItems.push({ id: date.id, label: date.name, amount })
+    dateItems.push({ id: date.id, kind: 'importantDate', label: date.name, amount })
   }
 
   return {
@@ -170,7 +193,7 @@ export function planForWeek(state: AppState, weekStart: Date): PeriodPlan {
     const weeks = weeksBetweenInclusive(from, to)
     const amount = remaining / weeks
     goalsTotal += amount
-    goalItems.push({ id: goal.id, label: goal.name, amount })
+    goalItems.push({ id: goal.id, kind: 'goal', label: goal.name, amount })
   }
 
   let datesTotal = 0
@@ -185,7 +208,7 @@ export function planForWeek(state: AppState, weekStart: Date): PeriodPlan {
     const weeks = weeksBetweenInclusive(from, to)
     const amount = remaining / weeks
     datesTotal += amount
-    dateItems.push({ id: date.id, label: date.name, amount })
+    dateItems.push({ id: date.id, kind: 'importantDate', label: date.name, amount })
   }
 
   return {

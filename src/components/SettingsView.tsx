@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Trash2, Check, Plus, X, Bell, Target, CalendarDays } from 'lucide-react'
-import { AppState, CategoryDef, CategoryIconKey, ReminderOffsetKey, ReminderTargetKind, ThemeKey } from '../types'
+import { Trash2, Check, Plus, X, Bell, Target, CalendarDays, Briefcase } from 'lucide-react'
+import { AppState, CategoryDef, CategoryIconKey, IncomeSource, ReminderOffsetKey, ReminderTargetKind, ThemeKey } from '../types'
 import { CollapsibleCard, GoalIconGlyph, ProgressBar, SectionHeading } from './shared'
+import { formatMoney } from '../lib/utils'
 import { THEMES } from '../lib/themes'
 import { CATEGORY_ICON_OPTIONS, CategoryIconGlyph, suggestIconForName } from '../lib/categoryIcons'
 import { ImportantDateIconGlyph } from '../lib/importantDates'
@@ -22,6 +23,8 @@ export default function SettingsView({
   addCategory,
   setReminderRule,
   removeReminderRule,
+  addIncomeSource,
+  deleteIncomeSource,
 }: {
   state: AppState
   updateSettings: (patch: Partial<AppState['settings']>) => void
@@ -30,8 +33,25 @@ export default function SettingsView({
   addCategory: (def: CategoryDef) => void
   setReminderRule: (targetKind: ReminderTargetKind, targetId: string, offsets: ReminderOffsetKey[]) => void
   removeReminderRule: (targetKind: ReminderTargetKind, targetId: string) => void
+  addIncomeSource: (s: Omit<IncomeSource, 'id'>) => void
+  deleteIncomeSource: (id: string) => void
 }) {
   const [confirmReset, setConfirmReset] = useState(false)
+
+  const [newIncomeName, setNewIncomeName] = useState('')
+  const [newIncomeAmount, setNewIncomeAmount] = useState('')
+  const [newIncomeDay, setNewIncomeDay] = useState('')
+
+  function handleAddIncomeSource() {
+    const name = newIncomeName.trim()
+    const amount = parseFloat(newIncomeAmount)
+    const day = parseInt(newIncomeDay, 10)
+    if (!name || !amount || amount <= 0 || !day || day < 1 || day > 31) return
+    addIncomeSource({ name, amount, payDay: day })
+    setNewIncomeName('')
+    setNewIncomeAmount('')
+    setNewIncomeDay('')
+  }
 
   const [newCatName, setNewCatName] = useState('')
   const [newCatIcon, setNewCatIcon] = useState<CategoryIconKey>('other')
@@ -175,6 +195,82 @@ export default function SettingsView({
           The day each month your basic salary lands. From that day, we'll suggest setting money aside for your
           goals and important dates automatically.
         </p>
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        title="Other income"
+        subtitle="For a second job or freelance work that pays on a different day."
+        className="mb-5"
+      >
+        {state.incomeSources.length > 0 && (
+          <div className="flex flex-col gap-2 mb-4">
+            {state.incomeSources.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded border border-paper-line text-sm"
+              >
+                <span className="w-7 h-7 rounded-full bg-paper flex items-center justify-center shrink-0 text-ink-softer">
+                  <Briefcase size={13} strokeWidth={1.75} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-ink truncate">{s.name}</p>
+                  <p className="text-xs text-ink-softer font-tabular">
+                    {formatMoney(s.amount, state.settings.currency)} · day {s.payDay}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deleteIncomeSource(s.id)}
+                  className="text-ink-softer hover:text-clay-dark shrink-0"
+                  aria-label={`Remove ${s.name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="border-t border-paper-line pt-4">
+          <label className="block text-xs font-medium text-ink-softer mb-1.5">Add income source</label>
+          <input
+            value={newIncomeName}
+            onChange={(e) => setNewIncomeName(e.target.value)}
+            placeholder="e.g. Freelance, Second job"
+            className="w-full px-3 py-2.5 border border-paper-line rounded text-sm outline-none focus:border-sage mb-2.5"
+          />
+          <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={newIncomeAmount}
+              onChange={(e) => setNewIncomeAmount(e.target.value)}
+              placeholder="Monthly amount"
+              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm font-tabular outline-none focus:border-sage"
+            />
+            <select
+              value={newIncomeDay}
+              onChange={(e) => setNewIncomeDay(e.target.value)}
+              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white outline-none focus:border-sage"
+            >
+              <option value="">Payday</option>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={handleAddIncomeSource}
+            className="inline-flex items-center gap-1.5 bg-ink text-paper px-3.5 py-2 rounded text-sm font-medium hover:bg-ink-light transition-colors"
+          >
+            <Plus size={14} />
+            Add income source
+          </button>
+        </div>
       </CollapsibleCard>
 
       <CollapsibleCard

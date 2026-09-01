@@ -14,11 +14,24 @@ function migrate(state: AppState): AppState {
   }))
   const theme = VALID_THEMES.includes(state.settings?.theme) ? state.settings.theme : 'light'
   const importantDates = state.importantDates || []
+  const incomeSources = state.incomeSources || []
   // Carry forward rules saved under the old goal-only shape ({ goalId, offsets }) if present.
   const legacyGoalRules = (state as any).goalNotificationRules as { goalId: string; offsets: any[] }[] | undefined
   const reminderRules =
     state.reminderRules || legacyGoalRules?.map((r) => ({ targetKind: 'goal' as const, targetId: r.goalId, offsets: r.offsets })) || []
-  return { ...state, categories, budgets, importantDates, reminderRules, settings: { ...state.settings, theme } }
+  // The payday prompt used to track a single "last handled month" for the basic salary only;
+  // fold that into the new per-source map (keyed 'primary') if present.
+  const legacyLastPrompt = (state.settings as any)?.lastSalaryPromptMonth as string | undefined
+  const handledPaydays = state.settings?.handledPaydays || (legacyLastPrompt ? { primary: legacyLastPrompt } : {})
+  return {
+    ...state,
+    categories,
+    budgets,
+    importantDates,
+    reminderRules,
+    incomeSources,
+    settings: { ...state.settings, theme, handledPaydays },
+  }
 }
 
 export function loadState(): AppState {
