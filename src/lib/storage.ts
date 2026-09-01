@@ -13,7 +13,12 @@ function migrate(state: AppState): AppState {
     period: b.period || 'month',
   }))
   const theme = VALID_THEMES.includes(state.settings?.theme) ? state.settings.theme : 'light'
-  return { ...state, categories, budgets, settings: { ...state.settings, theme } }
+  const importantDates = state.importantDates || []
+  // Carry forward rules saved under the old goal-only shape ({ goalId, offsets }) if present.
+  const legacyGoalRules = (state as any).goalNotificationRules as { goalId: string; offsets: any[] }[] | undefined
+  const reminderRules =
+    state.reminderRules || legacyGoalRules?.map((r) => ({ targetKind: 'goal' as const, targetId: r.goalId, offsets: r.offsets })) || []
+  return { ...state, categories, budgets, importantDates, reminderRules, settings: { ...state.settings, theme } }
 }
 
 export function loadState(): AppState {

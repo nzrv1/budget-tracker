@@ -1,4 +1,5 @@
-import { Plane, Shirt, Palmtree, Laptop, Home, Gift, Circle } from 'lucide-react'
+import { useState } from 'react'
+import { Plane, Shirt, Palmtree, Laptop, Home, Gift, Circle, ChevronDown } from 'lucide-react'
 import { GoalIcon } from '../types'
 
 export function ProgressBar({
@@ -50,6 +51,45 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
     <div className={`bg-paper-card border border-paper-line rounded-lg ${className}`}>
       {children}
     </div>
+  )
+}
+
+/** A Card with a clickable header (title + chevron) that expands/collapses its body. */
+export function CollapsibleCard({
+  title,
+  titleClassName = '',
+  subtitle,
+  defaultOpen = true,
+  className = '',
+  children,
+}: {
+  title: string
+  titleClassName?: string
+  subtitle?: string
+  defaultOpen?: boolean
+  className?: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <Card className={className}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 px-5 pt-5 pb-4 text-left"
+      >
+        <div>
+          <h3 className={`font-display font-semibold text-base ${titleClassName}`}>{title}</h3>
+          {subtitle && <p className="text-sm text-ink-softer mt-0.5">{subtitle}</p>}
+        </div>
+        <ChevronDown
+          size={17}
+          className={`text-ink-softer shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </Card>
   )
 }
 

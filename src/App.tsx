@@ -1,18 +1,38 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AppState, Transaction, CategoryBudget, Goal, CategoryDef, ThemeKey } from './types'
+import {
+  AppState,
+  Transaction,
+  CategoryBudget,
+  Goal,
+  CategoryDef,
+  ImportantDate,
+  ReminderOffsetKey,
+  ReminderTargetKind,
+  ThemeKey,
+} from './types'
 import { loadState, saveState, uid, clearState } from './lib/storage'
 import { generateInsights } from './lib/insights'
+import { generateReminders } from './lib/goalReminders'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import TransactionsView from './components/TransactionsView'
 import ReportsView from './components/ReportsView'
 import BudgetsView from './components/BudgetsView'
 import GoalsView from './components/GoalsView'
+import ImportantDatesView from './components/ImportantDatesView'
 import NotificationsView from './components/NotificationsView'
 import SettingsView from './components/SettingsView'
 import ToastStack from './components/ToastStack'
 
-export type ViewKey = 'dashboard' | 'transactions' | 'reports' | 'budgets' | 'goals' | 'notifications' | 'settings'
+export type ViewKey =
+  | 'dashboard'
+  | 'transactions'
+  | 'reports'
+  | 'budgets'
+  | 'goals'
+  | 'important-dates'
+  | 'notifications'
+  | 'settings'
 
 export default function App() {
   const [state, setState] = useState<AppState>(() => loadState())
@@ -29,6 +49,7 @@ export default function App() {
   }, [state.settings.theme])
 
   const insights = useMemo(() => generateInsights(state), [state])
+  const reminders = useMemo(() => generateReminders(state), [state])
 
   // Surface the top 2 new warning/positive insights as toasts once per session
   useEffect(() => {
@@ -88,7 +109,50 @@ export default function App() {
   }
 
   function deleteGoal(id: string) {
-    setState((prev) => ({ ...prev, goals: prev.goals.filter((g) => g.id !== id) }))
+    setState((prev) => ({
+      ...prev,
+      goals: prev.goals.filter((g) => g.id !== id),
+      reminderRules: prev.reminderRules.filter((r) => !(r.targetKind === 'goal' && r.targetId === id)),
+    }))
+  }
+
+  function addImportantDate(d: Omit<ImportantDate, 'id' | 'createdAt'>) {
+    setState((prev) => ({
+      ...prev,
+      importantDates: [...prev.importantDates, { ...d, id: uid(), createdAt: new Date().toISOString() }],
+    }))
+  }
+
+  function updateImportantDate(id: string, patch: Partial<ImportantDate>) {
+    setState((prev) => ({
+      ...prev,
+      importantDates: prev.importantDates.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+    }))
+  }
+
+  function deleteImportantDate(id: string) {
+    setState((prev) => ({
+      ...prev,
+      importantDates: prev.importantDates.filter((d) => d.id !== id),
+      reminderRules: prev.reminderRules.filter((r) => !(r.targetKind === 'importantDate' && r.targetId === id)),
+    }))
+  }
+
+  function setReminderRule(targetKind: ReminderTargetKind, targetId: string, offsets: ReminderOffsetKey[]) {
+    setState((prev) => ({
+      ...prev,
+      reminderRules: [
+        ...prev.reminderRules.filter((r) => !(r.targetKind === targetKind && r.targetId === targetId)),
+        { targetKind, targetId, offsets },
+      ],
+    }))
+  }
+
+  function removeReminderRule(targetKind: ReminderTargetKind, targetId: string) {
+    setState((prev) => ({
+      ...prev,
+      reminderRules: prev.reminderRules.filter((r) => !(r.targetKind === targetKind && r.targetId === targetId)),
+    }))
   }
 
   function updateSettings(patch: Partial<AppState['settings']>) {
@@ -109,7 +173,7 @@ export default function App() {
       <Sidebar
         view={view}
         setView={setView}
-        notificationCount={insights.filter((i) => i.tone === 'warning').length}
+        notificationCount={insights.filter((i) => i.tone === 'warning').length + reminders.length}
         theme={state.settings.theme}
         setTheme={setTheme}
       />
@@ -139,9 +203,27 @@ export default function App() {
           {view === 'goals' && (
             <GoalsView state={state} addGoal={addGoal} updateGoal={updateGoal} deleteGoal={deleteGoal} />
           )}
-          {view === 'notifications' && <NotificationsView insights={insights} />}
+          {view === 'important-dates' && (
+            <ImportantDatesView
+              state={state}
+              addImportantDate={addImportantDate}
+              updateImportantDate={updateImportantDate}
+              deleteImportantDate={deleteImportantDate}
+            />
+          )}
+          {view === 'notifications' && (
+            <NotificationsView insights={insights} reminders={reminders} currency={state.settings.currency} />
+          )}
           {view === 'settings' && (
-            <SettingsView state={state} updateSettings={updateSettings} resetData={resetData} setTheme={setTheme} />
+            <SettingsView
+              state={state}
+              updateSettings={updateSettings}
+              resetData={resetData}
+              setTheme={setTheme}
+              addCategory={addCategory}
+              setReminderRule={setReminderRule}
+              removeReminderRule={removeReminderRule}
+            />
           )}
         </div>
       </main>
