@@ -12,6 +12,31 @@ const ICON_OPTIONS: { key: GoalIcon; label: string }[] = [
   { key: 'tech', label: 'Tech' },
   { key: 'home', label: 'Home' },
   { key: 'gift', label: 'Gift' },
+  { key: 'car', label: 'Car' },
+  { key: 'education', label: 'Education' },
+  { key: 'health', label: 'Health' },
+  { key: 'emergencyFund', label: 'Emergency fund' },
+  { key: 'pet', label: 'Pet' },
+  { key: 'hobby', label: 'Hobby' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'music', label: 'Music' },
+  { key: 'fitness', label: 'Fitness' },
+  { key: 'kids', label: 'Kids' },
+  { key: 'charity', label: 'Charity' },
+  { key: 'business', label: 'Business' },
+  { key: 'renovation', label: 'Renovation' },
+  { key: 'debt', label: 'Debt' },
+  { key: 'savings', label: 'Savings' },
+  { key: 'insurance', label: 'Insurance' },
+  { key: 'outdoors', label: 'Outdoors' },
+  { key: 'wedding', label: 'Wedding' },
+  { key: 'furniture', label: 'Furniture' },
+  { key: 'books', label: 'Books' },
+  { key: 'games', label: 'Games' },
+  { key: 'food', label: 'Food' },
+  { key: 'family', label: 'Family' },
+  { key: 'shopping', label: 'Shopping' },
+  { key: 'bike', label: 'Bike' },
   { key: 'other', label: 'Other' },
 ]
 
@@ -76,7 +101,7 @@ function GoalCard({
   const ratio = goal.savedAmount / goal.targetAmount
   const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
   const daysLeft = Math.max(Math.round((new Date(goal.targetDate).getTime() - Date.now()) / 86400000), 0)
-  const weeklyPace = daysLeft > 0 ? (remaining / daysLeft) * 7 : 0
+  const monthlyPace = daysLeft > 0 ? (remaining / daysLeft) * 30.44 : 0
   const complete = remaining <= 0
 
   function handleAllocate(e: React.FormEvent) {
@@ -116,7 +141,7 @@ function GoalCard({
         {complete
           ? 'Fully funded — good time to make this happen.'
           : daysLeft > 0
-          ? `About ${formatMoney(weeklyPace, currency)}/week keeps you on track for ${daysLeft} days left.`
+          ? `About ${formatMoney(monthlyPace, currency)}/month keeps you on track for ${daysLeft} days left.`
           : 'Target date has passed.'}
       </p>
 

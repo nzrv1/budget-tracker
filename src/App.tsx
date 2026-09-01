@@ -55,6 +55,38 @@ export default function App() {
   const insights = useMemo(() => generateInsights(state), [state])
   const reminders = useMemo(() => generateReminders(state), [state])
 
+  // Ids of everything currently showing on the Notifications page — opening that page marks
+  // all of these read at once (see the effect below), and the sidebar badge only counts the
+  // ones not yet in state.readNotificationIds.
+  const currentNotificationIds = useMemo(
+    () => [...insights.map((i) => i.id), ...reminders.map((r) => r.id)],
+    [insights, reminders]
+  )
+  const unreadCount = useMemo(() => {
+    const read = new Set(state.readNotificationIds)
+    return currentNotificationIds.filter((id) => !read.has(id)).length
+  }, [currentNotificationIds, state.readNotificationIds])
+
+  function markNotificationsRead() {
+    setState((prev) => {
+      const read = new Set(prev.readNotificationIds)
+      let changed = false
+      for (const id of currentNotificationIds) {
+        if (!read.has(id)) {
+          read.add(id)
+          changed = true
+        }
+      }
+      if (!changed) return prev
+      return { ...prev, readNotificationIds: Array.from(read) }
+    })
+  }
+
+  useEffect(() => {
+    if (view === 'notifications') markNotificationsRead()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, currentNotificationIds])
+
   // Surface the top 2 new warning/positive insights as toasts once per session
   useEffect(() => {
     const notable = insights.filter((i) => i.tone !== 'info').slice(0, 2)
@@ -221,7 +253,7 @@ export default function App() {
       <Sidebar
         view={view}
         setView={setView}
-        notificationCount={insights.filter((i) => i.tone === 'warning').length + reminders.length}
+        notificationCount={unreadCount}
         theme={state.settings.theme}
         setTheme={setTheme}
       />

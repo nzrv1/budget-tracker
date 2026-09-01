@@ -15,6 +15,7 @@ function migrate(state: AppState): AppState {
   const theme = VALID_THEMES.includes(state.settings?.theme) ? state.settings.theme : 'light'
   const importantDates = state.importantDates || []
   const incomeSources = state.incomeSources || []
+  const readNotificationIds = state.readNotificationIds || []
   // Carry forward rules saved under the old goal-only shape ({ goalId, offsets }) if present.
   const legacyGoalRules = (state as any).goalNotificationRules as { goalId: string; offsets: any[] }[] | undefined
   const reminderRules =
@@ -30,6 +31,7 @@ function migrate(state: AppState): AppState {
     importantDates,
     reminderRules,
     incomeSources,
+    readNotificationIds,
     settings: { ...state.settings, theme, handledPaydays },
   }
 }

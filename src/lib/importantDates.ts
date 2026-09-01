@@ -1,5 +1,21 @@
 import { createElement } from 'react'
-import { Cake, Heart, PartyPopper, Car, CalendarDays } from 'lucide-react'
+import {
+  Cake,
+  Heart,
+  PartyPopper,
+  Car,
+  CalendarDays,
+  Gift,
+  Stethoscope,
+  GraduationCap,
+  Plane,
+  Wrench,
+  PawPrint,
+  Users,
+  Landmark,
+  Shield,
+  Receipt,
+} from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
 
 export const IMPORTANT_DATE_ICON_MAP: Record<ImportantDateCategory, React.ElementType> = {
@@ -7,6 +23,16 @@ export const IMPORTANT_DATE_ICON_MAP: Record<ImportantDateCategory, React.Elemen
   anniversary: Heart,
   holiday: PartyPopper,
   carMaintenance: Car,
+  gift: Gift,
+  medical: Stethoscope,
+  education: GraduationCap,
+  travel: Plane,
+  homeMaintenance: Wrench,
+  petCare: PawPrint,
+  family: Users,
+  finance: Landmark,
+  insurance: Shield,
+  subscription: Receipt,
   other: CalendarDays,
 }
 
@@ -15,6 +41,16 @@ export const IMPORTANT_DATE_CATEGORY_OPTIONS: { key: ImportantDateCategory; labe
   { key: 'anniversary', label: 'Anniversary' },
   { key: 'holiday', label: 'Holiday' },
   { key: 'carMaintenance', label: 'Car maintenance' },
+  { key: 'gift', label: 'Gift' },
+  { key: 'medical', label: 'Medical' },
+  { key: 'education', label: 'Education' },
+  { key: 'travel', label: 'Travel' },
+  { key: 'homeMaintenance', label: 'Home maintenance' },
+  { key: 'petCare', label: 'Pet care' },
+  { key: 'family', label: 'Family' },
+  { key: 'finance', label: 'Finance' },
+  { key: 'insurance', label: 'Insurance' },
+  { key: 'subscription', label: 'Subscription' },
   { key: 'other', label: 'Other' },
 ]
 

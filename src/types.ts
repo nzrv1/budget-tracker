@@ -71,7 +71,39 @@ export interface CategoryBudget {
   period: BudgetPeriod
 }
 
-export type GoalIcon = 'flight' | 'clothes' | 'travel' | 'tech' | 'home' | 'gift' | 'other'
+export type GoalIcon =
+  | 'flight'
+  | 'clothes'
+  | 'travel'
+  | 'tech'
+  | 'home'
+  | 'gift'
+  | 'car'
+  | 'education'
+  | 'health'
+  | 'emergencyFund'
+  | 'pet'
+  | 'hobby'
+  | 'phone'
+  | 'music'
+  | 'fitness'
+  | 'kids'
+  | 'charity'
+  | 'business'
+  | 'renovation'
+  | 'debt'
+  | 'savings'
+  | 'insurance'
+  | 'outdoors'
+  | 'wedding'
+  | 'furniture'
+  | 'books'
+  | 'games'
+  | 'food'
+  | 'family'
+  | 'shopping'
+  | 'bike'
+  | 'other'
 
 export interface Goal {
   id: string
@@ -126,7 +158,22 @@ export interface ReminderRule {
   offsets: ReminderOffsetKey[]
 }
 
-export type ImportantDateCategory = 'birthday' | 'anniversary' | 'holiday' | 'carMaintenance' | 'other'
+export type ImportantDateCategory =
+  | 'birthday'
+  | 'anniversary'
+  | 'holiday'
+  | 'carMaintenance'
+  | 'gift'
+  | 'medical'
+  | 'education'
+  | 'travel'
+  | 'homeMaintenance'
+  | 'petCare'
+  | 'family'
+  | 'finance'
+  | 'insurance'
+  | 'subscription'
+  | 'other'
 
 export interface ImportantDate {
   id: string
@@ -148,6 +195,9 @@ export interface AppState {
   reminderRules: ReminderRule[]
   incomeSources: IncomeSource[]
   settings: Settings
+  // Ids of insights/reminders already seen on the Notifications page — everything currently
+  // showing there gets marked read the moment that page opens (see App.tsx).
+  readNotificationIds: string[]
 }
 
 export const DEFAULT_CATEGORIES = [

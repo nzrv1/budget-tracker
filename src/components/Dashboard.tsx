@@ -6,7 +6,7 @@ import { Card, ProgressBar, budgetTone } from './shared'
 import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
-import { duePaydaySources } from '../lib/planning'
+import { duePaydaySources, planForMonth, startOfMonth } from '../lib/planning'
 import { ViewKey } from '../App'
 
 export default function Dashboard({
@@ -27,22 +27,50 @@ export default function Dashboard({
   dismissSalaryPrompt: () => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
+  const [period, setPeriod] = useState<'month' | 'year'>('month')
 
-  const { from, to } = periodRange('month')
-  const monthTx = filterByRange(state.transactions, from, to)
-  const { income, expense } = totals(monthTx)
+  const today0 = new Date()
+
+  // Income baked into Settings (basic salary + any extra income sources) counts toward
+  // "income" even before it's logged as a transaction — on top of whatever's actually
+  // been logged, with no de-duplication between the two.
+  const settingsMonthlyIncome = state.settings.monthlyIncome + state.incomeSources.reduce((s, src) => s + src.amount, 0)
+
+  // Always-current-calendar-month figures, independent of the period toggle above — used
+  // for the budget health card and the savings goal card, which are inherently monthly.
+  const currentMonthRange = periodRange('month', today0)
+  const currentMonthTx = filterByRange(state.transactions, currentMonthRange.from, currentMonthRange.to)
+  const currentMonthLogged = totals(currentMonthTx)
+  const currentMonthIncome = settingsMonthlyIncome + currentMonthLogged.income
+  const currentMonthExpense = currentMonthLogged.expense
+  const currentMonthSaved = currentMonthIncome - currentMonthExpense
+
+  // Figures for the stat row, which follow the "This Month" / "This Year" toggle.
+  const { from, to } = periodRange(period, today0)
+  const periodTx = filterByRange(state.transactions, from, to)
+  const periodLogged = totals(periodTx)
+  // How many salary payments fall inside the selected period: 1 for "This Month",
+  // or the number of months elapsed so far this year for "This Year".
+  const monthsInPeriod = period === 'month' ? 1 : today0.getMonth() + 1
+  const income = settingsMonthlyIncome * monthsInPeriod + periodLogged.income
+  const expense = periodLogged.expense
   const balance = totals(state.transactions).net
   const saved = income - expense
+  const periodLabel = period === 'month' ? 'this month' : 'this year'
 
   const monthlyBudgets = state.budgets.filter((b) => b.period === 'month')
   const totalBudget = monthlyBudgets.reduce((s, b) => s + b.limit, 0)
   const budgetSpent = monthlyBudgets.reduce((s, b) => {
-    const spent = monthTx
+    const spent = currentMonthTx
       .filter((t) => t.type === 'expense' && t.category === b.category)
       .reduce((acc, t) => acc + t.amount, 0)
     return s + spent
   }, 0)
   const budgetRatio = totalBudget > 0 ? budgetSpent / totalBudget : 0
+
+  const savingsGoalTotal = planForMonth(state, startOfMonth(today0)).goalsTotal
+  const savingsGoalRatio = savingsGoalTotal > 0 ? currentMonthSaved / savingsGoalTotal : 0
+  const savingsGoalPercent = Math.max(0, Math.round(savingsGoalRatio * 100))
 
   const recent = [...state.transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -80,6 +108,27 @@ export default function Dashboard({
         </button>
       </div>
 
+      <div className="flex justify-end mb-4 -mt-4">
+        <div className="inline-flex rounded-lg border border-paper-line overflow-hidden">
+          <button
+            onClick={() => setPeriod('month')}
+            className={`px-3.5 py-2 text-sm font-medium transition-colors ${
+              period === 'month' ? 'bg-ink text-paper' : 'text-ink-softer hover:bg-paper-card'
+            }`}
+          >
+            This Month
+          </button>
+          <button
+            onClick={() => setPeriod('year')}
+            className={`px-3.5 py-2 text-sm font-medium transition-colors ${
+              period === 'year' ? 'bg-ink text-paper' : 'text-ink-softer hover:bg-paper-card'
+            }`}
+          >
+            This Year
+          </button>
+        </div>
+      </div>
+
       {/* Stat row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         <StatCard
@@ -89,19 +138,19 @@ export default function Dashboard({
           tone="ink"
         />
         <StatCard
-          label="Income this month"
+          label={`Income ${periodLabel}`}
           value={formatMoney(income, state.settings.currency)}
           icon={TrendingUp}
           tone="sage"
         />
         <StatCard
-          label="Spent this month"
+          label={`Spent ${periodLabel}`}
           value={formatMoney(expense, state.settings.currency)}
           icon={TrendingDown}
           tone="clay"
         />
         <StatCard
-          label="Saved this month"
+          label={`Saved ${periodLabel}`}
           value={formatMoney(saved, state.settings.currency)}
           icon={PiggyBank}
           tone="gold"
@@ -128,6 +177,30 @@ export default function Dashboard({
                 ? "You're pacing close to your monthly limit — worth watching the next few weeks."
                 : "You're comfortably within your monthly budget."}
             </p>
+          </Card>
+
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-semibold text-base">Monthly savings goal</h3>
+              {savingsGoalTotal > 0 && (
+                <span className="text-sm font-tabular text-ink-softer">
+                  {formatMoney(currentMonthSaved, state.settings.currency)} / {formatMoney(savingsGoalTotal, state.settings.currency)}
+                </span>
+              )}
+            </div>
+            {savingsGoalTotal > 0 ? (
+              <>
+                <ProgressBar ratio={savingsGoalRatio} tone={savingsGoalRatio >= 1 ? 'sage' : savingsGoalRatio >= 0.5 ? 'gold' : 'clay'} />
+                <p className="text-sm text-ink-softer mt-3">
+                  {savingsGoalPercent}% of this month's savings goal — based on what your active Goals need this month to
+                  stay on track.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-ink-softer">
+                No monthly savings goal right now — add a Goal with a target date to see progress here.
+              </p>
+            )}
           </Card>
 
           <Card className="p-5">

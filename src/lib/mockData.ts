@@ -123,6 +123,7 @@ export function mockState(): AppState {
       { targetKind: 'importantDate', targetId: 'id3', offsets: ['1_week', '1_day'] },
     ],
     incomeSources: [{ id: 'inc1', name: 'Freelance', amount: 600, payDay: 15 }],
+    readNotificationIds: [],
     settings: {
       currency: 'EUR',
       monthlyIncome: 3200,

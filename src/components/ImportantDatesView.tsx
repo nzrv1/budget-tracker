@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, X, Trash2, PlusCircle } from 'lucide-react'
+import { Plus, X, Trash2, PlusCircle, Pencil } from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
 import { formatMoney } from '../lib/utils'
 import { Card, ProgressBar, SectionHeading } from './shared'
@@ -25,6 +25,7 @@ export default function ImportantDatesView({
 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [prefill, setPrefill] = useState<Partial<Pick<ImportantDate, 'name' | 'category' | 'recurring' | 'date'>>>({})
+  const [editingDate, setEditingDate] = useState<ImportantDate | null>(null)
 
   const sorted = [...state.importantDates].sort((a, b) => daysUntil(a) - daysUntil(b))
 
@@ -79,18 +80,34 @@ export default function ImportantDatesView({
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sorted.map((d) => (
-            <DateCard key={d.id} date={d} currency={state.settings.currency} onUpdate={updateImportantDate} onDelete={deleteImportantDate} />
+            <DateCard
+              key={d.id}
+              date={d}
+              currency={state.settings.currency}
+              onUpdate={updateImportantDate}
+              onDelete={deleteImportantDate}
+              onEdit={setEditingDate}
+            />
           ))}
         </div>
       )}
 
-      {showAdd && (
+      {(showAdd || editingDate) && (
         <NewDateModal
           prefill={prefill}
-          onClose={() => setShowAdd(false)}
-          onSave={(d) => {
-            addImportantDate(d)
+          editing={editingDate}
+          onClose={() => {
             setShowAdd(false)
+            setEditingDate(null)
+          }}
+          onSave={(d) => {
+            if (editingDate) {
+              updateImportantDate(editingDate.id, d)
+            } else {
+              addImportantDate(d)
+            }
+            setShowAdd(false)
+            setEditingDate(null)
           }}
         />
       )}
@@ -103,11 +120,13 @@ function DateCard({
   currency,
   onUpdate,
   onDelete,
+  onEdit,
 }: {
   date: ImportantDate
   currency: string
   onUpdate: (id: string, patch: Partial<ImportantDate>) => void
   onDelete: (id: string) => void
+  onEdit: (date: ImportantDate) => void
 }) {
   const [addAmount, setAddAmount] = useState('')
   const days = daysUntil(date)
@@ -143,9 +162,14 @@ function DateCard({
             </p>
           </div>
         </div>
-        <button onClick={() => onDelete(date.id)} className="text-ink-softer hover:text-clay-dark shrink-0" aria-label="Delete date">
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => onEdit(date)} className="text-ink-softer hover:text-ink" aria-label="Edit date">
+            <Pencil size={14} />
+          </button>
+          <button onClick={() => onDelete(date.id)} className="text-ink-softer hover:text-clay-dark" aria-label="Delete date">
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {hasTarget && (
@@ -190,19 +214,21 @@ function DateCard({
 
 function NewDateModal({
   prefill,
+  editing,
   onClose,
   onSave,
 }: {
   prefill: Partial<Pick<ImportantDate, 'name' | 'category' | 'recurring' | 'date'>>
+  editing?: ImportantDate | null
   onClose: () => void
   onSave: (d: Omit<ImportantDate, 'id' | 'createdAt'>) => void
 }) {
-  const [name, setName] = useState(prefill.name || '')
-  const [category, setCategory] = useState<ImportantDateCategory>(prefill.category || 'other')
-  const [date, setDate] = useState(prefill.date || '')
-  const [recurring, setRecurring] = useState(prefill.recurring ?? true)
-  const [targetAmount, setTargetAmount] = useState('')
-  const [savedAmount, setSavedAmount] = useState('0')
+  const [name, setName] = useState(editing?.name ?? prefill.name ?? '')
+  const [category, setCategory] = useState<ImportantDateCategory>(editing?.category ?? prefill.category ?? 'other')
+  const [date, setDate] = useState(editing?.date ?? prefill.date ?? '')
+  const [recurring, setRecurring] = useState(editing?.recurring ?? prefill.recurring ?? true)
+  const [targetAmount, setTargetAmount] = useState(editing?.targetAmount ? String(editing.targetAmount) : '')
+  const [savedAmount, setSavedAmount] = useState(editing?.savedAmount ? String(editing.savedAmount) : '0')
   const [error, setError] = useState('')
 
   function handleSubmit(e: React.FormEvent) {
@@ -227,7 +253,7 @@ function NewDateModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px]">
       <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
-          <h3 className="font-display font-semibold text-lg">New important date</h3>
+          <h3 className="font-display font-semibold text-lg">{editing ? 'Edit important date' : 'New important date'}</h3>
           <button onClick={onClose} className="text-ink-softer hover:text-ink">
             <X size={18} />
           </button>
@@ -313,7 +339,7 @@ function NewDateModal({
             type="submit"
             className="w-full py-3 bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
           >
-            Save date
+            {editing ? 'Save changes' : 'Save date'}
           </button>
         </form>
       </div>
