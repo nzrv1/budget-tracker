@@ -2,7 +2,7 @@ import { PiggyBank, X } from 'lucide-react'
 import { AppState } from '../types'
 import { formatMoney } from '../lib/utils'
 import { planForMonth, startOfMonth } from '../lib/planning'
-import { Card } from './shared'
+import { Card, ProgressBar } from './shared'
 
 /** Shown on the Dashboard from payday onward, suggesting to move this month's planned
  * savings into goals and important dates in one tap. */
@@ -19,6 +19,8 @@ export default function SalaryPromptBanner({
   const items = [...plan.goalItems, ...plan.dateItems]
   const total = plan.goalsTotal + plan.datesTotal
   const currency = state.settings.currency
+  const salary = state.settings.monthlyIncome
+  const pct = salary > 0 ? (total / salary) * 100 : null
 
   if (items.length === 0) return null
 
@@ -31,10 +33,27 @@ export default function SalaryPromptBanner({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-ink">Payday — set money aside?</p>
           <p className="text-sm text-ink-softer mt-1 leading-relaxed">
-            Your basic salary just landed. Move {formatMoney(total, currency)} toward your goals and important dates
-            this month:
+            Your basic salary just landed. Here's what to set aside this month:
           </p>
-          <ul className="mt-2.5 flex flex-col gap-1">
+
+          <div className="mt-3 mb-1">
+            <div className="flex items-baseline justify-between mb-1.5 gap-2">
+              <span className="font-tabular font-semibold text-lg text-ink">{formatMoney(total, currency)}</span>
+              {pct !== null && (
+                <span className="text-xs text-ink-softer text-right">
+                  of {formatMoney(salary, currency)} salary ·{' '}
+                  <span className={`font-tabular font-semibold ${pct > 100 ? 'text-clay-dark' : 'text-sage-dark'}`}>
+                    {pct.toFixed(1)}%
+                  </span>
+                </span>
+              )}
+            </div>
+            {pct !== null && (
+              <ProgressBar ratio={Math.min(pct / 100, 1)} tone={pct > 100 ? 'clay' : pct >= 50 ? 'gold' : 'sage'} />
+            )}
+          </div>
+
+          <ul className="mt-3 flex flex-col gap-1">
             {items.map((it) => (
               <li key={it.id} className="flex items-center justify-between text-xs text-ink-softer">
                 <span className="truncate">{it.label}</span>
