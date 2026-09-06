@@ -14,6 +14,11 @@ interface TelegramWebApp {
   ready: () => void
   expand: () => void
   colorScheme: 'light' | 'dark'
+  // Raw, still-signed query-string payload from Telegram — never parsed or trusted here. It's
+  // only ever forwarded whole to the sync-state Edge Function, which is the one place that
+  // actually verifies the signature (with the bot token, which never leaves the server). See
+  // lib/sync.ts.
+  initData: string
   BackButton: {
     show: () => void
     hide: () => void
@@ -44,6 +49,19 @@ export function initTelegram() {
  */
 export function telegramColorScheme(): 'light' | 'dark' | undefined {
   return webApp()?.colorScheme
+}
+
+/**
+ * The raw, signed `initData` string Telegram attaches to every Mini App launch — empty/absent
+ * outside Telegram, in which case callers (lib/sync.ts) treat cloud sync as unavailable and stay
+ * purely on localStorage, exactly as before this feature existed. Deliberately returns the raw
+ * string rather than the parsed `initDataUnsafe` object Telegram also exposes — "unsafe" is
+ * Telegram's own name for it because it's client-supplied and unverified; only the signed raw
+ * string can be checked server-side, so that's the only form allowed to leave this module.
+ */
+export function getTelegramInitData(): string | null {
+  const raw = webApp()?.initData
+  return raw && raw.length > 0 ? raw : null
 }
 
 /**

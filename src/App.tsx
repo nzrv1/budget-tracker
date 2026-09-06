@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AppState,
   Transaction,
@@ -12,8 +12,9 @@ import {
   SAVINGS_CATEGORY,
   ThemeKey,
 } from './types'
-import { loadState, saveState, uid, clearState, STORAGE_KEY } from './lib/storage'
+import { loadState, saveState, uid, clearState, STORAGE_KEY, migrate, getLastLocalChangeAt } from './lib/storage'
 import { todayLocalDateString } from './lib/utils'
+import { pullRemoteState, pushRemoteState } from './lib/sync'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
 import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/planning'
@@ -66,6 +67,44 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', state.settings.theme)
   }, [state.settings.theme])
+
+  // Cloud sync (Telegram Phase 3) — no-op entirely outside Telegram (pullRemoteState/
+  // pushRemoteState both resolve to nothing without a Telegram initData). On launch, decide once
+  // whether this device's local copy or the one already in Supabase is newer — "last write wins",
+  // the same policy the cross-tab sync above already uses between two tabs. initialSyncDone gates
+  // the debounced push effect below so it can't race ahead of this decision and blindly overwrite
+  // a newer remote copy before we've even compared timestamps.
+  const initialSyncDone = useRef(false)
+  useEffect(() => {
+    let cancelled = false
+    pullRemoteState().then((remote) => {
+      if (cancelled) return
+      const localChangedAt = getLastLocalChangeAt()
+      if (remote && new Date(remote.updatedAt).getTime() > new Date(localChangedAt).getTime()) {
+        setState(migrate(remote.state))
+      } else {
+        pushRemoteState(state)
+      }
+      initialSyncDone.current = true
+    })
+    return () => {
+      cancelled = true
+    }
+    // Deliberately run once on mount — this is a one-time "who's newer" decision at launch, not a
+    // reaction to every subsequent state change (the debounced effect below handles those).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Every subsequent local change gets pushed up after a short pause (so several allocations
+  // firing back-to-back — payday auto-allocation, for instance — coalesce into one push instead
+  // of one per transaction).
+  useEffect(() => {
+    if (!initialSyncDone.current) return
+    const timer = setTimeout(() => {
+      pushRemoteState(state)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [state])
 
   const insights = useMemo(() => generateInsights(state), [state])
   const reminders = useMemo(() => generateReminders(state), [state])

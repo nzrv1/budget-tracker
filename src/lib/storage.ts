@@ -3,10 +3,17 @@ import { mockState } from './mockData'
 import { telegramColorScheme } from './telegram'
 
 export const STORAGE_KEY = 'ledger_app_state_v1'
+// A separate key, deliberately outside the AppState blob itself — this is bookkeeping for cloud
+// sync (lib/sync.ts, Telegram Phase 3), not app data, so it doesn't need migrate()/mockState()
+// support or to round-trip through every place that spreads an AppState. Stamped on every
+// saveState() call; read back at launch to decide whether THIS device's local copy or the one
+// already in Supabase is newer. Missing entirely (very first run, or a browser that's never
+// synced) is treated as "as old as possible" so a real remote copy always wins over nothing.
+const LAST_CHANGED_KEY = 'ledger_last_changed_at'
 const VALID_THEMES: ThemeKey[] = ['light', 'dark', 'cyber', 'red', 'pinky', 'caramel']
 
 /** Fills in fields added after a person's data was first saved, so old localStorage data keeps working. */
-function migrate(state: AppState): AppState {
+export function migrate(state: AppState): AppState {
   const baseCategories = state.categories && state.categories.length > 0 ? state.categories : DEFAULT_CATEGORY_DEFS
   // Existing users don't get DEFAULT_CATEGORY_DEFS applied wholesale (their categories array is
   // already non-empty above), so a category added there later — 'Savings', needed once
@@ -70,13 +77,24 @@ export function loadState(): AppState {
 export function saveState(state: AppState) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(LAST_CHANGED_KEY, new Date().toISOString())
   } catch {
     // storage unavailable — fail silently, app still works in-memory
   }
 }
 
+/** See LAST_CHANGED_KEY above — used only by lib/sync.ts to compare against Supabase's updated_at. */
+export function getLastLocalChangeAt(): string {
+  try {
+    return localStorage.getItem(LAST_CHANGED_KEY) || new Date(0).toISOString()
+  } catch {
+    return new Date(0).toISOString()
+  }
+}
+
 export function clearState() {
   localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(LAST_CHANGED_KEY)
 }
 
 export function uid() {

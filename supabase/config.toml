@@ -1,0 +1,8 @@
+# sync-state does its own authentication (verifying Telegram's signed initData with the bot
+# token secret) instead of relying on a Supabase Auth session — our users are identified by
+# Telegram, not by signing up with Supabase Auth. verify_jwt = false lets it be called with just
+# the publishable key on the `apikey` header (no Authorization: Bearer needed); the function body
+# is fully responsible for deciding whether a request is legitimate, exactly like a webhook
+# endpoint that verifies its own signature.
+[functions.sync-state]
+verify_jwt = false
