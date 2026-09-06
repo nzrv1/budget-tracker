@@ -50,8 +50,18 @@ export default function CategorySelect({
   function confirmCreate() {
     const trimmed = newName.trim()
     if (!trimmed) return
-    onAddCategory({ name: trimmed, icon: newIcon })
-    pick(trimmed)
+    // A category name that only differs by case from an existing one (e.g. "food" vs "Food")
+    // must resolve to that EXISTING category, not a new one — addCategory() already silently
+    // no-ops on a case-insensitive duplicate, so creating with the typed casing here would
+    // leave a transaction saved under a name that budgets, reports, and category grouping
+    // (all exact-string matches) would treat as a completely different category.
+    const existing = categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase())
+    if (existing) {
+      pick(existing.name)
+    } else {
+      onAddCategory({ name: trimmed, icon: newIcon })
+      pick(trimmed)
+    }
     setCreating(false)
     setNewName('')
     setNewIcon('other')

@@ -40,7 +40,9 @@ export default function AddTransactionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] px-0 sm:px-4">
-      <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto">
+      {/* pb-[env(safe-area-inset-bottom)]: on notched iPhones this bottom sheet's own bottom
+          padding otherwise sits right under the home-indicator bar. */}
+      <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto pb-[env(safe-area-inset-bottom)] sm:pb-0">
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
           <h3 className="font-display font-semibold text-lg">{initial ? 'Edit transaction' : 'Add transaction'}</h3>
           <button onClick={onClose} className="text-ink-softer hover:text-ink">

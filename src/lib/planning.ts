@@ -82,7 +82,7 @@ function weeksBetweenInclusive(fromWeekStart: Date, toWeekStart: Date): number {
   return Math.max(Math.round(diffDays / 7) + 1, 1)
 }
 
-function budgetDailyRate(b: CategoryBudget): number {
+export function budgetDailyRate(b: CategoryBudget): number {
   switch (b.period) {
     case 'day':
       return b.limit

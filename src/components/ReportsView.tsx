@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { AppState } from '../types'
-import { formatMoney, periodRange, filterByRange, groupByCategory, totals, colorForCategory } from '../lib/utils'
+import { formatMoney, periodRange, filterByRange, groupByCategory, totals, colorForCategory, settingsIncomeForPeriod } from '../lib/utils'
 import { Card, SectionHeading } from './shared'
 import { EmptyState } from './Dashboard'
 
@@ -14,7 +14,17 @@ export default function ReportsView({ state }: { state: AppState }) {
 
   const { from, to } = periodRange(period)
   const current = filterByRange(state.transactions, from, to)
-  const currentTotals = totals(current)
+  const loggedTotals = totals(current)
+  // Same income model as Dashboard (see lib/utils.ts: settingsIncomeForPeriod) — Settings-based
+  // salary/income sources, prorated to the selected period, on top of whatever's actually been
+  // logged as an income transaction. Previously this screen counted logged transactions only,
+  // which made "Income" here disagree with the Dashboard for the same period.
+  const settingsIncome = settingsIncomeForPeriod(state.settings, state.incomeSources, period)
+  const currentTotals = {
+    income: settingsIncome + loggedTotals.income,
+    expense: loggedTotals.expense,
+    net: settingsIncome + loggedTotals.income - loggedTotals.expense,
+  }
 
   // previous period for comparison
   const prevAnchor = new Date(from)

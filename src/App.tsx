@@ -258,7 +258,9 @@ export default function App() {
         setTheme={setTheme}
       />
 
-      <main className="flex-1 min-w-0 lg:ml-64 pb-24 lg:pb-8">
+      {/* Bottom padding clears the fixed mobile nav plus its safe-area inset (see Sidebar.tsx)
+          so content never sits underneath it on notched phones. */}
+      <main className="flex-1 min-w-0 lg:ml-64 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
           {view === 'dashboard' && (
             <Dashboard

@@ -122,17 +122,20 @@ export default function TransactionsView({
                   {t.type === 'income' ? '+' : '-'}
                   {formatMoney(t.amount, state.settings.currency)}
                 </span>
-                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Always visible below lg: touch devices have no hover, so a hover-only reveal
+                    (opacity-0 group-hover:opacity-100) made these controls undiscoverable on
+                    mobile — there was no way to edit or delete a transaction from a phone. */}
+                <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => setEditing(t)}
-                    className="p-1.5 text-ink-softer hover:text-ink hover:bg-paper rounded"
+                    className="p-2 text-ink-softer hover:text-ink hover:bg-paper rounded"
                     aria-label="Edit"
                   >
                     <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => deleteTransaction(t.id)}
-                    className="p-1.5 text-ink-softer hover:text-clay-dark hover:bg-clay-light rounded"
+                    className="p-2 text-ink-softer hover:text-clay-dark hover:bg-clay-light rounded"
                     aria-label="Delete"
                   >
                     <Trash2 size={14} />

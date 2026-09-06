@@ -162,11 +162,12 @@ function DateCard({
             </p>
           </div>
         </div>
+        {/* p-2 -m-2: bigger tap target, same visual footprint (see GoalsView for the same fix). */}
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => onEdit(date)} className="text-ink-softer hover:text-ink" aria-label="Edit date">
+          <button onClick={() => onEdit(date)} className="p-2 -m-2 text-ink-softer hover:text-ink" aria-label="Edit date">
             <Pencil size={14} />
           </button>
-          <button onClick={() => onDelete(date.id)} className="text-ink-softer hover:text-clay-dark" aria-label="Delete date">
+          <button onClick={() => onDelete(date.id)} className="p-2 -m-2 text-ink-softer hover:text-clay-dark" aria-label="Delete date">
             <Trash2 size={14} />
           </button>
         </div>

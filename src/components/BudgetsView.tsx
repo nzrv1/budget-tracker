@@ -197,9 +197,11 @@ export default function BudgetsView({
                       <span className="text-[11px] text-ink-softer">{PERIOD_LABEL[b.period]} limit</span>
                     </div>
                   </div>
+                  {/* p-2 -m-2: bigger tap target, same visual footprint (see GoalsView for the
+                      same fix and why it was needed). */}
                   <button
                     onClick={() => removeBudget(b.category, b.period)}
-                    className="text-ink-softer hover:text-clay-dark shrink-0"
+                    className="p-2 -m-2 text-ink-softer hover:text-clay-dark shrink-0"
                     aria-label={`Remove ${b.category} budget`}
                   >
                     <Trash2 size={14} />

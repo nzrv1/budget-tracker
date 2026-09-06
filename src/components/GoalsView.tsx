@@ -126,7 +126,13 @@ function GoalCard({
             </p>
           </div>
         </div>
-        <button onClick={() => onDelete(goal.id)} className="text-ink-softer hover:text-clay-dark shrink-0" aria-label="Delete goal">
+        {/* p-2 gives a ~40px tap target instead of the bare 14px icon — small icon buttons
+            were hard to hit accurately on a touchscreen. */}
+        <button
+          onClick={() => onDelete(goal.id)}
+          className="p-2 -m-2 text-ink-softer hover:text-clay-dark shrink-0"
+          aria-label="Delete goal"
+        >
           <Trash2 size={14} />
         </button>
       </div>

@@ -2,8 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: required for the env(safe-area-inset-*) CSS used by the mobile
+         bottom nav and sheets to actually take effect on notched iPhones. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Ledger — Budget & Savings Tracker</title>
+    <meta name="description" content="Track spending, budgets, goals and important dates — and know when it's the right time to save or spend." />
+    <meta name="theme-color" content="#16232a" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- "Add to Home Screen" on iOS: makes the installed app open full-screen instead of in a
+         browser tab, and gives it a proper icon instead of a screenshot thumbnail. -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ledger" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

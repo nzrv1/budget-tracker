@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, PiggyBank, Wallet2, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { AppState, Transaction, Insight, CategoryDef } from '../types'
-import { formatMoney, periodRange, filterByRange, totals } from '../lib/utils'
+import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod } from '../lib/utils'
 import { Card, ProgressBar, budgetTone } from './shared'
 import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
-import { duePaydaySources, planForMonth, startOfMonth } from '../lib/planning'
+import { duePaydaySources, planForMonth, startOfMonth, budgetDailyRate } from '../lib/planning'
 import { ViewKey } from '../App'
 
 export default function Dashboard({
@@ -31,41 +31,44 @@ export default function Dashboard({
 
   const today0 = new Date()
 
-  // Income baked into Settings (basic salary + any extra income sources) counts toward
-  // "income" even before it's logged as a transaction — on top of whatever's actually
-  // been logged, with no de-duplication between the two.
-  const settingsMonthlyIncome = state.settings.monthlyIncome + state.incomeSources.reduce((s, src) => s + src.amount, 0)
-
   // Always-current-calendar-month figures, independent of the period toggle above — used
   // for the budget health card and the savings goal card, which are inherently monthly.
   const currentMonthRange = periodRange('month', today0)
   const currentMonthTx = filterByRange(state.transactions, currentMonthRange.from, currentMonthRange.to)
   const currentMonthLogged = totals(currentMonthTx)
-  const currentMonthIncome = settingsMonthlyIncome + currentMonthLogged.income
+  const currentMonthIncome = settingsIncomeForPeriod(state.settings, state.incomeSources, 'month', today0) + currentMonthLogged.income
   const currentMonthExpense = currentMonthLogged.expense
   const currentMonthSaved = currentMonthIncome - currentMonthExpense
 
-  // Figures for the stat row, which follow the "This Month" / "This Year" toggle.
+  // Figures for the stat row, which follow the "This Month" / "This Year" toggle. Uses the
+  // same settingsIncomeForPeriod() helper Reports uses, so the two screens can't drift apart
+  // on what "income" means again.
   const { from, to } = periodRange(period, today0)
   const periodTx = filterByRange(state.transactions, from, to)
   const periodLogged = totals(periodTx)
-  // How many salary payments fall inside the selected period: 1 for "This Month",
-  // or the number of months elapsed so far this year for "This Year".
   const monthsInPeriod = period === 'month' ? 1 : today0.getMonth() + 1
-  const income = settingsMonthlyIncome * monthsInPeriod + periodLogged.income
+  const income = settingsIncomeForPeriod(state.settings, state.incomeSources, period, today0) + periodLogged.income
   const expense = periodLogged.expense
   const balance = totals(state.transactions).net
   const periodLabel = period === 'month' ? 'this month' : 'this year'
 
-  const monthlyBudgets = state.budgets.filter((b) => b.period === 'month')
-  const totalBudget = monthlyBudgets.reduce((s, b) => s + b.limit, 0)
-  const budgetSpent = monthlyBudgets.reduce((s, b) => {
+  // Budget health — EVERY budget counts here now, whatever its period. A day/week/year
+  // budget is converted to a monthly-equivalent limit with the same budgetDailyRate() used
+  // by planForMonth (Calendar, the payday banner, "In theory you can save" below), so a
+  // yearly budget no longer disappears from this card just because it isn't a "month"
+  // budget. "Spent" is actual spend this month per category — deduplicated by category, so a
+  // category with more than one budget period doesn't get counted twice on the spend side.
+  const dim = new Date(today0.getFullYear(), today0.getMonth() + 1, 0).getDate()
+  const totalBudget = state.budgets.reduce((s, b) => s + budgetDailyRate(b) * dim, 0)
+  const budgetedCategories = Array.from(new Set(state.budgets.map((b) => b.category)))
+  const budgetSpent = budgetedCategories.reduce((s, category) => {
     const spent = currentMonthTx
-      .filter((t) => t.type === 'expense' && t.category === b.category)
+      .filter((t) => t.type === 'expense' && t.category === category)
       .reduce((acc, t) => acc + t.amount, 0)
     return s + spent
   }, 0)
   const budgetRatio = totalBudget > 0 ? budgetSpent / totalBudget : 0
+  const hasNonMonthBudgets = state.budgets.some((b) => b.period !== 'month')
 
   // Everything you're already committed to spending or setting aside this month — every
   // Budget (day/week/month/year budgets are all normalized to a monthly-equivalent figure
@@ -183,13 +186,14 @@ export default function Dashboard({
             </div>
             <ProgressBar ratio={budgetRatio} tone={budgetTone(budgetRatio)} />
             <p className="text-sm text-ink-softer mt-3">
-              {monthlyBudgets.length === 0
-                ? 'No monthly budgets set yet — set some in Budgets to track this.'
+              {state.budgets.length === 0
+                ? 'No budgets set yet — set some in Budgets to track this.'
                 : budgetRatio >= 1
                 ? 'You have gone over your combined monthly budget.'
                 : budgetRatio >= 0.75
                 ? "You're pacing close to your monthly limit — worth watching the next few weeks."
                 : "You're comfortably within your monthly budget."}
+              {hasNonMonthBudgets && ' Daily, weekly and yearly budgets are converted to a monthly average here.'}
             </p>
           </Card>
 

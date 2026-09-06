@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Calendar, Bell, Settings, BookOpen, Palette, Check } from 'lucide-react'
+import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Calendar, Bell, Settings, BookOpen, Palette, Check, MoreHorizontal, X } from 'lucide-react'
 import { ViewKey } from '../App'
 import { ThemeKey } from '../types'
 import { THEMES } from '../lib/themes'
@@ -16,6 +16,11 @@ const NAV: { key: ViewKey; label: string; icon: React.ElementType }[] = [
   { key: 'settings', label: 'Settings', icon: Settings },
 ]
 
+// The mobile bottom bar only has room for a handful of items before labels start
+// colliding (9 items at 10px labels doesn't fit a 375px-wide screen). These four
+// are the ones used most often; everything else lives behind "More".
+const MOBILE_PRIMARY: ViewKey[] = ['dashboard', 'transactions', 'reports', 'budgets']
+
 export default function Sidebar({
   view,
   setView,
@@ -29,6 +34,16 @@ export default function Sidebar({
   theme: ThemeKey
   setTheme: (t: ThemeKey) => void
 }) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const primaryNav = NAV.filter((n) => MOBILE_PRIMARY.includes(n.key))
+  const moreNav = NAV.filter((n) => !MOBILE_PRIMARY.includes(n.key))
+  const moreActive = moreNav.some((n) => n.key === view)
+
+  function pickMobile(key: ViewKey) {
+    setView(key)
+    setMoreOpen(false)
+  }
+
   return (
     <>
       {/* Desktop sidebar — dark "ledger spine" chrome; its shade adapts per theme (see index.css) */}
@@ -79,36 +94,78 @@ export default function Sidebar({
         <ThemePickerButton theme={theme} setTheme={setTheme} />
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-nav text-nav-text flex items-center justify-around px-1 py-2 border-t border-nav-text/10">
-        {NAV.filter((n) => n.key !== 'settings').map(({ key, label, icon: Icon }) => {
+      {/* Mobile bottom nav — only the 4 most-used sections plus "More", so labels have room to
+          breathe (all 9 sections in one row didn't fit a phone-width screen). The safe-area
+          padding keeps it clear of the home-indicator bar on notched iPhones. */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-nav text-nav-text flex items-center justify-around px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-nav-text/10"
+      >
+        {primaryNav.map(({ key, label, icon: Icon }) => {
           const active = view === key
           return (
             <button
               key={key}
-              onClick={() => setView(key)}
+              onClick={() => pickMobile(key)}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded relative ${
                 active ? 'text-gold' : 'text-nav-text/50'
               }`}
             >
               <Icon size={19} strokeWidth={1.75} />
               <span className="text-[10px] font-medium">{label}</span>
-              {key === 'notifications' && notificationCount > 0 && (
-                <span className="absolute top-0 right-1 w-1.5 h-1.5 rounded-full bg-clay" />
-              )}
             </button>
           )
         })}
         <button
-          onClick={() => setView('settings')}
-          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded ${
-            view === 'settings' ? 'text-gold' : 'text-nav-text/50'
+          onClick={() => setMoreOpen(true)}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded relative ${
+            moreActive ? 'text-gold' : 'text-nav-text/50'
           }`}
         >
-          <Settings size={19} strokeWidth={1.75} />
-          <span className="text-[10px] font-medium">Settings</span>
+          <MoreHorizontal size={19} strokeWidth={1.75} />
+          <span className="text-[10px] font-medium">More</span>
+          {notificationCount > 0 && <span className="absolute top-0 right-1 w-1.5 h-1.5 rounded-full bg-clay" />}
         </button>
       </nav>
+
+      {/* Mobile "More" sheet — the remaining sections (Goals, Important Dates, Calendar,
+          Notifications, Settings) that don't fit in the bottom bar. */}
+      {moreOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex items-end justify-center bg-black/40 backdrop-blur-[2px]" onClick={() => setMoreOpen(false)}>
+          <div
+            className="bg-paper-card w-full rounded-t-lg border border-paper-line max-h-[75vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
+              <h3 className="font-display font-semibold text-lg text-ink">More</h3>
+              <button onClick={() => setMoreOpen(false)} className="p-2 -m-2 text-ink-softer hover:text-ink" aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-2">
+              {moreNav.map(({ key, label, icon: Icon }) => {
+                const active = view === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => pickMobile(key)}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded text-sm relative ${
+                      active ? 'bg-sage-light text-sage-dark font-medium' : 'text-ink'
+                    }`}
+                  >
+                    <Icon size={18} strokeWidth={1.75} />
+                    {label}
+                    {key === 'notifications' && notificationCount > 0 && (
+                      <span className="ml-auto text-[11px] font-tabular bg-clay text-white rounded-full px-1.5 py-0.5 leading-none">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
