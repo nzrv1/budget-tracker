@@ -9,9 +9,11 @@ import {
   IncomeSource,
   ReminderOffsetKey,
   ReminderTargetKind,
+  SAVINGS_CATEGORY,
   ThemeKey,
 } from './types'
-import { loadState, saveState, uid, clearState } from './lib/storage'
+import { loadState, saveState, uid, clearState, STORAGE_KEY } from './lib/storage'
+import { todayLocalDateString } from './lib/utils'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
 import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/planning'
@@ -47,6 +49,19 @@ export default function App() {
   useEffect(() => {
     saveState(state)
   }, [state])
+
+  // Cross-tab sync: the 'storage' event fires in every OTHER same-origin tab (never the tab
+  // that made the write, so this can't loop back on our own saveState() above) when
+  // localStorage changes. Without this, two open tabs would silently diverge and whichever
+  // saves last would clobber the other's changes. e.newValue is null on clearState()/removal.
+  useEffect(() => {
+    function handleStorage(e: StorageEvent) {
+      if (e.key !== STORAGE_KEY || e.newValue === null) return
+      setState(loadState())
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', state.settings.theme)
@@ -174,6 +189,39 @@ export default function App() {
     }))
   }
 
+  // Money moving into a goal or important date — whether the person taps "add money" on the
+  // card themselves, or it happens via the payday auto-allocation banner below — has to leave
+  // an actual expense transaction behind. Bumping savedAmount alone (the old behavior) left the
+  // money still counted in the Dashboard balance and this month's spending, so the same euros
+  // were effectively double-counted as both "still spendable" and "already saved". This is the
+  // one place both paths go through, so the two can't drift apart again the way Dashboard/Reports
+  // income once did (see settingsIncomeForPeriod).
+  function allocateToGoal(goalId: string, amount: number) {
+    const goal = state.goals.find((g) => g.id === goalId)
+    if (!goal || amount <= 0) return
+    updateGoal(goalId, { savedAmount: goal.savedAmount + amount })
+    addTransaction({
+      type: 'expense',
+      category: SAVINGS_CATEGORY,
+      amount,
+      date: todayLocalDateString(),
+      note: `Set aside for "${goal.name}"`,
+    })
+  }
+
+  function allocateToImportantDate(dateId: string, amount: number) {
+    const date = state.importantDates.find((d) => d.id === dateId)
+    if (!date || amount <= 0) return
+    updateImportantDate(dateId, { savedAmount: (date.savedAmount ?? 0) + amount })
+    addTransaction({
+      type: 'expense',
+      category: SAVINGS_CATEGORY,
+      amount,
+      date: todayLocalDateString(),
+      note: `Set aside for "${date.name}"`,
+    })
+  }
+
   function setReminderRule(targetKind: ReminderTargetKind, targetId: string, offsets: ReminderOffsetKey[]) {
     setState((prev) => ({
       ...prev,
@@ -219,18 +267,18 @@ export default function App() {
   // On (or after) payday, offer to move this month's planned goal/important-date
   // contributions out of "spendable" and into each target's saved amount. excludeKeys lets
   // the person skip specific items (as `${kind}:${id}`) they don't want to fund this time.
+  // Goes through allocateToGoal/allocateToImportantDate above so this actually deducts from
+  // spendable (a real "Savings" transaction), not just bumps savedAmount in isolation.
   function applyAutoAllocations(excludeKeys: string[] = []) {
     const excluded = new Set(excludeKeys)
     const plan = planForMonth(state, startOfMonth(new Date()))
     for (const item of plan.goalItems) {
       if (excluded.has(`${item.kind}:${item.id}`)) continue
-      const goal = state.goals.find((g) => g.id === item.id)
-      if (goal) updateGoal(goal.id, { savedAmount: goal.savedAmount + item.amount })
+      allocateToGoal(item.id, item.amount)
     }
     for (const item of plan.dateItems) {
       if (excluded.has(`${item.kind}:${item.id}`)) continue
-      const date = state.importantDates.find((d) => d.id === item.id)
-      if (date) updateImportantDate(date.id, { savedAmount: (date.savedAmount ?? 0) + item.amount })
+      allocateToImportantDate(item.id, item.amount)
     }
     markDuePaydaysHandled()
   }
@@ -258,9 +306,9 @@ export default function App() {
         setTheme={setTheme}
       />
 
-      {/* Bottom padding clears the fixed mobile nav plus its safe-area inset (see Sidebar.tsx)
-          so content never sits underneath it on notched phones. */}
-      <main className="flex-1 min-w-0 lg:ml-64 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8">
+      {/* ml-16 clears the fixed icon rail (see Sidebar.tsx) — same width at every breakpoint now,
+          so this no longer needs a separate lg: value the way the old wide desktop sidebar did. */}
+      <main className="flex-1 min-w-0 ml-16 pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
           {view === 'dashboard' && (
             <Dashboard
@@ -285,7 +333,13 @@ export default function App() {
           {view === 'reports' && <ReportsView state={state} />}
           {view === 'budgets' && <BudgetsView state={state} setBudgets={setBudgets} addCategory={addCategory} />}
           {view === 'goals' && (
-            <GoalsView state={state} addGoal={addGoal} updateGoal={updateGoal} deleteGoal={deleteGoal} />
+            <GoalsView
+              state={state}
+              addGoal={addGoal}
+              updateGoal={updateGoal}
+              deleteGoal={deleteGoal}
+              allocateToGoal={allocateToGoal}
+            />
           )}
           {view === 'important-dates' && (
             <ImportantDatesView
@@ -293,6 +347,7 @@ export default function App() {
               addImportantDate={addImportantDate}
               updateImportantDate={updateImportantDate}
               deleteImportantDate={deleteImportantDate}
+              allocateToImportantDate={allocateToImportantDate}
             />
           )}
           {view === 'calendar' && <CalendarView state={state} />}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, X, Trash2, PlusCircle } from 'lucide-react'
 import { AppState, Goal, GoalIcon } from '../types'
-import { formatMoney } from '../lib/utils'
+import { formatMoney, parseLocalDate } from '../lib/utils'
 import { Card, ProgressBar, GoalIconGlyph, SectionHeading } from './shared'
 import { EmptyState } from './Dashboard'
 
@@ -45,11 +45,13 @@ export default function GoalsView({
   addGoal,
   updateGoal,
   deleteGoal,
+  allocateToGoal,
 }: {
   state: AppState
   addGoal: (g: Omit<Goal, 'id' | 'createdAt'>) => void
   updateGoal: (id: string, patch: Partial<Goal>) => void
   deleteGoal: (id: string) => void
+  allocateToGoal: (id: string, amount: number) => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
 
@@ -76,7 +78,14 @@ export default function GoalsView({
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {state.goals.map((g) => (
-            <GoalCard key={g.id} goal={g} currency={state.settings.currency} onUpdate={updateGoal} onDelete={deleteGoal} />
+            <GoalCard
+              key={g.id}
+              goal={g}
+              currency={state.settings.currency}
+              onUpdate={updateGoal}
+              onDelete={deleteGoal}
+              onAllocate={allocateToGoal}
+            />
           ))}
         </div>
       )}
@@ -91,16 +100,18 @@ function GoalCard({
   currency,
   onUpdate,
   onDelete,
+  onAllocate,
 }: {
   goal: Goal
   currency: string
   onUpdate: (id: string, patch: Partial<Goal>) => void
   onDelete: (id: string) => void
+  onAllocate: (id: string, amount: number) => void
 }) {
   const [addAmount, setAddAmount] = useState('')
   const ratio = goal.savedAmount / goal.targetAmount
   const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
-  const daysLeft = Math.max(Math.round((new Date(goal.targetDate).getTime() - Date.now()) / 86400000), 0)
+  const daysLeft = Math.max(Math.round((parseLocalDate(goal.targetDate).getTime() - Date.now()) / 86400000), 0)
   const monthlyPace = daysLeft > 0 ? (remaining / daysLeft) * 30.44 : 0
   const complete = remaining <= 0
 
@@ -108,7 +119,7 @@ function GoalCard({
     e.preventDefault()
     const num = parseFloat(addAmount)
     if (!num || num <= 0) return
-    onUpdate(goal.id, { savedAmount: goal.savedAmount + num })
+    onAllocate(goal.id, num)
     setAddAmount('')
   }
 
@@ -122,7 +133,7 @@ function GoalCard({
           <div>
             <h4 className="font-medium text-ink text-sm leading-tight">{goal.name}</h4>
             <p className="text-xs text-ink-softer mt-0.5">
-              Target {new Date(goal.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              Target {parseLocalDate(goal.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
         </div>

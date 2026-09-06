@@ -17,11 +17,13 @@ export default function ImportantDatesView({
   addImportantDate,
   updateImportantDate,
   deleteImportantDate,
+  allocateToImportantDate,
 }: {
   state: { importantDates: ImportantDate[]; settings: { currency: string } }
   addImportantDate: (d: Omit<ImportantDate, 'id' | 'createdAt'>) => void
   updateImportantDate: (id: string, patch: Partial<ImportantDate>) => void
   deleteImportantDate: (id: string) => void
+  allocateToImportantDate: (id: string, amount: number) => void
 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [prefill, setPrefill] = useState<Partial<Pick<ImportantDate, 'name' | 'category' | 'recurring' | 'date'>>>({})
@@ -87,6 +89,7 @@ export default function ImportantDatesView({
               onUpdate={updateImportantDate}
               onDelete={deleteImportantDate}
               onEdit={setEditingDate}
+              onAllocate={allocateToImportantDate}
             />
           ))}
         </div>
@@ -121,12 +124,14 @@ function DateCard({
   onUpdate,
   onDelete,
   onEdit,
+  onAllocate,
 }: {
   date: ImportantDate
   currency: string
   onUpdate: (id: string, patch: Partial<ImportantDate>) => void
   onDelete: (id: string) => void
   onEdit: (date: ImportantDate) => void
+  onAllocate: (id: string, amount: number) => void
 }) {
   const [addAmount, setAddAmount] = useState('')
   const days = daysUntil(date)
@@ -143,7 +148,7 @@ function DateCard({
     e.preventDefault()
     const num = parseFloat(addAmount)
     if (!num || num <= 0) return
-    onUpdate(date.id, { savedAmount: saved + num })
+    onAllocate(date.id, num)
     setAddAmount('')
   }
 

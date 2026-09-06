@@ -1,12 +1,19 @@
-import { AppState, DEFAULT_CATEGORY_DEFS, ThemeKey } from '../types'
+import { AppState, DEFAULT_CATEGORY_DEFS, SAVINGS_CATEGORY, ThemeKey } from '../types'
 import { mockState } from './mockData'
+import { telegramColorScheme } from './telegram'
 
-const STORAGE_KEY = 'ledger_app_state_v1'
+export const STORAGE_KEY = 'ledger_app_state_v1'
 const VALID_THEMES: ThemeKey[] = ['light', 'dark', 'cyber', 'red', 'pinky', 'caramel']
 
 /** Fills in fields added after a person's data was first saved, so old localStorage data keeps working. */
 function migrate(state: AppState): AppState {
-  const categories = state.categories && state.categories.length > 0 ? state.categories : DEFAULT_CATEGORY_DEFS
+  const baseCategories = state.categories && state.categories.length > 0 ? state.categories : DEFAULT_CATEGORY_DEFS
+  // Existing users don't get DEFAULT_CATEGORY_DEFS applied wholesale (their categories array is
+  // already non-empty above), so a category added there later — 'Savings', needed once
+  // allocateToGoal/allocateToImportantDate started logging real transactions against it — has to
+  // be backfilled explicitly here, or every pre-existing user would be missing it.
+  const hasSavingsCategory = baseCategories.some((c) => c.name.toLowerCase() === SAVINGS_CATEGORY.toLowerCase())
+  const categories = hasSavingsCategory ? baseCategories : [...baseCategories, { name: SAVINGS_CATEGORY, icon: 'savings' as const }]
   const budgets = (state.budgets || []).map((b: any) => ({
     category: b.category,
     limit: b.limit,
@@ -36,16 +43,27 @@ function migrate(state: AppState): AppState {
   }
 }
 
+/**
+ * Only on a genuinely first run (no saved state at all) and only inside Telegram: default to
+ * Telegram's own light/dark colorScheme instead of the hardcoded 'light' in mockData.ts. Never
+ * overrides a theme the person already picked — this only ever touches the very first launch.
+ */
+function withTelegramDefaultTheme(state: AppState): AppState {
+  const scheme = telegramColorScheme()
+  if (!scheme) return state
+  return { ...state, settings: { ...state.settings, theme: scheme } }
+}
+
 export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return mockState()
+    if (!raw) return withTelegramDefaultTheme(mockState())
     const parsed = JSON.parse(raw) as AppState
     // basic shape guard
-    if (!parsed.transactions || !parsed.settings) return mockState()
+    if (!parsed.transactions || !parsed.settings) return withTelegramDefaultTheme(mockState())
     return migrate(parsed)
   } catch {
-    return mockState()
+    return withTelegramDefaultTheme(mockState())
   }
 }
 

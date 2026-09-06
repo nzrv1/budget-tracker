@@ -1,5 +1,5 @@
-import { AppState, BudgetPeriod, Insight, Transaction } from '../types'
-import { formatMoney, periodRange } from './utils'
+import { AppState, BudgetPeriod, Insight, SAVINGS_CATEGORY, Transaction } from '../types'
+import { formatMoney, periodRange, parseLocalDate } from './utils'
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
@@ -18,15 +18,28 @@ function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function sumInRange(transactions: Transaction[], type: 'income' | 'expense', from: Date, to: Date) {
+// parseLocalDate, not new Date() — see utils.ts (bug 4.10).
+// excludeSavings drops the 'Savings' category — the expense transaction allocateToGoal /
+// allocateToImportantDate now logs whenever money moves into a Goal or Important Date. That
+// money isn't spent, it's moved, so counting it as "expense" here would make every insight below
+// that reasons about spending pace or savings rate get worse the moment someone actually saves:
+// a payday auto-allocation would look like a spending spike, and the resulting drop in leftover
+// cash would look like a falling savings rate, exactly backwards from what happened.
+function sumInRange(transactions: Transaction[], type: 'income' | 'expense', from: Date, to: Date, excludeSavings = false) {
   return transactions
-    .filter((t) => t.type === type && new Date(t.date) >= from && new Date(t.date) <= to)
+    .filter(
+      (t) =>
+        t.type === type &&
+        (!excludeSavings || t.category !== SAVINGS_CATEGORY) &&
+        parseLocalDate(t.date) >= from &&
+        parseLocalDate(t.date) <= to
+    )
     .reduce((s, t) => s + t.amount, 0)
 }
 
 function categorySpend(transactions: Transaction[], category: string, from: Date, to: Date) {
   return transactions
-    .filter((t) => t.type === 'expense' && t.category === category && new Date(t.date) >= from && new Date(t.date) <= to)
+    .filter((t) => t.type === 'expense' && t.category === category && parseLocalDate(t.date) >= from && parseLocalDate(t.date) <= to)
     .reduce((s, t) => s + t.amount, 0)
 }
 
@@ -43,10 +56,10 @@ export function generateInsights(state: AppState): Insight[] {
   const startOfWeek = new Date(now)
   startOfWeek.setDate(now.getDate() - now.getDay())
 
-  const monthExpense = sumInRange(state.transactions, 'expense', startOfMonth, now)
+  const monthExpense = sumInRange(state.transactions, 'expense', startOfMonth, now, true)
   const monthIncome = sumInRange(state.transactions, 'income', startOfMonth, now)
-  const lastMonthExpense = sumInRange(state.transactions, 'expense', startOfLastMonth, endOfLastMonth)
-  const weekExpense = sumInRange(state.transactions, 'expense', startOfWeek, now)
+  const lastMonthExpense = sumInRange(state.transactions, 'expense', startOfLastMonth, endOfLastMonth, true)
+  const weekExpense = sumInRange(state.transactions, 'expense', startOfWeek, now, true)
 
   // 1. Budget category warnings/praise
   for (const budget of state.budgets) {
@@ -77,7 +90,7 @@ export function generateInsights(state: AppState): Insight[] {
   // 2. Goal progress — ready to buy / on pace / behind pace
   for (const goal of state.goals) {
     const remaining = goal.targetAmount - goal.savedAmount
-    const daysLeft = daysBetween(now, new Date(goal.targetDate))
+    const daysLeft = daysBetween(now, parseLocalDate(goal.targetDate))
     const progressRatio = goal.savedAmount / goal.targetAmount
 
     if (remaining <= 0) {
@@ -94,7 +107,7 @@ export function generateInsights(state: AppState): Insight[] {
         id: `insight-goal-${goal.id}-almost`,
         tone: 'positive',
         title: `${goal.name} — almost there`,
-        message: `Only ${formatMoney(remaining, state.settings.currency)} left to reach "${goal.name}". At this pace you'll likely hit it before ${new Date(goal.targetDate).toLocaleDateString()}.`,
+        message: `Only ${formatMoney(remaining, state.settings.currency)} left to reach "${goal.name}". At this pace you'll likely hit it before ${parseLocalDate(goal.targetDate).toLocaleDateString()}.`,
         createdAt: now.toISOString(),
       })
     } else if (daysLeft > 0) {

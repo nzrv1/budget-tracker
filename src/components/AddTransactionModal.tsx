@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Transaction, TransactionType, CategoryDef, DEFAULT_CATEGORIES } from '../types'
 import CategorySelect from './CategorySelect'
+import { showTelegramBackButton } from '../lib/telegram'
+import { todayLocalDateString } from '../lib/utils'
 
 export default function AddTransactionModal({
   onClose,
@@ -19,9 +21,13 @@ export default function AddTransactionModal({
   const [type, setType] = useState<TransactionType>(initial?.type || 'expense')
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [category, setCategory] = useState(initial?.category || DEFAULT_CATEGORIES[0])
-  const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(initial?.date || todayLocalDateString())
   const [note, setNote] = useState(initial?.note || '')
   const [error, setError] = useState('')
+
+  // Inside Telegram, the system back gesture/button should close this modal, not the whole
+  // Mini App (Telegram plan, Phase 2). No-op outside Telegram.
+  useEffect(() => showTelegramBackButton(onClose), [onClose])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

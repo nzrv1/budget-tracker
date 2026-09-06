@@ -2,6 +2,7 @@
 // figure for a given month or week — powering the Calendar view.
 import { AppState, CategoryBudget, GoalIcon, ImportantDateCategory, IncomeSource } from '../types'
 import { nextOccurrence } from './importantDates'
+import { parseLocalDate } from './utils'
 
 function startOfDay(d: Date): Date {
   const c = new Date(d)
@@ -136,7 +137,9 @@ export function planForMonth(state: AppState, monthStart: Date): PeriodPlan {
   for (const goal of state.goals) {
     const remaining = goal.targetAmount - goal.savedAmount
     if (remaining <= 0) continue
-    const target = startOfDay(new Date(goal.targetDate))
+    // parseLocalDate, not new Date() — see utils.ts (bug 4.10: a bare "YYYY-MM-DD" parsed as
+    // UTC midnight lands on the previous calendar day for negative-UTC-offset users).
+    const target = startOfDay(parseLocalDate(goal.targetDate))
     if (target.getTime() < now.getTime()) continue
     const to = startOfMonth(target)
     if (thisMonth.getTime() < from.getTime() || thisMonth.getTime() > to.getTime()) continue
@@ -186,7 +189,9 @@ export function planForWeek(state: AppState, weekStart: Date): PeriodPlan {
   for (const goal of state.goals) {
     const remaining = goal.targetAmount - goal.savedAmount
     if (remaining <= 0) continue
-    const target = startOfDay(new Date(goal.targetDate))
+    // parseLocalDate, not new Date() — see utils.ts (bug 4.10: a bare "YYYY-MM-DD" parsed as
+    // UTC midnight lands on the previous calendar day for negative-UTC-offset users).
+    const target = startOfDay(parseLocalDate(goal.targetDate))
     if (target.getTime() < now.getTime()) continue
     const to = startOfWeek(target)
     if (start.getTime() < from.getTime() || start.getTime() > to.getTime()) continue
@@ -243,7 +248,8 @@ export function eventsInMonth(state: AppState, monthStart: Date): CalendarEvent[
   const results: CalendarEvent[] = []
 
   for (const d of state.importantDates) {
-    const base = new Date(d.date)
+    // parseLocalDate — see utils.ts (bug 4.10).
+    const base = parseLocalDate(d.date)
     const matches = d.recurring
       ? base.getMonth() === month
       : base.getFullYear() === year && base.getMonth() === month
@@ -262,7 +268,8 @@ export function eventsInMonth(state: AppState, monthStart: Date): CalendarEvent[
   }
 
   for (const g of state.goals) {
-    const target = new Date(g.targetDate)
+    // parseLocalDate — see utils.ts (bug 4.10).
+    const target = parseLocalDate(g.targetDate)
     if (target.getFullYear() === year && target.getMonth() === month) {
       results.push({
         kind: 'goal',

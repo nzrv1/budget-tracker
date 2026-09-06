@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { AppState, Transaction, CategoryDef } from '../types'
-import { formatMoney } from '../lib/utils'
+import { formatMoney, parseLocalDate } from '../lib/utils'
 import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import { Card, SectionHeading } from './shared'
 import AddTransactionModal from './AddTransactionModal'
@@ -40,7 +40,7 @@ export default function TransactionsView({
         const q = search.toLowerCase()
         return t.note.toLowerCase().includes(q) || t.category.toLowerCase().includes(q)
       })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
   }, [state.transactions, search, typeFilter, categoryFilter])
 
   return (
@@ -115,7 +115,7 @@ export default function TransactionsView({
                     </span>
                   </div>
                   <p className="text-xs text-ink-softer mt-0.5">
-                    {new Date(t.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {parseLocalDate(t.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </p>
                 </div>
                 <span className={`font-tabular text-sm font-medium shrink-0 ${t.type === 'income' ? 'text-sage-dark' : 'text-ink'}`}>

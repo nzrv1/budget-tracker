@@ -17,6 +17,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
+import { parseLocalDate } from './utils'
 
 export const IMPORTANT_DATE_ICON_MAP: Record<ImportantDateCategory, React.ElementType> = {
   birthday: Cake,
@@ -97,7 +98,12 @@ function startOfDay(d: Date): Date {
  * are used as-is.
  */
 export function nextOccurrence(dateStr: string, recurring: boolean): Date {
-  const stored = new Date(dateStr)
+  // parseLocalDate, not new Date() — dateStr is always a full "YYYY-MM-DD" (the recurring-holiday
+  // templates above get the current year prefixed onto their "MM-DD" before they ever reach
+  // here — see ImportantDatesView.tsx), and new Date() would parse it as UTC midnight, shifting
+  // it a day earlier for negative-UTC-offset users once .getMonth()/.getDate() read it back
+  // in local time (see utils.ts: parseLocalDate for the full explanation — this was bug 4.10).
+  const stored = parseLocalDate(dateStr)
   if (!recurring) return startOfDay(stored)
 
   const today = startOfDay(new Date())

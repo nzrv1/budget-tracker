@@ -1,5 +1,12 @@
 export type TransactionType = 'income' | 'expense'
 
+// The category used for the expense transaction logged whenever money moves into a Goal or
+// Important Date (payday auto-allocation, or the "add funds" quick-action on either card) — see
+// allocateToGoal/allocateToImportantDate in App.tsx. Shared so every place that needs to
+// recognize "this expense is actually a savings transfer, not real spending" (Dashboard's savings
+// card, the insights engine) agrees on the exact string.
+export const SAVINGS_CATEGORY = 'Savings'
+
 export interface Transaction {
   id: string
   date: string // ISO date
@@ -223,6 +230,7 @@ export const DEFAULT_CATEGORY_DEFS: CategoryDef[] = [
   { name: 'Health', icon: 'health' },
   { name: 'Salary', icon: 'income' },
   { name: 'Freelance', icon: 'work' },
+  { name: SAVINGS_CATEGORY, icon: 'savings' },
   { name: 'Other', icon: 'other' },
 ]
 

@@ -2,6 +2,7 @@
 // both savings goals and important dates — see generateReminders() below.
 import { AppState, Goal, ImportantDate, ImportantDateCategory, ReminderOffsetKey } from '../types'
 import { nextOccurrence } from './importantDates'
+import { parseLocalDate } from './utils'
 
 export const OFFSET_OPTIONS: { key: ReminderOffsetKey; label: string; days: number }[] = [
   { key: '2_months', label: '2 months before', days: 60 },
@@ -166,7 +167,8 @@ export function generateReminders(state: AppState): Reminder[] {
       const remaining = goal.targetAmount - goal.savedAmount
       if (remaining <= 0) continue // fully funded — nothing to nudge about
 
-      const target = startOfDay(new Date(goal.targetDate))
+      // parseLocalDate — see utils.ts (bug 4.10).
+      const target = startOfDay(parseLocalDate(goal.targetDate))
       if (target.getTime() < now.getTime()) continue // deadline's passed; insights.ts already flags this
 
       const due = findDueOffset(rule.offsets, target, now)

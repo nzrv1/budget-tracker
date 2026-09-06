@@ -36,7 +36,17 @@ export default function ReportsView({ state }: { state: AppState }) {
   const prev = filterByRange(state.transactions, prevRange.from, prevRange.to)
   const prevTotals = totals(prev)
 
-  const categoryData = useMemo(() => groupByCategory(current).sort((a, b) => b.value - a.value), [current])
+  // The legend only has room for a handful of rows, but the pie itself used to draw every
+  // category regardless — past 6, later slices had no matching legend entry at all (you'd
+  // see an unlabeled sliver with no way to tell what it was). Folding the rest into a single
+  // "Other categories" slice keeps the two in sync and the chart still adds up to 100%.
+  const categoryData = useMemo(() => {
+    const sorted = groupByCategory(current).sort((a, b) => b.value - a.value)
+    if (sorted.length <= 6) return sorted
+    const top = sorted.slice(0, 6)
+    const restTotal = sorted.slice(6).reduce((s, c) => s + c.value, 0)
+    return [...top, { category: 'Other categories', value: restTotal }]
+  }, [current])
 
   const trendData = useMemo(() => buildTrend(state.transactions, period), [state.transactions, period])
 
@@ -107,7 +117,10 @@ export default function ReportsView({ state }: { state: AppState }) {
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex-1 flex flex-col gap-2 text-sm">
-                {categoryData.slice(0, 6).map((entry) => (
+                {/* No slice(0, 6) here anymore — categoryData is already capped at 6 named
+                    categories plus one "Other categories" bucket, so every pie slice has a
+                    matching legend row. */}
+                {categoryData.map((entry) => (
                   <div key={entry.category} className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: colorForCategory(entry.category) }} />
                     <span className="text-ink-softer truncate flex-1">{entry.category}</span>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, PiggyBank, Wallet2, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { AppState, Transaction, Insight, CategoryDef } from '../types'
-import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod } from '../lib/utils'
+import { AppState, Transaction, Insight, CategoryDef, SAVINGS_CATEGORY } from '../types'
+import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod, parseLocalDate } from '../lib/utils'
 import { Card, ProgressBar, budgetTone } from './shared'
 import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
@@ -35,10 +35,6 @@ export default function Dashboard({
   // for the budget health card and the savings goal card, which are inherently monthly.
   const currentMonthRange = periodRange('month', today0)
   const currentMonthTx = filterByRange(state.transactions, currentMonthRange.from, currentMonthRange.to)
-  const currentMonthLogged = totals(currentMonthTx)
-  const currentMonthIncome = settingsIncomeForPeriod(state.settings, state.incomeSources, 'month', today0) + currentMonthLogged.income
-  const currentMonthExpense = currentMonthLogged.expense
-  const currentMonthSaved = currentMonthIncome - currentMonthExpense
 
   // Figures for the stat row, which follow the "This Month" / "This Year" toggle. Uses the
   // same settingsIncomeForPeriod() helper Reports uses, so the two screens can't drift apart
@@ -77,6 +73,14 @@ export default function Dashboard({
   // doesn't capture, since most of it hasn't been logged as transactions yet.
   const plan = planForMonth(state, startOfMonth(today0))
   const savingsGoalTotal = plan.goalsTotal
+  // Actual money moved into Goals/Important Dates this month (payday auto-allocation, or the
+  // "add funds" quick-action — see allocateToGoal/allocateToImportantDate in App.tsx), not
+  // "income minus expenses" leftover cash. Using leftover cash here used to mean that *actually
+  // saving* money made this card look worse — the leftover would drop by the amount saved,
+  // shrinking the ratio right when it should have grown.
+  const currentMonthSaved = currentMonthTx
+    .filter((t) => t.type === 'expense' && t.category === SAVINGS_CATEGORY)
+    .reduce((s, t) => s + t.amount, 0)
   const savingsGoalRatio = savingsGoalTotal > 0 ? currentMonthSaved / savingsGoalTotal : 0
   const savingsGoalPercent = Math.max(0, Math.round(savingsGoalRatio * 100))
 
@@ -89,7 +93,7 @@ export default function Dashboard({
   const theoreticalSavedPercent = income > 0 ? Math.round((theoreticalSaved / income) * 100) : 0
 
   const recent = [...state.transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
     .slice(0, 5)
 
   const topInsights = insights.slice(0, 3)
@@ -244,7 +248,7 @@ export default function Dashboard({
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-ink truncate">{t.note || t.category}</p>
                         <p className="text-xs text-ink-softer">
-                          {t.category} · {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          {t.category} · {parseLocalDate(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
                     </div>

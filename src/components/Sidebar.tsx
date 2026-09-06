@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Calendar, Bell, Settings, BookOpen, Palette, Check, MoreHorizontal, X } from 'lucide-react'
+import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Calendar, Bell, Settings, BookOpen, Palette, Check } from 'lucide-react'
 import { ViewKey } from '../App'
 import { ThemeKey } from '../types'
 import { THEMES } from '../lib/themes'
@@ -16,11 +16,12 @@ const NAV: { key: ViewKey; label: string; icon: React.ElementType }[] = [
   { key: 'settings', label: 'Settings', icon: Settings },
 ]
 
-// The mobile bottom bar only has room for a handful of items before labels start
-// colliding (9 items at 10px labels doesn't fit a 375px-wide screen). These four
-// are the ones used most often; everything else lives behind "More".
-const MOBILE_PRIMARY: ViewKey[] = ['dashboard', 'transactions', 'reports', 'budgets']
-
+// One slim icon-only rail for every screen size — replaces the old wide labelled desktop
+// sidebar (w-64) plus the separate mobile top bar + bottom nav + "More" sheet. A vertical rail
+// scales with screen HEIGHT, not width, so all 9 sections fit directly at any width, including
+// a 375px phone — no need to hide anything behind "More" the way a horizontal bottom bar did.
+// Labels are dropped in favor of a native title tooltip; aria-label keeps the same accessible
+// name as before so existing tests that query buttons by name still work unchanged.
 export default function Sidebar({
   view,
   setView,
@@ -34,139 +35,42 @@ export default function Sidebar({
   theme: ThemeKey
   setTheme: (t: ThemeKey) => void
 }) {
-  const [moreOpen, setMoreOpen] = useState(false)
-  const primaryNav = NAV.filter((n) => MOBILE_PRIMARY.includes(n.key))
-  const moreNav = NAV.filter((n) => !MOBILE_PRIMARY.includes(n.key))
-  const moreActive = moreNav.some((n) => n.key === view)
-
-  function pickMobile(key: ViewKey) {
-    setView(key)
-    setMoreOpen(false)
-  }
-
   return (
-    <>
-      {/* Desktop sidebar — dark "ledger spine" chrome; its shade adapts per theme (see index.css) */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-64 bg-nav text-nav-text px-5 py-7">
-        <div className="flex items-center justify-between px-2 mb-10">
-          <div className="flex items-center gap-2.5">
-            <BookOpen size={22} className="text-gold" strokeWidth={1.75} />
-            <span className="font-display font-semibold text-lg tracking-tight">Ledger</span>
-          </div>
-          <ThemePickerButton theme={theme} setTheme={setTheme} />
-        </div>
-
-        <nav className="flex-1 flex flex-col gap-1">
-          {NAV.map(({ key, label, icon: Icon }) => {
-            const active = view === key
-            return (
-              <button
-                key={key}
-                onClick={() => setView(key)}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded transition-colors text-sm relative ${
-                  active ? 'bg-nav-light text-nav-text' : 'text-nav-text/60 hover:text-nav-text hover:bg-nav-light/60'
-                }`}
-              >
-                {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-gold rounded-full" />}
-                <Icon size={17} strokeWidth={1.75} />
-                <span className="font-medium">{label}</span>
-                {key === 'notifications' && notificationCount > 0 && (
-                  <span className="ml-auto text-[11px] font-tabular bg-clay text-white rounded-full px-1.5 py-0.5 leading-none">
-                    {notificationCount}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
-
-        <div className="px-3 py-3 border-t border-nav-text/10 text-xs text-nav-text/40 leading-relaxed">
-          Your data stays in this browser. Nothing is sent anywhere.
-        </div>
-      </aside>
-
-      {/* Mobile top bar */}
-      <div className="lg:hidden sticky top-0 z-30 bg-nav text-nav-text px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <BookOpen size={20} className="text-gold" strokeWidth={1.75} />
-          <span className="font-display font-semibold text-base tracking-tight">Ledger</span>
-        </div>
-        <ThemePickerButton theme={theme} setTheme={setTheme} />
+    <aside
+      className="fixed left-0 top-0 z-30 flex flex-col items-center w-16 h-screen bg-nav text-nav-text
+                 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+    >
+      <div className="mb-4 shrink-0" title="Ledger">
+        <BookOpen size={22} className="text-gold" strokeWidth={1.75} />
       </div>
 
-      {/* Mobile bottom nav — only the 4 most-used sections plus "More", so labels have room to
-          breathe (all 9 sections in one row didn't fit a phone-width screen). The safe-area
-          padding keeps it clear of the home-indicator bar on notched iPhones. */}
-      <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-nav text-nav-text flex items-center justify-around px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-nav-text/10"
-      >
-        {primaryNav.map(({ key, label, icon: Icon }) => {
+      <nav className="flex-1 flex flex-col items-center gap-1 w-full overflow-y-auto px-2">
+        {NAV.map(({ key, label, icon: Icon }) => {
           const active = view === key
           return (
             <button
               key={key}
-              onClick={() => pickMobile(key)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded relative ${
-                active ? 'text-gold' : 'text-nav-text/50'
+              onClick={() => setView(key)}
+              title={label}
+              aria-label={label}
+              className={`relative w-11 h-11 shrink-0 flex items-center justify-center rounded-lg transition-colors ${
+                active ? 'bg-nav-light text-gold' : 'text-nav-text/55 hover:text-nav-text hover:bg-nav-light/60'
               }`}
             >
+              {active && <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-gold rounded-full" />}
               <Icon size={19} strokeWidth={1.75} />
-              <span className="text-[10px] font-medium">{label}</span>
+              {key === 'notifications' && notificationCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-clay" />
+              )}
             </button>
           )
         })}
-        <button
-          onClick={() => setMoreOpen(true)}
-          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded relative ${
-            moreActive ? 'text-gold' : 'text-nav-text/50'
-          }`}
-        >
-          <MoreHorizontal size={19} strokeWidth={1.75} />
-          <span className="text-[10px] font-medium">More</span>
-          {notificationCount > 0 && <span className="absolute top-0 right-1 w-1.5 h-1.5 rounded-full bg-clay" />}
-        </button>
       </nav>
 
-      {/* Mobile "More" sheet — the remaining sections (Goals, Important Dates, Calendar,
-          Notifications, Settings) that don't fit in the bottom bar. */}
-      {moreOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 flex items-end justify-center bg-black/40 backdrop-blur-[2px]" onClick={() => setMoreOpen(false)}>
-          <div
-            className="bg-paper-card w-full rounded-t-lg border border-paper-line max-h-[75vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
-              <h3 className="font-display font-semibold text-lg text-ink">More</h3>
-              <button onClick={() => setMoreOpen(false)} className="p-2 -m-2 text-ink-softer hover:text-ink" aria-label="Close">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-2">
-              {moreNav.map(({ key, label, icon: Icon }) => {
-                const active = view === key
-                return (
-                  <button
-                    key={key}
-                    onClick={() => pickMobile(key)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded text-sm relative ${
-                      active ? 'bg-sage-light text-sage-dark font-medium' : 'text-ink'
-                    }`}
-                  >
-                    <Icon size={18} strokeWidth={1.75} />
-                    {label}
-                    {key === 'notifications' && notificationCount > 0 && (
-                      <span className="ml-auto text-[11px] font-tabular bg-clay text-white rounded-full px-1.5 py-0.5 leading-none">
-                        {notificationCount}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      <div className="shrink-0 mt-2">
+        <ThemePickerButton theme={theme} setTheme={setTheme} />
+      </div>
+    </aside>
   )
 }
 
@@ -187,13 +91,16 @@ function ThemePickerButton({ theme, setTheme }: { theme: ThemeKey; setTheme: (t:
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Choose theme"
-        className="w-8 h-8 rounded flex items-center justify-center text-nav-text/60 hover:text-nav-text hover:bg-nav-light transition-colors shrink-0"
+        className="w-11 h-11 rounded-lg flex items-center justify-center text-nav-text/60 hover:text-nav-text hover:bg-nav-light transition-colors shrink-0"
       >
-        <Palette size={16} strokeWidth={1.75} />
+        <Palette size={17} strokeWidth={1.75} />
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1.5 w-44 bg-paper-card border border-paper-line rounded-lg shadow-lg shadow-ink/20 overflow-hidden z-40 text-ink">
+        // Flies out to the RIGHT of the rail, not right-aligned to the button — the rail sits
+        // flush against the screen's left edge, so a dropdown right-aligned to a button only
+        // 64px from that edge would spill off-screen to the left instead of appearing on it.
+        <div className="absolute left-full bottom-0 ml-2 w-44 bg-paper-card border border-paper-line rounded-lg shadow-lg shadow-ink/20 overflow-hidden z-40 text-ink">
           {THEMES.map((t) => (
             <button
               key={t.key}

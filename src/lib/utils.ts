@@ -37,9 +37,38 @@ export function periodRange(period: 'day' | 'week' | 'month' | 'year', anchor: D
   return { from, to }
 }
 
+/**
+ * Parses a bare "YYYY-MM-DD" date (transaction dates, goal/important-date targets — anything
+ * that came from a plain `<input type="date">`) as a calendar day in the user's own timezone.
+ * `new Date("2024-01-01")` parses that as UTC midnight, which is still Dec 31 locally for any
+ * negative UTC offset (most of the Americas) — every call site below that was mixing a
+ * UTC-parsed date against locally-constructed range boundaries could be off by a day for those
+ * users. Never use this on a full ISO timestamp (e.g. `createdAt`) — those already carry a
+ * timezone and parse correctly on their own.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
+}
+
+/**
+ * "Today" as a bare YYYY-MM-DD string in the person's own local timezone — the write-side
+ * counterpart to parseLocalDate above. `new Date().toISOString().slice(0, 10)` (used to default
+ * date fields before this) reads the UTC date instead, which rolls over to "tomorrow" while it's
+ * still today for anyone west of UTC (e.g. after 7-8pm Eastern/Pacific) — the same off-by-one
+ * this file already fixes on the parsing side, just on the way out instead of the way in.
+ */
+export function todayLocalDateString(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function filterByRange(transactions: Transaction[], from: Date, to: Date) {
   return transactions.filter((t) => {
-    const d = new Date(t.date)
+    const d = parseLocalDate(t.date)
     return d >= from && d <= to
   })
 }
