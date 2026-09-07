@@ -5,6 +5,7 @@ import { ImportantDateIconGlyph } from '../lib/importantDates'
 import { formatMoney } from '../lib/utils'
 import { Card, ProgressBar, GoalIconGlyph, SectionHeading } from './shared'
 import { EmptyState } from './Dashboard'
+import { useT } from '../lib/i18n'
 
 export default function NotificationsView({
   insights,
@@ -15,15 +16,16 @@ export default function NotificationsView({
   reminders: Reminder[]
   currency: string
 }) {
+  const t = useT()
   const isEmpty = insights.length === 0 && reminders.length === 0
 
   return (
     <div>
-      <SectionHeading eyebrow="Nudges & tips" title="Notifications" />
+      <SectionHeading eyebrow={t.notifications.eyebrow} title={t.notifications.title} />
 
       {isEmpty ? (
         <Card className="p-8">
-          <EmptyState text="Nothing to flag right now — add transactions, goals, or important dates to get tailored tips here." />
+          <EmptyState text={t.notifications.emptyState} />
         </Card>
       ) : (
         <div className="flex flex-col gap-3">
@@ -67,6 +69,7 @@ export default function NotificationsView({
 }
 
 function GoalReminderCard({ reminder, currency }: { reminder: Reminder; currency: string }) {
+  const t = useT()
   const { goal, ratio, remaining, neededPerWeek, daysLeft, comment, offsetKey } = reminder
   if (!goal || ratio === undefined || remaining === undefined || neededPerWeek === undefined) return null
 
@@ -80,22 +83,18 @@ function GoalReminderCard({ reminder, currency }: { reminder: Reminder; currency
           <div className="flex items-center gap-1.5 flex-wrap">
             <GoalIconGlyph icon={goal.icon} size={14} className="text-ink-softer shrink-0" />
             <p className="text-sm font-medium text-ink truncate">{goal.name}</p>
-            <span className="text-xs text-ink-softer">· {offsetLabel(offsetKey)}</span>
+            <span className="text-xs text-ink-softer">· {offsetLabel(t, offsetKey)}</span>
           </div>
 
           <div className="flex justify-between items-baseline mt-2.5 mb-1.5">
             <span className="font-tabular font-semibold text-sm text-ink">{formatMoney(goal.savedAmount, currency)}</span>
-            <span className="text-xs text-ink-softer font-tabular">of {formatMoney(goal.targetAmount, currency)}</span>
+            <span className="text-xs text-ink-softer font-tabular">{t.goals.ofAmount(formatMoney(goal.targetAmount, currency))}</span>
           </div>
           <ProgressBar ratio={ratio} tone={ratio >= 0.9 ? 'gold' : 'sage'} />
 
           <p className="text-sm text-ink-softer mt-2.5 leading-relaxed">
-            {formatMoney(remaining, currency)} left to save
-            {daysLeft > 0
-              ? ` — about ${formatMoney(neededPerWeek, currency)}/week keeps you on pace for ${daysLeft} day${
-                  daysLeft === 1 ? '' : 's'
-                } left.`
-              : '.'}
+            {t.notifications.leftToSave(formatMoney(remaining, currency))}
+            {daysLeft > 0 ? t.notifications.pace(formatMoney(neededPerWeek, currency), daysLeft) : t.notifications.paceNone}
           </p>
           <p className="text-sm text-sage-dark mt-1 font-medium leading-relaxed">{comment}</p>
         </div>
@@ -105,6 +104,7 @@ function GoalReminderCard({ reminder, currency }: { reminder: Reminder; currency
 }
 
 function DateReminderCard({ reminder, currency }: { reminder: Reminder; currency: string }) {
+  const t = useT()
   const { importantDate, daysLeft, comment, offsetKey, ratio, remaining, neededPerWeek } = reminder
   if (!importantDate) return null
 
@@ -119,10 +119,10 @@ function DateReminderCard({ reminder, currency }: { reminder: Reminder; currency
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="text-sm font-medium text-ink truncate">{importantDate.name}</p>
-            <span className="text-xs text-ink-softer">· {offsetLabel(offsetKey)}</span>
+            <span className="text-xs text-ink-softer">· {offsetLabel(t, offsetKey)}</span>
           </div>
           <p className="text-sm text-ink-softer mt-1.5 leading-relaxed">
-            {daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `In ${daysLeft} days`}
+            {daysLeft === 0 ? t.common.today : daysLeft === 1 ? t.common.tomorrow : t.common.inDays(daysLeft)}
           </p>
 
           {hasTarget && (
@@ -132,19 +132,17 @@ function DateReminderCard({ reminder, currency }: { reminder: Reminder; currency
                   {formatMoney((importantDate.savedAmount ?? 0), currency)}
                 </span>
                 <span className="text-xs text-ink-softer font-tabular">
-                  of {formatMoney(importantDate.targetAmount ?? 0, currency)}
+                  {t.importantDates.ofAmount(formatMoney(importantDate.targetAmount ?? 0, currency))}
                 </span>
               </div>
               <ProgressBar ratio={ratio} tone={ratio >= 0.9 ? 'gold' : 'sage'} />
 
               {remaining > 0 && (
                 <p className="text-sm text-ink-softer mt-2.5 leading-relaxed">
-                  {formatMoney(remaining, currency)} left to save
+                  {t.notifications.leftToSave(formatMoney(remaining, currency))}
                   {daysLeft > 0 && neededPerWeek !== undefined
-                    ? ` — about ${formatMoney(neededPerWeek, currency)}/week keeps you on pace for ${daysLeft} day${
-                        daysLeft === 1 ? '' : 's'
-                      } left.`
-                    : '.'}
+                    ? t.notifications.pace(formatMoney(neededPerWeek, currency), daysLeft)
+                    : t.notifications.paceNone}
                 </p>
               )}
             </>

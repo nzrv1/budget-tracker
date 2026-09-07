@@ -1,17 +1,39 @@
 import { useMemo, useState } from 'react'
 import { Plus, Trash2, Search } from 'lucide-react'
 import { AppState, CategoryBudget, CategoryDef, BudgetPeriod } from '../types'
-import { formatMoney, periodRange, filterByRange } from '../lib/utils'
-import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
+import { formatMoney, periodRange, filterByRange, useNumberField } from '../lib/utils'
+import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import { Card, ProgressBar, budgetTone, SectionHeading } from './shared'
 import CategorySelect from './CategorySelect'
 import { EmptyState } from './Dashboard'
+import { Dictionary, useT } from '../lib/i18n'
 
-const PERIOD_LABEL: Record<BudgetPeriod, string> = { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }
-const PERIOD_SUFFIX: Record<BudgetPeriod, string> = { day: '/ day', week: '/ week', month: '/ month', year: '/ year' }
+function periodLabels(t: Dictionary): Record<BudgetPeriod, string> {
+  return { day: t.periods.day, week: t.periods.week, month: t.periods.month, year: t.periods.year }
+}
+function periodSuffixes(t: Dictionary): Record<BudgetPeriod, string> {
+  return { day: t.periods.suffixDay, week: t.periods.suffixWeek, month: t.periods.suffixMonth, year: t.periods.suffixYear }
+}
 const PERIODS: BudgetPeriod[] = ['day', 'week', 'month', 'year']
 
 type SortKey = 'name' | 'usage' | 'limit'
+
+// Pulled out into its own component (rather than calling useNumberField inline inside the
+// .map() below) because it's a hook — hooks can't be called from within a loop/callback,
+// only from a component's own top level. Fixes the same "clearing the field shows 0, new
+// digits get prefixed with it" bug as the Basic salary field in SettingsView.
+function BudgetLimitInput({ limit, onCommit }: { limit: number; onCommit: (n: number) => void }) {
+  const field = useNumberField(limit, onCommit)
+  return (
+    <input
+      type="number"
+      value={field.text}
+      onChange={field.handleChange}
+      onBlur={field.handleBlur}
+      className="w-16 text-right font-tabular border-b border-paper-line bg-transparent focus:border-sage outline-none"
+    />
+  )
+}
 
 export default function BudgetsView({
   state,
@@ -22,6 +44,9 @@ export default function BudgetsView({
   setBudgets: (b: CategoryBudget[]) => void
   addCategory: (def: CategoryDef) => void
 }) {
+  const t = useT()
+  const PERIOD_LABEL = periodLabels(t)
+  const PERIOD_SUFFIX = periodSuffixes(t)
   const [newCategory, setNewCategory] = useState('')
   const [newLimit, setNewLimit] = useState('')
   const [newPeriod, setNewPeriod] = useState<BudgetPeriod>('month')
@@ -42,12 +67,12 @@ export default function BudgetsView({
     e.preventDefault()
     const limit = parseFloat(newLimit)
     setFormError('')
-    if (!newCategory.trim()) return setFormError('Choose or add a category.')
-    if (!limit || limit <= 0) return setFormError('Enter a limit greater than zero.')
+    if (!newCategory.trim()) return setFormError(t.budgets.errorChooseCategory)
+    if (!limit || limit <= 0) return setFormError(t.budgets.errorEnterLimit)
     const duplicate = state.budgets.some(
       (b) => b.category.toLowerCase() === newCategory.trim().toLowerCase() && b.period === newPeriod
     )
-    if (duplicate) return setFormError(`A ${PERIOD_LABEL[newPeriod].toLowerCase()} budget for this category already exists.`)
+    if (duplicate) return setFormError(t.budgets.errorDuplicate(PERIOD_LABEL[newPeriod]))
     setBudgets([...state.budgets, { category: newCategory.trim(), limit, period: newPeriod }])
     setNewCategory('')
     setNewLimit('')
@@ -81,10 +106,10 @@ export default function BudgetsView({
 
   return (
     <div>
-      <SectionHeading eyebrow="Set your limits" title="Budgets" />
+      <SectionHeading eyebrow={t.budgets.eyebrow} title={t.budgets.title} />
 
       <Card className="p-5 mb-6">
-        <h3 className="font-display font-semibold text-base mb-4">Add a category budget</h3>
+        <h3 className="font-display font-semibold text-base mb-4">{t.budgets.addBudgetTitle}</h3>
         <form onSubmit={handleAdd} className="flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
@@ -101,7 +126,7 @@ export default function BudgetsView({
               step="1"
               value={newLimit}
               onChange={(e) => setNewLimit(e.target.value)}
-              placeholder="Limit amount"
+              placeholder={t.budgets.limitPlaceholder}
               className="sm:w-36 px-3 py-2.5 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
             />
             <button
@@ -109,12 +134,12 @@ export default function BudgetsView({
               className="inline-flex items-center justify-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors shrink-0"
             >
               <Plus size={16} />
-              Add budget
+              {t.budgets.addBudgetButton}
             </button>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-1.5">Resets</label>
+            <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.budgets.resetsLabel}</label>
             <div className="flex bg-paper rounded p-1 border border-paper-line w-fit">
               {PERIODS.map((p) => (
                 <button
@@ -144,7 +169,7 @@ export default function BudgetsView({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter by category..."
+                placeholder={t.budgets.filterPlaceholder}
                 className="w-full pl-9 pr-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
               />
             </div>
@@ -153,7 +178,7 @@ export default function BudgetsView({
               onChange={(e) => setPeriodFilter(e.target.value as any)}
               className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
             >
-              <option value="all">All periods</option>
+              <option value="all">{t.budgets.allPeriods}</option>
               {PERIODS.map((p) => (
                 <option key={p} value={p}>
                   {PERIOD_LABEL[p]}
@@ -165,9 +190,9 @@ export default function BudgetsView({
               onChange={(e) => setSortKey(e.target.value as SortKey)}
               className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
             >
-              <option value="name">Sort: Category A–Z</option>
-              <option value="usage">Sort: Most used first</option>
-              <option value="limit">Sort: Highest limit first</option>
+              <option value="name">{t.budgets.sortNameLabel}</option>
+              <option value="usage">{t.budgets.sortUsageLabel}</option>
+              <option value="limit">{t.budgets.sortLimitLabel}</option>
             </select>
           </div>
         </Card>
@@ -175,11 +200,11 @@ export default function BudgetsView({
 
       {state.budgets.length === 0 ? (
         <Card className="p-8">
-          <EmptyState text="No budgets set yet — add one above to start tracking spending limits." />
+          <EmptyState text={t.budgets.noBudgetsYet} />
         </Card>
       ) : visibleBudgets.length === 0 ? (
         <Card className="p-8">
-          <EmptyState text="No budgets match your filters." />
+          <EmptyState text={t.budgets.noMatch} />
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
@@ -193,8 +218,8 @@ export default function BudgetsView({
                       <CategoryIconGlyph icon={iconForCategory(state.categories, b.category)} size={15} className="text-ink-softer" />
                     </span>
                     <div className="min-w-0">
-                      <h4 className="font-medium text-ink truncate">{b.category}</h4>
-                      <span className="text-[11px] text-ink-softer">{PERIOD_LABEL[b.period]} limit</span>
+                      <h4 className="font-medium text-ink truncate">{translateCategoryName(t, b.category)}</h4>
+                      <span className="text-[11px] text-ink-softer">{t.budgets.periodLimitLabel(PERIOD_LABEL[b.period])}</span>
                     </div>
                   </div>
                   {/* p-2 -m-2: bigger tap target, same visual footprint (see GoalsView for the
@@ -202,7 +227,7 @@ export default function BudgetsView({
                   <button
                     onClick={() => removeBudget(b.category, b.period)}
                     className="p-2 -m-2 text-ink-softer hover:text-clay-dark shrink-0"
-                    aria-label={`Remove ${b.category} budget`}
+                    aria-label={t.budgets.removeAria(translateCategoryName(t, b.category))}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -212,21 +237,19 @@ export default function BudgetsView({
                     {formatMoney(b.spent, state.settings.currency)}
                   </span>
                   <span className="text-xs text-ink-softer">
-                    of{' '}
-                    <input
-                      type="number"
-                      value={b.limit}
-                      onChange={(e) => updateLimit(b.category, b.period, parseFloat(e.target.value) || 0)}
-                      className="w-16 text-right font-tabular border-b border-paper-line bg-transparent focus:border-sage outline-none"
+                    {t.budgets.ofLabel}{' '}
+                    <BudgetLimitInput
+                      limit={b.limit}
+                      onCommit={(n) => updateLimit(b.category, b.period, n)}
                     />{' '}
                     {state.settings.currency} {PERIOD_SUFFIX[b.period]}
                   </span>
                 </div>
                 <ProgressBar ratio={b.ratio} tone={tone} />
                 {b.ratio >= 1 && (
-                  <p className="text-xs text-clay-dark mt-2">Over by {formatMoney(b.spent - b.limit, state.settings.currency)}</p>
+                  <p className="text-xs text-clay-dark mt-2">{t.budgets.overBy(formatMoney(b.spent - b.limit, state.settings.currency))}</p>
                 )}
-                {b.ratio >= 0.75 && b.ratio < 1 && <p className="text-xs text-gold-dark mt-2">Getting close to the limit</p>}
+                {b.ratio >= 0.75 && b.ratio < 1 && <p className="text-xs text-gold-dark mt-2">{t.budgets.closeToLimit}</p>}
               </Card>
             )
           })}

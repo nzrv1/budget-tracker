@@ -12,12 +12,14 @@ import {
   SAVINGS_CATEGORY,
   ThemeKey,
 } from './types'
-import { loadState, saveState, uid, clearState, STORAGE_KEY, migrate, getLastLocalChangeAt } from './lib/storage'
+import { loadState, saveState, uid, STORAGE_KEY, migrate, getLastLocalChangeAt } from './lib/storage'
+import { emptyState } from './lib/mockData'
 import { todayLocalDateString } from './lib/utils'
 import { pullRemoteState, pushRemoteState } from './lib/sync'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
 import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/planning'
+import { createTranslator, DEFAULT_LANGUAGE, I18nProvider, localeForLanguage } from './lib/i18n'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import TransactionsView from './components/TransactionsView'
@@ -106,8 +108,16 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [state])
 
-  const insights = useMemo(() => generateInsights(state), [state])
-  const reminders = useMemo(() => generateReminders(state), [state])
+  // App.tsx sits above the I18nProvider it renders below (see the return statement), so it
+  // can't call useT()/useI18n() itself — it builds its own translator straight from
+  // state.settings.language instead. Every screen underneath gets the same dictionary via the
+  // provider/useT(), so there's only ever one language value driving both.
+  const language = state.settings.language || DEFAULT_LANGUAGE
+  const t = useMemo(() => createTranslator(language), [language])
+  const locale = useMemo(() => localeForLanguage(language), [language])
+
+  const insights = useMemo(() => generateInsights(state, t, locale), [state, t, locale])
+  const reminders = useMemo(() => generateReminders(state, t), [state, t])
 
   // Ids of everything currently showing on the Notifications page — opening that page marks
   // all of these read at once (see the effect below), and the sidebar badge only counts the
@@ -244,7 +254,9 @@ export default function App() {
       category: SAVINGS_CATEGORY,
       amount,
       date: todayLocalDateString(),
-      note: `Set aside for "${goal.name}"`,
+      // Real transaction data (shown later in Transactions/Dashboard), not fixed UI chrome — see
+      // t.common.setAsideFor's doc comment in en.ts for why this gets translated at write time.
+      note: t.common.setAsideFor(goal.name),
     })
   }
 
@@ -257,7 +269,7 @@ export default function App() {
       category: SAVINGS_CATEGORY,
       amount,
       date: todayLocalDateString(),
-      note: `Set aside for "${date.name}"`,
+      note: t.common.setAsideFor(date.name),
     })
   }
 
@@ -296,7 +308,7 @@ export default function App() {
   // has arrived) as handled for this month, so the prompt doesn't repeat until next month —
   // or until a later payday from a different income source comes due.
   function markDuePaydaysHandled() {
-    const due = duePaydaySources(state.settings.salaryDay, state.incomeSources, state.settings.handledPaydays)
+    const due = duePaydaySources(state.settings.salaryDay, state.incomeSources, state.settings.handledPaydays, new Date(), t)
     const monthK = monthKey(new Date())
     const handledPaydays = { ...(state.settings.handledPaydays || {}) }
     for (const s of due) handledPaydays[s.key] = monthK
@@ -331,11 +343,18 @@ export default function App() {
   }
 
   function resetData() {
-    clearState()
+    // Explicitly save a genuinely empty AppState rather than clearState()+reload — clearing
+    // localStorage and reloading used to fall into loadState()'s "no saved state" branch, which
+    // is also what a brand-new visitor hits, so it silently restored the demo dataset
+    // (mockState()) instead of actually resetting anything. saveState() also stamps a fresh
+    // last-changed timestamp, so if this happens inside Telegram the empty state correctly wins
+    // the next sync instead of the old cloud copy overwriting it back in.
+    saveState(emptyState())
     window.location.reload()
   }
 
   return (
+    <I18nProvider lang={language}>
     <div className="min-h-screen bg-paper flex text-ink font-body">
       <Sidebar
         view={view}
@@ -411,5 +430,6 @@ export default function App() {
 
       <ToastStack toasts={toasts} dismiss={dismissToast} />
     </div>
+    </I18nProvider>
   )
 }

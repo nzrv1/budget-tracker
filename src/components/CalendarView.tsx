@@ -14,11 +14,10 @@ import {
   addMonths,
   CalendarEvent,
 } from '../lib/planning'
-
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+import { Dictionary, useI18n, useT } from '../lib/i18n'
 
 export default function CalendarView({ state }: { state: AppState }) {
+  const t = useT()
   const [mode, setMode] = useState<'month' | 'week'>('month')
   const [year, setYear] = useState(new Date().getFullYear())
   const [monthAnchor, setMonthAnchor] = useState(() => startOfMonth(new Date()))
@@ -26,8 +25,8 @@ export default function CalendarView({ state }: { state: AppState }) {
   return (
     <div>
       <SectionHeading
-        eyebrow="Plan ahead"
-        title="Calendar"
+        eyebrow={t.calendar.eyebrow}
+        title={t.calendar.title}
         action={
           <div className="inline-flex rounded-lg border border-paper-line overflow-hidden">
             <button
@@ -36,7 +35,7 @@ export default function CalendarView({ state }: { state: AppState }) {
                 mode === 'month' ? 'bg-ink text-paper' : 'text-ink-softer hover:bg-paper-card'
               }`}
             >
-              Monthly
+              {t.calendar.monthlyToggle}
             </button>
             <button
               onClick={() => setMode('week')}
@@ -44,16 +43,13 @@ export default function CalendarView({ state }: { state: AppState }) {
                 mode === 'week' ? 'bg-ink text-paper' : 'text-ink-softer hover:bg-paper-card'
               }`}
             >
-              Weekly
+              {t.calendar.weeklyToggle}
             </button>
           </div>
         }
       />
 
-      <p className="text-sm text-ink-softer mb-5 -mt-2">
-        Money you'll want to set aside, blending your budgets with what's left to save for your goals and important
-        dates.
-      </p>
+      <p className="text-sm text-ink-softer mb-5 -mt-2">{t.calendar.description}</p>
 
       {mode === 'month' ? (
         <MonthGridView state={state} year={year} setYear={setYear} />
@@ -65,6 +61,7 @@ export default function CalendarView({ state }: { state: AppState }) {
 }
 
 function MonthGridView({ state, year, setYear }: { state: AppState; year: number; setYear: (y: number) => void }) {
+  const t = useT()
   const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1))
 
   return (
@@ -72,7 +69,7 @@ function MonthGridView({ state, year, setYear }: { state: AppState; year: number
       <div className="flex items-center justify-center gap-4 mb-5">
         <button
           onClick={() => setYear(year - 1)}
-          aria-label="Previous year"
+          aria-label={t.calendar.prevYearAria}
           className="p-2 rounded hover:bg-paper-card text-ink-softer hover:text-ink transition-colors"
         >
           <ChevronLeft size={18} />
@@ -80,7 +77,7 @@ function MonthGridView({ state, year, setYear }: { state: AppState; year: number
         <h3 className="font-display font-semibold text-lg text-ink w-16 text-center">{year}</h3>
         <button
           onClick={() => setYear(year + 1)}
-          aria-label="Next year"
+          aria-label={t.calendar.nextYearAria}
           className="p-2 rounded hover:bg-paper-card text-ink-softer hover:text-ink transition-colors"
         >
           <ChevronRight size={18} />
@@ -97,6 +94,7 @@ function MonthGridView({ state, year, setYear }: { state: AppState; year: number
 }
 
 function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date }) {
+  const t = useT()
   const plan = planForMonth(state, monthStart)
   const events = eventsInMonth(state, monthStart)
   const [openDay, setOpenDay] = useState<number | null>(null)
@@ -127,12 +125,12 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
   return (
     <Card className="p-4">
       <div className="flex items-baseline justify-between mb-2.5">
-        <h4 className="font-display font-semibold text-base text-ink">{MONTH_NAMES[month]}</h4>
+        <h4 className="font-display font-semibold text-base text-ink">{t.calendar.monthNamesShort[month]}</h4>
         <span className="font-tabular font-semibold text-sm text-sage-dark">{formatMoney(plan.total, currency)}</span>
       </div>
 
       <div className="grid grid-cols-7 gap-y-1 text-center mb-1">
-        {WEEKDAY_LABELS.map((w, i) => (
+        {t.calendar.weekdayLetters.map((w, i) => (
           <span key={i} className="text-[10px] font-medium text-ink-softer">
             {w}
           </span>
@@ -180,13 +178,13 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
                 {hasTarget ? (
                   <>
                     <div className="flex justify-between text-[11px] font-tabular text-ink-softer mb-1">
-                      <span>{formatMoney(ev.saved, currency)} saved</span>
-                      <span>{formatMoney(remaining, currency)} left</span>
+                      <span>{t.calendar.savedLabel(formatMoney(ev.saved, currency))}</span>
+                      <span>{t.calendar.leftLabel(formatMoney(remaining, currency))}</span>
                     </div>
                     <ProgressBar ratio={ratio} tone={ratio >= 0.9 ? 'gold' : 'sage'} />
                   </>
                 ) : (
-                  <p className="text-[11px] text-ink-softer">No savings target set for this one.</p>
+                  <p className="text-[11px] text-ink-softer">{t.calendar.noTargetSet}</p>
                 )}
               </div>
             )
@@ -199,7 +197,7 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
           {plan.budgetsTotal > 0 && (
             <div className="flex items-center justify-between text-ink-softer">
               <span className="flex items-center gap-1.5">
-                <Wallet size={12} /> Budgets
+                <Wallet size={12} /> {t.calendar.budgetsLabel}
               </span>
               <span className="font-tabular">{formatMoney(plan.budgetsTotal, currency)}</span>
             </div>
@@ -207,7 +205,7 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
           {plan.goalsTotal > 0 && (
             <div className="flex items-center justify-between text-ink-softer">
               <span className="flex items-center gap-1.5">
-                <Target size={12} /> Goals
+                <Target size={12} /> {t.calendar.goalsLabel}
               </span>
               <span className="font-tabular">{formatMoney(plan.goalsTotal, currency)}</span>
             </div>
@@ -215,7 +213,7 @@ function MonthCard({ state, monthStart }: { state: AppState; monthStart: Date })
           {plan.datesTotal > 0 && (
             <div className="flex items-center justify-between text-ink-softer">
               <span className="flex items-center gap-1.5">
-                <CalendarDays size={12} /> Dates
+                <CalendarDays size={12} /> {t.calendar.datesLabel}
               </span>
               <span className="font-tabular">{formatMoney(plan.datesTotal, currency)}</span>
             </div>
@@ -235,6 +233,7 @@ function WeekListView({
   monthAnchor: Date
   setMonthAnchor: (d: Date) => void
 }) {
+  const { t, locale } = useI18n()
   const weeks = weeksInMonth(monthAnchor)
   const currency = state.settings.currency
 
@@ -243,17 +242,17 @@ function WeekListView({
       <div className="flex items-center justify-center gap-4 mb-5">
         <button
           onClick={() => setMonthAnchor(addMonths(monthAnchor, -1))}
-          aria-label="Previous month"
+          aria-label={t.calendar.prevMonthAria}
           className="p-2 rounded hover:bg-paper-card text-ink-softer hover:text-ink transition-colors"
         >
           <ChevronLeft size={18} />
         </button>
         <h3 className="font-display font-semibold text-lg text-ink w-40 text-center">
-          {MONTH_NAMES[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
+          {t.calendar.monthNamesShort[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
         </h3>
         <button
           onClick={() => setMonthAnchor(addMonths(monthAnchor, 1))}
-          aria-label="Next month"
+          aria-label={t.calendar.nextMonthAria}
           className="p-2 rounded hover:bg-paper-card text-ink-softer hover:text-ink transition-colors"
         >
           <ChevronRight size={18} />
@@ -268,21 +267,21 @@ function WeekListView({
             <Card key={i} className="p-4">
               <div className="flex items-baseline justify-between mb-3">
                 <h4 className="font-medium text-sm text-ink">
-                  {weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {weekStart.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
                   {' – '}
-                  {weekEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {weekEnd.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
                 </h4>
                 <span className="font-tabular font-semibold text-sm text-sage-dark">{formatMoney(plan.total, currency)}</span>
               </div>
 
               {plan.total === 0 ? (
-                <p className="text-xs text-ink-softer">Nothing planned this week.</p>
+                <p className="text-xs text-ink-softer">{t.calendar.nothingPlannedThisWeek}</p>
               ) : (
                 <div className="flex flex-col gap-1.5 text-xs">
                   {plan.budgetsTotal > 0 && (
                     <div className="flex items-center justify-between text-ink-softer">
                       <span className="flex items-center gap-1.5">
-                        <Wallet size={12} /> Budgets (all categories)
+                        <Wallet size={12} /> {t.calendar.budgetsAllCategoriesLabel}
                       </span>
                       <span className="font-tabular">{formatMoney(plan.budgetsTotal, currency)}</span>
                     </div>

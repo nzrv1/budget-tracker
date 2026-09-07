@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Transaction } from '../types'
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -130,4 +131,44 @@ export const CATEGORY_COLORS: Record<string, string> = {
 
 export function colorForCategory(category: string): string {
   return CATEGORY_COLORS[category] || '#9B9B93'
+}
+
+/**
+ * Backs a `<input type="number">` whose `value` is bound directly to an existing numeric
+ * field in AppState (e.g. settings.monthlyIncome, a budget's limit) — as opposed to a "new
+ * entry" form field, which already keeps its own local string state (see AddTransactionModal,
+ * GoalsView, ImportantDatesView) and doesn't need this.
+ *
+ * The bug this fixes: with `value={someNumber}` and `onChange={e => onChange(parseFloat(e.target.value) || 0)}`,
+ * clearing the field to retype a value makes the number briefly become 0, which re-renders the
+ * input's value back to "0" *before* the next keystroke lands — so typing "1600" after clearing
+ * produces "01600" instead of "1600". Keeping the input's own text buffer (only committing a
+ * parsed number upward while it's non-empty, and only coercing empty to 0 on blur) means the
+ * field can sit empty mid-edit without the app state ever forcing "0" back into it.
+ */
+export function useNumberField(value: number, onChange: (n: number) => void) {
+  const [text, setText] = useState(String(value))
+
+  // Re-sync if the value changes from outside this input (reset, cross-tab sync, migration) —
+  // but never while the field merely looks different because the user is mid-edit (see handleBlur).
+  useEffect(() => {
+    setText((current) => (parseFloat(current) === value ? current : String(value)))
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    setText(raw)
+    if (raw === '') return // don't push 0 upward yet — see handleBlur
+    const n = parseFloat(raw)
+    if (!Number.isNaN(n)) onChange(n)
+  }
+
+  const handleBlur = () => {
+    if (text === '' || Number.isNaN(parseFloat(text))) {
+      setText('0')
+      onChange(0)
+    }
+  }
+
+  return { text, handleChange, handleBlur }
 }

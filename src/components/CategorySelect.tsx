@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Search, Plus, Check } from 'lucide-react'
 import { CategoryDef, CategoryIconKey } from '../types'
-import { CategoryIconGlyph, CATEGORY_ICON_OPTIONS } from '../lib/categoryIcons'
+import { CategoryIconGlyph, CATEGORY_ICON_OPTIONS, categoryIconLabel, translateCategoryName } from '../lib/categoryIcons'
+import { useT } from '../lib/i18n'
 
 export default function CategorySelect({
   categories,
@@ -14,6 +15,7 @@ export default function CategorySelect({
   onChange: (name: string) => void
   onAddCategory: (def: CategoryDef) => void
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [creating, setCreating] = useState(false)
@@ -75,7 +77,7 @@ export default function CategorySelect({
         className="w-full flex items-center gap-2 px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none"
       >
         <CategoryIconGlyph icon={selected?.icon || 'other'} size={15} className="text-ink-softer shrink-0" />
-        <span className="flex-1 text-left truncate">{value || 'Choose category...'}</span>
+        <span className="flex-1 text-left truncate">{value ? translateCategoryName(t, value) : t.categorySelect.placeholder}</span>
         <ChevronDown size={15} className="text-ink-softer shrink-0" />
       </button>
 
@@ -89,7 +91,7 @@ export default function CategorySelect({
                   autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search or add category..."
+                  placeholder={t.categorySelect.searchPlaceholder}
                   className="w-full pl-7 pr-2 py-1.5 text-sm outline-none bg-transparent"
                 />
               </div>
@@ -102,11 +104,11 @@ export default function CategorySelect({
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-paper text-left"
                   >
                     <CategoryIconGlyph icon={c.icon} size={15} className="text-ink-softer shrink-0" />
-                    <span className="flex-1 truncate">{c.name}</span>
+                    <span className="flex-1 truncate">{translateCategoryName(t, c.name)}</span>
                     {c.name.toLowerCase() === value.toLowerCase() && <Check size={14} className="text-sage-dark shrink-0" />}
                   </button>
                 ))}
-                {filtered.length === 0 && <p className="px-3 py-3 text-sm text-ink-softer">No matching categories.</p>}
+                {filtered.length === 0 && <p className="px-3 py-3 text-sm text-ink-softer">{t.categorySelect.noMatch}</p>}
               </div>
               <button
                 type="button"
@@ -114,27 +116,27 @@ export default function CategorySelect({
                 className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-sage-dark hover:bg-sage-light border-t border-paper-line"
               >
                 <Plus size={15} />
-                Add "{search || 'new'}" as a category
+                {t.categorySelect.addAsCategory(search || t.categorySelect.newFallback)}
               </button>
             </>
           ) : (
             <div className="p-3">
-              <label className="block text-xs font-medium text-ink-softer mb-1.5">Category name</label>
+              <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.categorySelect.createNameLabel}</label>
               <input
                 autoFocus
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Subscriptions"
+                placeholder={t.categorySelect.createNamePlaceholder}
                 className="w-full px-2.5 py-2 border border-paper-line rounded text-sm outline-none focus:border-sage mb-3"
               />
-              <label className="block text-xs font-medium text-ink-softer mb-1.5">Icon</label>
+              <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.categorySelect.createIconLabel}</label>
               <div className="grid grid-cols-6 gap-1.5 mb-3">
                 {CATEGORY_ICON_OPTIONS.map((opt) => (
                   <button
                     key={opt.key}
                     type="button"
                     onClick={() => setNewIcon(opt.key)}
-                    title={opt.label}
+                    title={categoryIconLabel(t, opt.key)}
                     className={`aspect-square flex items-center justify-center rounded border transition-colors ${
                       newIcon === opt.key ? 'border-sage bg-sage-light text-sage-dark' : 'border-paper-line text-ink-softer'
                     }`}
@@ -149,7 +151,7 @@ export default function CategorySelect({
                   onClick={() => setCreating(false)}
                   className="flex-1 py-2 rounded text-sm font-medium border border-paper-line text-ink-softer"
                 >
-                  Cancel
+                  {t.categorySelect.createCancel}
                 </button>
                 <button
                   type="button"
@@ -157,7 +159,7 @@ export default function CategorySelect({
                   disabled={!newName.trim()}
                   className="flex-1 py-2 rounded text-sm font-medium bg-ink text-paper disabled:opacity-40"
                 >
-                  Create
+                  {t.categorySelect.createConfirm}
                 </button>
               </div>
             </div>

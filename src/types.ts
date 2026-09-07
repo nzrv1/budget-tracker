@@ -131,7 +131,14 @@ export interface Settings {
   // doesn't repeat. Keyed by 'primary' for the basic salary above, or an IncomeSource id
   // for an extra income source — each pays on its own day and gets its own reminder.
   handledPaydays?: Record<string, string> // key -> 'YYYY-MM'
+  // UI language. Optional on the type only so older saved states (before this field existed)
+  // still satisfy it structurally — migrate() in storage.ts always backfills a real value
+  // ('en') on load, so every other reader of Settings can treat it as always present.
+  language?: Language
 }
+
+/** Supported UI languages — see src/lib/i18n/ for the dictionaries and translation hook. */
+export type Language = 'en' | 'ru' | 'lv'
 
 /** An extra source of income beyond the basic salary — a second job, freelance work, etc. —
  * with its own monthly amount and payday, for people with more than one income. */

@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react'
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
 import { AppState, Transaction, CategoryDef } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
-import { CategoryIconGlyph, iconForCategory } from '../lib/categoryIcons'
+import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import { Card, SectionHeading } from './shared'
 import AddTransactionModal from './AddTransactionModal'
 import { EmptyState } from './Dashboard'
+import { useI18n } from '../lib/i18n'
 
 export default function TransactionsView({
   state,
@@ -20,6 +21,7 @@ export default function TransactionsView({
   deleteTransaction: (id: string) => void
   addCategory: (def: CategoryDef) => void
 }) {
+  const { t, locale } = useI18n()
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [search, setSearch] = useState('')
@@ -46,15 +48,15 @@ export default function TransactionsView({
   return (
     <div>
       <SectionHeading
-        eyebrow="Every entry"
-        title="Transactions"
+        eyebrow={t.transactions.eyebrow}
+        title={t.transactions.title}
         action={
           <button
             onClick={() => setShowAdd(true)}
             className="inline-flex items-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors"
           >
             <Plus size={16} />
-            Add
+            {t.transactions.addButton}
           </button>
         }
       />
@@ -67,7 +69,7 @@ export default function TransactionsView({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search notes or categories..."
+              placeholder={t.transactions.searchPlaceholder}
               className="w-full pl-9 pr-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
             />
           </div>
@@ -76,19 +78,19 @@ export default function TransactionsView({
             onChange={(e) => setTypeFilter(e.target.value as any)}
             className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
           >
-            <option value="all">All types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
+            <option value="all">{t.transactions.allTypes}</option>
+            <option value="income">{t.transactions.income}</option>
+            <option value="expense">{t.transactions.expense}</option>
           </select>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
           >
-            <option value="all">All categories</option>
+            <option value="all">{t.transactions.allCategories}</option>
             {categoryNames.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {translateCategoryName(t, c)}
               </option>
             ))}
           </select>
@@ -98,45 +100,45 @@ export default function TransactionsView({
       <Card>
         {filtered.length === 0 ? (
           <div className="p-8">
-            <EmptyState text="No transactions match your filters." />
+            <EmptyState text={t.transactions.noMatch} />
           </div>
         ) : (
           <div className="divide-y divide-paper-line">
-            {filtered.map((t) => (
-              <div key={t.id} className="flex items-center justify-between gap-3 px-5 py-3.5 group">
+            {filtered.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between gap-3 px-5 py-3.5 group">
                 <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0">
-                  <CategoryIconGlyph icon={iconForCategory(state.categories, t.category)} size={14} className="text-ink-softer" />
+                  <CategoryIconGlyph icon={iconForCategory(state.categories, tx.category)} size={14} className="text-ink-softer" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-ink truncate">{t.note || t.category}</span>
+                    <span className="text-sm font-medium text-ink truncate">{tx.note || translateCategoryName(t, tx.category)}</span>
                     <span className="text-[11px] px-1.5 py-0.5 rounded bg-paper text-ink-softer border border-paper-line shrink-0">
-                      {t.category}
+                      {translateCategoryName(t, tx.category)}
                     </span>
                   </div>
                   <p className="text-xs text-ink-softer mt-0.5">
-                    {parseLocalDate(t.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {parseLocalDate(tx.date).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </p>
                 </div>
-                <span className={`font-tabular text-sm font-medium shrink-0 ${t.type === 'income' ? 'text-sage-dark' : 'text-ink'}`}>
-                  {t.type === 'income' ? '+' : '-'}
-                  {formatMoney(t.amount, state.settings.currency)}
+                <span className={`font-tabular text-sm font-medium shrink-0 ${tx.type === 'income' ? 'text-sage-dark' : 'text-ink'}`}>
+                  {tx.type === 'income' ? '+' : '-'}
+                  {formatMoney(tx.amount, state.settings.currency)}
                 </span>
                 {/* Always visible below lg: touch devices have no hover, so a hover-only reveal
                     (opacity-0 group-hover:opacity-100) made these controls undiscoverable on
                     mobile — there was no way to edit or delete a transaction from a phone. */}
                 <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={() => setEditing(t)}
+                    onClick={() => setEditing(tx)}
                     className="p-2 text-ink-softer hover:text-ink hover:bg-paper rounded"
-                    aria-label="Edit"
+                    aria-label={t.transactions.editAria}
                   >
                     <Pencil size={14} />
                   </button>
                   <button
-                    onClick={() => deleteTransaction(t.id)}
+                    onClick={() => deleteTransaction(tx.id)}
                     className="p-2 text-ink-softer hover:text-clay-dark hover:bg-clay-light rounded"
-                    aria-label="Delete"
+                    aria-label={t.transactions.deleteAria}
                   >
                     <Trash2 size={14} />
                   </button>

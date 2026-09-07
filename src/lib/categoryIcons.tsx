@@ -48,6 +48,7 @@ import {
   Tag,
 } from 'lucide-react'
 import { CategoryDef, CategoryIconKey } from '../types'
+import { Dictionary } from './i18n'
 
 export const CATEGORY_ICON_MAP: Record<CategoryIconKey, React.ElementType> = {
   food: Utensils,
@@ -174,6 +175,13 @@ export function iconForCategory(categories: CategoryDef[], name: string): Catego
  * Suggests an icon for a category name as the person types it, e.g. "Coffee" -> coffee cup,
  * "Netflix" -> streaming, "Gym membership" -> fitness. Returns null when nothing matches,
  * so the caller can fall back to whatever icon is already selected.
+ *
+ * Localization note: the keyword lists above are English-only. This is deliberate, not an
+ * oversight — they're matching logic against whatever the person types, not text shown on
+ * screen, so they fall outside "translate the user-facing text". Typing a category name in
+ * Russian or Latvian still works fine; it just won't get an auto-suggested icon the way an
+ * English name would. Extending this to match RU/LV keywords too would be a reasonable future
+ * enhancement, tracked here rather than silently skipped.
  */
 export function suggestIconForName(name: string): CategoryIconKey | null {
   const trimmed = name.trim().toLowerCase()
@@ -188,4 +196,27 @@ export function suggestIconForName(name: string): CategoryIconKey | null {
     }
   }
   return best?.key ?? null
+}
+
+/** Translated label for an icon-picker option — used for the tooltip/aria text on the icon
+ * grid in Settings → Categories and the "add new category" panel in CategorySelect. */
+export function categoryIconLabel(t: Dictionary, key: CategoryIconKey): string {
+  return t.categoryIcons[key]
+}
+
+/**
+ * Translates the DISPLAY of a category name, for the small, fixed set of default categories
+ * the app ships with (Food, Transport, Rent, ... — see DEFAULT_CATEGORY_DEFS in types.ts).
+ *
+ * Deliberately does NOT translate arbitrary category names. `category` is stored as plain,
+ * exact-match text everywhere (transactions, budgets, reports, the category picker) — renaming
+ * it under the hood when the language changes would silently break every budget/report that
+ * matches against the old string, and there is no reliable way to "translate" a category a
+ * person typed themselves in a language nobody declared. So: known default names get a real
+ * translated label; anything else (a category the person created, in any language) is shown
+ * exactly as typed, in every UI language, same as before this feature existed.
+ */
+export function translateCategoryName(t: Dictionary, name: string): string {
+  const key = Object.keys(t.defaultCategoryNames).find((k) => k.toLowerCase() === name.toLowerCase())
+  return key ? t.defaultCategoryNames[key] : name
 }

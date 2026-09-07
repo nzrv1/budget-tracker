@@ -35,6 +35,7 @@ import {
   Bike,
 } from 'lucide-react'
 import { GoalIcon } from '../types'
+import { Dictionary } from '../lib/i18n'
 
 export function ProgressBar({
   ratio,
@@ -103,6 +104,11 @@ const GOAL_ICONS: Record<GoalIcon, React.ElementType> = {
 export function GoalIconGlyph({ icon, size = 18, className = '' }: { icon: GoalIcon; size?: number; className?: string }) {
   const Icon = GOAL_ICONS[icon] || Circle
   return <Icon size={size} className={className} strokeWidth={1.75} />
+}
+
+/** Translated label for a goal icon option (the icon picker in the "New goal" modal). */
+export function goalIconLabel(t: Dictionary, icon: GoalIcon): string {
+  return t.goalIcons[icon]
 }
 
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {

@@ -5,12 +5,14 @@ import { formatMoney } from '../lib/utils'
 import { Card, ProgressBar, SectionHeading } from './shared'
 import { EmptyState } from './Dashboard'
 import {
-  IMPORTANT_DATE_CATEGORY_OPTIONS,
   ImportantDateIconGlyph,
-  QUICK_ADD_PRESETS,
+  QuickAddPreset,
   daysUntil,
+  getQuickAddPresets,
+  importantDateCategoryOptions,
   nextOccurrence,
 } from '../lib/importantDates'
+import { useI18n, useT } from '../lib/i18n'
 
 export default function ImportantDatesView({
   state,
@@ -25,13 +27,14 @@ export default function ImportantDatesView({
   deleteImportantDate: (id: string) => void
   allocateToImportantDate: (id: string, amount: number) => void
 }) {
+  const t = useT()
   const [showAdd, setShowAdd] = useState(false)
   const [prefill, setPrefill] = useState<Partial<Pick<ImportantDate, 'name' | 'category' | 'recurring' | 'date'>>>({})
   const [editingDate, setEditingDate] = useState<ImportantDate | null>(null)
 
   const sorted = [...state.importantDates].sort((a, b) => daysUntil(a) - daysUntil(b))
 
-  function openWithPreset(preset: (typeof QUICK_ADD_PRESETS)[number]) {
+  function openWithPreset(preset: QuickAddPreset) {
     const year = new Date().getFullYear()
     setPrefill({
       name: preset.name,
@@ -45,8 +48,8 @@ export default function ImportantDatesView({
   return (
     <div>
       <SectionHeading
-        eyebrow="Don't miss these"
-        title="Important Dates"
+        eyebrow={t.importantDates.eyebrow}
+        title={t.importantDates.title}
         action={
           <button
             onClick={() => {
@@ -56,13 +59,13 @@ export default function ImportantDatesView({
             className="inline-flex items-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors"
           >
             <Plus size={16} />
-            New date
+            {t.importantDates.newDateButton}
           </button>
         }
       />
 
       <div className="flex flex-wrap gap-2 mb-5">
-        {QUICK_ADD_PRESETS.map((preset) => (
+        {getQuickAddPresets(t).map((preset) => (
           <button
             key={preset.label}
             type="button"
@@ -77,7 +80,7 @@ export default function ImportantDatesView({
 
       {sorted.length === 0 ? (
         <Card className="p-8">
-          <EmptyState text="No important dates yet — add a birthday, holiday, or car service so you don't get caught off guard." />
+          <EmptyState text={t.importantDates.emptyState} />
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -133,6 +136,7 @@ function DateCard({
   onEdit: (date: ImportantDate) => void
   onAllocate: (id: string, amount: number) => void
 }) {
+  const { t, locale } = useI18n()
   const [addAmount, setAddAmount] = useState('')
   const days = daysUntil(date)
   const occursOn = nextOccurrence(date.date, date.recurring)
@@ -162,17 +166,17 @@ function DateCard({
           <div>
             <h4 className="font-medium text-ink text-sm leading-tight">{date.name}</h4>
             <p className="text-xs text-ink-softer mt-0.5">
-              {occursOn.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-              {date.recurring && ' · yearly'}
+              {occursOn.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}
+              {date.recurring && t.importantDates.recurringSuffix}
             </p>
           </div>
         </div>
         {/* p-2 -m-2: bigger tap target, same visual footprint (see GoalsView for the same fix). */}
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => onEdit(date)} className="p-2 -m-2 text-ink-softer hover:text-ink" aria-label="Edit date">
+          <button onClick={() => onEdit(date)} className="p-2 -m-2 text-ink-softer hover:text-ink" aria-label={t.importantDates.editAria}>
             <Pencil size={14} />
           </button>
-          <button onClick={() => onDelete(date.id)} className="p-2 -m-2 text-ink-softer hover:text-clay-dark" aria-label="Delete date">
+          <button onClick={() => onDelete(date.id)} className="p-2 -m-2 text-ink-softer hover:text-clay-dark" aria-label={t.importantDates.deleteAria}>
             <Trash2 size={14} />
           </button>
         </div>
@@ -182,16 +186,16 @@ function DateCard({
         <>
           <div className="flex justify-between items-baseline mb-2">
             <span className="font-tabular font-semibold text-sm text-ink">{formatMoney(saved, currency)}</span>
-            <span className="text-xs text-ink-softer font-tabular">of {formatMoney(target, currency)}</span>
+            <span className="text-xs text-ink-softer font-tabular">{t.importantDates.ofAmount(formatMoney(target, currency))}</span>
           </div>
           <ProgressBar ratio={ratio} tone={complete ? 'gold' : 'sage'} />
         </>
       )}
 
       <p className={`text-sm text-ink-softer ${hasTarget ? 'mt-3' : 'mt-auto'}`}>
-        {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`}
-        {hasTarget && !complete && ` · ${formatMoney(remaining, currency)} left to set aside`}
-        {complete && ' · fully funded'}
+        {days === 0 ? t.common.today : days === 1 ? t.common.tomorrow : t.common.inDays(days)}
+        {hasTarget && !complete && t.importantDates.remainingSuffix(formatMoney(remaining, currency))}
+        {complete && t.importantDates.fullyFundedSuffix}
       </p>
 
       {hasTarget && !complete && (
@@ -202,7 +206,7 @@ function DateCard({
             step="0.01"
             value={addAmount}
             onChange={(e) => setAddAmount(e.target.value)}
-            placeholder="Add funds"
+            placeholder={t.importantDates.addFundsPlaceholder}
             className="flex-1 min-w-0 px-2.5 py-2 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
           />
           <button
@@ -210,7 +214,7 @@ function DateCard({
             className="inline-flex items-center gap-1 bg-sage text-white px-3 py-2 rounded text-sm font-medium hover:bg-sage-dark transition-colors shrink-0"
           >
             <PlusCircle size={14} />
-            Add
+            {t.importantDates.addFundsButton}
           </button>
         </form>
       )}
@@ -229,6 +233,7 @@ function NewDateModal({
   onClose: () => void
   onSave: (d: Omit<ImportantDate, 'id' | 'createdAt'>) => void
 }) {
+  const t = useT()
   const [name, setName] = useState(editing?.name ?? prefill.name ?? '')
   const [category, setCategory] = useState<ImportantDateCategory>(editing?.category ?? prefill.category ?? 'other')
   const [date, setDate] = useState(editing?.date ?? prefill.date ?? '')
@@ -239,11 +244,11 @@ function NewDateModal({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return setError('Give this date a name.')
-    if (!date) return setError('Choose a date.')
+    if (!name.trim()) return setError(t.importantDates.errorName)
+    if (!date) return setError(t.importantDates.errorDate)
 
     const target = targetAmount.trim() ? parseFloat(targetAmount) : undefined
-    if (targetAmount.trim() && (!target || target <= 0)) return setError('Target amount should be greater than zero.')
+    if (targetAmount.trim() && (!target || target <= 0)) return setError(t.importantDates.errorTarget)
 
     onSave({
       name: name.trim(),
@@ -259,28 +264,28 @@ function NewDateModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px]">
       <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
-          <h3 className="font-display font-semibold text-lg">{editing ? 'Edit important date' : 'New important date'}</h3>
+          <h3 className="font-display font-semibold text-lg">{editing ? t.importantDates.modalTitleEdit : t.importantDates.modalTitleNew}</h3>
           <button onClick={onClose} className="text-ink-softer hover:text-ink">
             <X size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-1.5">Name</label>
+            <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.importantDates.nameLabel}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Mom's birthday"
+              placeholder={t.importantDates.namePlaceholder}
               autoFocus
               className="w-full px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-2">Category</label>
+            <label className="block text-xs font-medium text-ink-softer mb-2">{t.importantDates.categoryLabel}</label>
             <div className="flex flex-wrap gap-2">
-              {IMPORTANT_DATE_CATEGORY_OPTIONS.map((opt) => (
+              {importantDateCategoryOptions(t).map((opt) => (
                 <button
                   key={opt.key}
                   type="button"
@@ -297,7 +302,7 @@ function NewDateModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-1.5">Date</label>
+            <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.importantDates.dateLabel}</label>
             <input
               type="date"
               value={date}
@@ -308,11 +313,11 @@ function NewDateModal({
 
           <label className="flex items-center gap-2 text-sm text-ink-softer">
             <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} className="accent-sage" />
-            Repeats every year
+            {t.importantDates.repeatsCheckbox}
           </label>
 
           <div className="border-t border-paper-line pt-4">
-            <label className="block text-xs font-medium text-ink-softer mb-1.5">Amount to set aside (optional)</label>
+            <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.importantDates.amountSectionLabel}</label>
             <div className="grid grid-cols-2 gap-3">
               <input
                 type="number"
@@ -330,13 +335,11 @@ function NewDateModal({
                 value={savedAmount}
                 onChange={(e) => setSavedAmount(e.target.value)}
                 disabled={!targetAmount.trim()}
-                placeholder="Already saved"
+                placeholder={t.importantDates.alreadySavedPlaceholder}
                 className="w-full px-3 py-2.5 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none disabled:opacity-40"
               />
             </div>
-            <p className="text-xs text-ink-softer mt-1.5">
-              Leave blank if this date doesn't need a savings target — just a reminder.
-            </p>
+            <p className="text-xs text-ink-softer mt-1.5">{t.importantDates.amountHelp}</p>
           </div>
 
           {error && <p className="text-sm text-clay-dark">{error}</p>}
@@ -345,7 +348,7 @@ function NewDateModal({
             type="submit"
             className="w-full py-3 bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
           >
-            {editing ? 'Save changes' : 'Save date'}
+            {editing ? t.importantDates.submitSaveChanges : t.importantDates.submitSave}
           </button>
         </form>
       </div>

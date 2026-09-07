@@ -3,16 +3,29 @@
 import { AppState, Goal, ImportantDate, ImportantDateCategory, ReminderOffsetKey } from '../types'
 import { nextOccurrence } from './importantDates'
 import { parseLocalDate } from './utils'
+import { Dictionary } from './i18n'
 
-export const OFFSET_OPTIONS: { key: ReminderOffsetKey; label: string; days: number }[] = [
-  { key: '2_months', label: '2 months before', days: 60 },
-  { key: '1_month', label: '1 month before', days: 30 },
-  { key: '2_weeks', label: '2 weeks before', days: 14 },
-  { key: '1_week', label: '1 week before', days: 7 },
-  { key: '3_days', label: '3 days before', days: 3 },
-  { key: '1_day', label: '1 day before', days: 1 },
-  { key: 'on_day', label: 'On the day', days: 0 },
+// Fixed order the offset picker renders in; days drives the actual due-date math and never
+// changes with language. Labels come from t.offsets[key] at render/generation time — see
+// offsetLabel() below — so this array itself stays language-agnostic.
+const OFFSET_KEYS_WITH_DAYS: { key: ReminderOffsetKey; days: number }[] = [
+  { key: '2_months', days: 60 },
+  { key: '1_month', days: 30 },
+  { key: '2_weeks', days: 14 },
+  { key: '1_week', days: 7 },
+  { key: '3_days', days: 3 },
+  { key: '1_day', days: 1 },
+  { key: 'on_day', days: 0 },
 ]
+
+/** The offset picker's options, translated for the current language. */
+export function offsetOptions(t: Dictionary): { key: ReminderOffsetKey; label: string; days: number }[] {
+  return OFFSET_KEYS_WITH_DAYS.map((o) => ({ ...o, label: offsetLabel(t, o.key) }))
+}
+
+// Kept for any remaining structural (key/days only) use; prefer offsetOptions(t) for anything
+// that renders a label.
+export const OFFSET_OPTIONS = OFFSET_KEYS_WITH_DAYS
 
 // Sensible default schedules, keyed by how many notifications the person picks —
 // spread from "early heads-up" down to "last call". Matches the shape most people
@@ -35,12 +48,12 @@ export function defaultOffsetsForCount(count: number): ReminderOffsetKey[] {
   return Array.from({ length: count }, (_, i) => base[Math.min(i, base.length - 1)])
 }
 
-export function offsetLabel(key: ReminderOffsetKey): string {
-  return OFFSET_OPTIONS.find((o) => o.key === key)?.label || key
+export function offsetLabel(t: Dictionary, key: ReminderOffsetKey): string {
+  return t.offsets[key] || key
 }
 
 function offsetDays(key: ReminderOffsetKey): number {
-  return OFFSET_OPTIONS.find((o) => o.key === key)?.days ?? 0
+  return OFFSET_KEYS_WITH_DAYS.find((o) => o.key === key)?.days ?? 0
 }
 
 function startOfDay(d: Date): Date {
@@ -73,61 +86,26 @@ function pick<T>(arr: T[], seed: string): T {
   return arr[hash % arr.length]
 }
 
-const ALMOST_THERE = [
-  "So close — you're nearly there!",
-  'The finish line is in sight, keep going.',
-  "You've basically made it — just a little more.",
-]
-const GOOD_PACE = [
-  'Great progress — keep this pace up.',
-  "You're doing well here, nice momentum.",
-  'Solid progress so far — stay consistent.',
-]
-const ON_TRACK = [
-  "You're on track — steady as you go.",
-  'Right where you need to be. Keep it steady.',
-  'Nice and on pace — no need to rush.',
-]
-const NEEDS_PUSH = [
-  'Still time to catch up — even small top-ups help.',
-  "A bit behind pace, but it's very catch-uppable.",
-  'Consider setting aside a little extra this week to stay on track.',
-]
-
-function goalComment(ratio: number, onPace: boolean, seed: string): string {
-  if (ratio >= 0.9) return pick(ALMOST_THERE, seed)
-  if (ratio >= 0.6) return pick(GOOD_PACE, seed)
-  if (onPace) return pick(ON_TRACK, seed)
-  return pick(NEEDS_PUSH, seed)
+// Comment pools now live in the translation dictionaries (t.reminderComments.*) so every
+// language can supply its own flavor text — see en.ts's header comment for why each pool must
+// stay the same length across languages (the same seed hash has to land on a real line in all
+// three).
+function goalComment(t: Dictionary, ratio: number, onPace: boolean, seed: string): string {
+  if (ratio >= 0.9) return pick(t.reminderComments.almostThere, seed)
+  if (ratio >= 0.6) return pick(t.reminderComments.goodPace, seed)
+  if (onPace) return pick(t.reminderComments.onTrack, seed)
+  return pick(t.reminderComments.needsPush, seed)
 }
 
-const BIRTHDAY_COMMENTS = [
-  "Might be time to think about a gift.",
-  "Someone's counting down to this one!",
-  "Worth planning something nice.",
-]
-const CAR_COMMENTS = [
-  "Worth booking this in before it sneaks up on you.",
-  "Good time to get this on the calendar.",
-  "Don't let this one slip.",
-]
-const HOLIDAY_COMMENTS = [
-  'Getting closer — worth planning ahead.',
-  'Coming up soon on the calendar.',
-  'A good one to prepare for early.',
-]
-const GENERIC_DATE_COMMENTS = ['Coming up on the calendar.', "Don't forget about this one.", 'Worth keeping an eye on.']
-const DATE_FUNDED_COMMENTS = ['All set — already saved up for this one.', 'Fully funded — nothing more to set aside.']
-
-function dateComment(category: ImportantDateCategory, seed: string): string {
+function dateComment(t: Dictionary, category: ImportantDateCategory, seed: string): string {
   const pool =
     category === 'birthday'
-      ? BIRTHDAY_COMMENTS
+      ? t.reminderComments.birthday
       : category === 'carMaintenance'
-      ? CAR_COMMENTS
+      ? t.reminderComments.carMaintenance
       : category === 'holiday'
-      ? HOLIDAY_COMMENTS
-      : GENERIC_DATE_COMMENTS
+      ? t.reminderComments.holiday
+      : t.reminderComments.genericDate
   return pick(pool, seed)
 }
 
@@ -155,7 +133,7 @@ export interface Reminder {
  * checkpoint, not every checkpoint that has technically passed, so nothing spams several
  * reminders for the same target at once.
  */
-export function generateReminders(state: AppState): Reminder[] {
+export function generateReminders(state: AppState, t: Dictionary): Reminder[] {
   const now = startOfDay(new Date())
   const reminders: Reminder[] = []
 
@@ -190,7 +168,7 @@ export function generateReminders(state: AppState): Reminder[] {
         targetKind: 'goal',
         offsetKey: due,
         daysLeft,
-        comment: goalComment(ratio, onPace, goal.id + due),
+        comment: goalComment(t, ratio, onPace, goal.id + due),
         createdAt: now.toISOString(),
         goal,
         ratio,
@@ -223,7 +201,7 @@ export function generateReminders(state: AppState): Reminder[] {
         neededPerWeek = daysLeft > 0 ? (remaining / daysLeft) * 7 : remaining
 
         if (remaining <= 0) {
-          comment = pick(DATE_FUNDED_COMMENTS, date.id + due)
+          comment = pick(t.reminderComments.dateFunded, date.id + due)
         } else {
           const createdDaysAgo = Math.max(
             Math.round((now.getTime() - startOfDay(new Date(date.createdAt)).getTime()) / 86400000),
@@ -231,10 +209,10 @@ export function generateReminders(state: AppState): Reminder[] {
           )
           const paceSoFarPerWeek = (saved / createdDaysAgo) * 7
           const onPace = paceSoFarPerWeek >= neededPerWeek * 0.85
-          comment = goalComment(ratio, onPace, date.id + due)
+          comment = goalComment(t, ratio, onPace, date.id + due)
         }
       } else {
-        comment = dateComment(date.category, date.id + due)
+        comment = dateComment(t, date.category, date.id + due)
       }
 
       reminders.push({

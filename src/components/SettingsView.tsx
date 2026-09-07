@@ -1,19 +1,15 @@
 import { useState } from 'react'
 import { Trash2, Check, Plus, X, Bell, Target, CalendarDays, Briefcase } from 'lucide-react'
-import { AppState, CategoryDef, CategoryIconKey, IncomeSource, ReminderOffsetKey, ReminderTargetKind, ThemeKey } from '../types'
+import { AppState, CategoryDef, CategoryIconKey, IncomeSource, Language, ReminderOffsetKey, ReminderTargetKind, ThemeKey } from '../types'
 import { CollapsibleCard, GoalIconGlyph, ProgressBar, SectionHeading } from './shared'
-import { formatMoney } from '../lib/utils'
-import { THEMES } from '../lib/themes'
-import { CATEGORY_ICON_OPTIONS, CategoryIconGlyph, suggestIconForName } from '../lib/categoryIcons'
+import { formatMoney, useNumberField } from '../lib/utils'
+import { THEMES, themeLabel } from '../lib/themes'
+import { CATEGORY_ICON_OPTIONS, CategoryIconGlyph, categoryIconLabel, suggestIconForName, translateCategoryName } from '../lib/categoryIcons'
 import { ImportantDateIconGlyph } from '../lib/importantDates'
-import { MAX_REMINDERS, OFFSET_OPTIONS, defaultOffsetsForCount, offsetLabel } from '../lib/goalReminders'
+import { MAX_REMINDERS, defaultOffsetsForCount, offsetOptions, offsetLabel } from '../lib/goalReminders'
+import { LANGUAGES, useT } from '../lib/i18n'
 
-const CURRENCIES = [
-  { code: 'EUR', label: 'Euro (€)' },
-  { code: 'USD', label: 'US Dollar ($)' },
-  { code: 'GBP', label: 'British Pound (£)' },
-  { code: 'PLN', label: 'Polish Zloty (zł)' },
-]
+const CURRENCY_CODES = ['EUR', 'USD', 'GBP', 'PLN'] as const
 
 export default function SettingsView({
   state,
@@ -36,7 +32,10 @@ export default function SettingsView({
   addIncomeSource: (s: Omit<IncomeSource, 'id'>) => void
   deleteIncomeSource: (id: string) => void
 }) {
+  const t = useT()
   const [confirmReset, setConfirmReset] = useState(false)
+
+  const monthlyIncomeField = useNumberField(state.settings.monthlyIncome, (n) => updateSettings({ monthlyIncome: n }))
 
   const [newIncomeName, setNewIncomeName] = useState('')
   const [newIncomeAmount, setNewIncomeAmount] = useState('')
@@ -120,65 +119,78 @@ export default function SettingsView({
 
   return (
     <div className="max-w-lg">
-      <SectionHeading eyebrow="Your preferences" title="Settings" />
+      <SectionHeading eyebrow={t.settings.eyebrow} title={t.settings.title} />
 
-      <CollapsibleCard title="Appearance" className="mb-5">
-        <label className="block text-xs font-medium text-ink-softer mb-2">Theme</label>
+      <CollapsibleCard title={t.settings.appearanceTitle} className="mb-5">
+        <label className="block text-xs font-medium text-ink-softer mb-2">{t.settings.themeLabel}</label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {THEMES.map((t) => {
-            const active = state.settings.theme === t.key
+          {THEMES.map((meta) => {
+            const active = state.settings.theme === meta.key
             return (
               <button
-                key={t.key}
+                key={meta.key}
                 type="button"
-                onClick={() => setTheme(t.key)}
+                onClick={() => setTheme(meta.key)}
                 className={`flex flex-col gap-2.5 p-3 rounded-lg border text-left transition-colors ${
                   active ? 'border-sage bg-sage-light' : 'border-paper-line hover:border-ink-softer/40'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="flex -space-x-1">
-                    {t.preview.map((c, i) => (
+                    {meta.preview.map((c, i) => (
                       <span key={i} className="w-4 h-4 rounded-full border-2 border-paper-card" style={{ background: c }} />
                     ))}
                   </span>
                   {active && <Check size={14} className="text-sage-dark" />}
                 </div>
-                <span className="text-sm font-medium text-ink">{t.label}</span>
+                <span className="text-sm font-medium text-ink">{themeLabel(t, meta.key)}</span>
               </button>
             )
           })}
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="General" className="mb-5">
-        <label className="block text-xs font-medium text-ink-softer mb-1.5">Currency</label>
+      <CollapsibleCard title={t.settings.generalTitle} className="mb-5">
+        <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.languageLabel}</label>
+        <select
+          value={state.settings.language || 'en'}
+          onChange={(e) => updateSettings({ language: e.target.value as Language })}
+          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-1.5"
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.nativeLabel}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-ink-softer mt-1.5 mb-4">{t.settings.languageHelp}</p>
+
+        <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.currencyLabel}</label>
         <select
           value={state.settings.currency}
           onChange={(e) => updateSettings({ currency: e.target.value })}
           className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-4"
         >
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.label}
+          {CURRENCY_CODES.map((code) => (
+            <option key={code} value={code}>
+              {t.currencies[code]}
             </option>
           ))}
         </select>
 
-        <label className="block text-xs font-medium text-ink-softer mb-1.5">Basic salary</label>
+        <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.basicSalaryLabel}</label>
         <input
           type="number"
           min="0"
           step="1"
-          value={state.settings.monthlyIncome}
-          onChange={(e) => updateSettings({ monthlyIncome: parseFloat(e.target.value) || 0 })}
+          value={monthlyIncomeField.text}
+          onChange={monthlyIncomeField.handleChange}
+          onBlur={monthlyIncomeField.handleBlur}
           className="w-full px-3 py-2.5 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
         />
-        <p className="text-xs text-ink-softer mt-1.5">
-          Your regular monthly income — used as a baseline for savings-rate insights.
-        </p>
+        <p className="text-xs text-ink-softer mt-1.5">{t.settings.basicSalaryHelp}</p>
 
-        <label className="block text-xs font-medium text-ink-softer mb-1.5 mt-4">Payday</label>
+        <label className="block text-xs font-medium text-ink-softer mb-1.5 mt-4">{t.settings.paydayLabel}</label>
         <select
           value={state.settings.salaryDay ?? ''}
           onChange={(e) => {
@@ -192,22 +204,19 @@ export default function SettingsView({
           }}
           className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
         >
-          <option value="">Not set</option>
+          <option value="">{t.common.notSet}</option>
           {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
             <option key={day} value={day}>
               {day}
             </option>
           ))}
         </select>
-        <p className="text-xs text-ink-softer mt-1.5">
-          The day each month your basic salary lands. From that day, we'll suggest setting money aside for your
-          goals and important dates automatically.
-        </p>
+        <p className="text-xs text-ink-softer mt-1.5">{t.settings.paydayHelp}</p>
       </CollapsibleCard>
 
       <CollapsibleCard
-        title="Other income"
-        subtitle="For a second job or freelance work that pays on a different day."
+        title={t.settings.otherIncomeTitle}
+        subtitle={t.settings.otherIncomeSubtitle}
         className="mb-5"
       >
         {state.incomeSources.length > 0 && (
@@ -223,14 +232,14 @@ export default function SettingsView({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-ink truncate">{s.name}</p>
                   <p className="text-xs text-ink-softer font-tabular">
-                    {formatMoney(s.amount, state.settings.currency)} · day {s.payDay}
+                    {formatMoney(s.amount, state.settings.currency)} {t.settings.incomeSourceDaySuffix(s.payDay)}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => deleteIncomeSource(s.id)}
                   className="text-ink-softer hover:text-clay-dark shrink-0"
-                  aria-label={`Remove ${s.name}`}
+                  aria-label={t.settings.incomeSourceRemoveAria(s.name)}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -240,11 +249,11 @@ export default function SettingsView({
         )}
 
         <div className="border-t border-paper-line pt-4">
-          <label className="block text-xs font-medium text-ink-softer mb-1.5">Add income source</label>
+          <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.addIncomeSourceLabel}</label>
           <input
             value={newIncomeName}
             onChange={(e) => setNewIncomeName(e.target.value)}
-            placeholder="e.g. Freelance, Second job"
+            placeholder={t.settings.incomeNamePlaceholder}
             className="w-full px-3 py-2.5 border border-paper-line rounded text-sm outline-none focus:border-sage mb-2.5"
           />
           <div className="grid grid-cols-2 gap-2.5 mb-3">
@@ -254,7 +263,7 @@ export default function SettingsView({
               step="1"
               value={newIncomeAmount}
               onChange={(e) => setNewIncomeAmount(e.target.value)}
-              placeholder="Monthly amount"
+              placeholder={t.settings.incomeAmountPlaceholder}
               className="w-full px-3 py-2.5 border border-paper-line rounded text-sm font-tabular outline-none focus:border-sage"
             />
             <select
@@ -262,7 +271,7 @@ export default function SettingsView({
               onChange={(e) => setNewIncomeDay(e.target.value)}
               className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white outline-none focus:border-sage"
             >
-              <option value="">Payday</option>
+              <option value="">{t.settings.incomePaydayPlaceholder}</option>
               {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                 <option key={day} value={day}>
                   {day}
@@ -276,14 +285,14 @@ export default function SettingsView({
             className="inline-flex items-center gap-1.5 bg-ink text-paper px-3.5 py-2 rounded text-sm font-medium hover:bg-ink-light transition-colors"
           >
             <Plus size={14} />
-            Add income source
+            {t.settings.addIncomeSourceButton}
           </button>
         </div>
       </CollapsibleCard>
 
       <CollapsibleCard
-        title="Categories"
-        subtitle="Used across transactions, budgets, and reports."
+        title={t.settings.categoriesTitle}
+        subtitle={t.settings.categoriesSubtitle}
         className="mb-5"
       >
         {state.categories.length > 0 && (
@@ -294,30 +303,30 @@ export default function SettingsView({
                 className="flex items-center gap-2 px-2.5 py-2 rounded border border-paper-line text-sm"
               >
                 <CategoryIconGlyph icon={c.icon} size={15} className="text-ink-softer shrink-0" />
-                <span className="truncate">{c.name}</span>
+                <span className="truncate">{translateCategoryName(t, c.name)}</span>
               </div>
             ))}
           </div>
         )}
 
         <div className="border-t border-paper-line pt-4">
-          <label className="block text-xs font-medium text-ink-softer mb-1.5">Add new category</label>
+          <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.addCategoryLabel}</label>
           <input
             value={newCatName}
             onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="e.g. Coffee, Netflix, Gym..."
+            placeholder={t.settings.categoryNamePlaceholder}
             className="w-full px-3 py-2.5 border border-paper-line rounded text-sm outline-none focus:border-sage mb-3"
           />
 
           <label className="block text-xs font-medium text-ink-softer mb-1.5">
-            Icon {!iconTouched && newCatName.trim() && <span className="text-sage-dark">(suggested)</span>}
+            {t.settings.iconLabel} {!iconTouched && newCatName.trim() && <span className="text-sage-dark">{t.settings.iconSuggested}</span>}
           </label>
           <div className="grid grid-cols-7 sm:grid-cols-9 gap-1.5 mb-3 max-h-40 overflow-y-auto pr-0.5">
             {CATEGORY_ICON_OPTIONS.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
-                title={opt.label}
+                title={categoryIconLabel(t, opt.key)}
                 onClick={() => {
                   setNewCatIcon(opt.key)
                   setIconTouched(true)
@@ -338,20 +347,18 @@ export default function SettingsView({
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded text-sm font-medium bg-ink text-paper disabled:opacity-40"
           >
             <Plus size={15} />
-            Add category
+            {t.settings.addCategoryButton}
           </button>
         </div>
       </CollapsibleCard>
 
       <CollapsibleCard
-        title="Notifications"
-        subtitle="Get reminded as a goal's target date or an important date gets closer."
+        title={t.settings.notificationsTitle}
+        subtitle={t.settings.notificationsSubtitle}
         className="mb-5"
       >
         {state.goals.length === 0 && state.importantDates.length === 0 ? (
-          <p className="text-sm text-ink-softer">
-            Create a goal or an important date first to set up reminders for it.
-          </p>
+          <p className="text-sm text-ink-softer">{t.settings.notificationsEmptyHint}</p>
         ) : (
           <>
             {state.reminderRules.length > 0 && (
@@ -376,7 +383,7 @@ export default function SettingsView({
                             type="button"
                             onClick={() => handleRemoveReminderRule('goal', rule.targetId)}
                             className="text-ink-softer hover:text-clay-dark shrink-0"
-                            aria-label={`Remove reminders for ${goal.name}`}
+                            aria-label={t.settings.removeReminderAria(goal.name)}
                           >
                             <X size={15} />
                           </button>
@@ -390,7 +397,7 @@ export default function SettingsView({
                               key={i}
                               className="text-xs px-2 py-1 rounded-full bg-paper border border-paper-line text-ink-softer"
                             >
-                              {offsetLabel(o)}
+                              {offsetLabel(t, o)}
                             </span>
                           ))}
                         </div>
@@ -417,7 +424,7 @@ export default function SettingsView({
                           type="button"
                           onClick={() => handleRemoveReminderRule('importantDate', rule.targetId)}
                           className="text-ink-softer hover:text-clay-dark shrink-0"
-                          aria-label={`Remove reminders for ${date.name}`}
+                          aria-label={t.settings.removeReminderAria(date.name)}
                         >
                           <X size={15} />
                         </button>
@@ -433,7 +440,7 @@ export default function SettingsView({
                             key={i}
                             className="text-xs px-2 py-1 rounded-full bg-paper border border-paper-line text-ink-softer"
                           >
-                            {offsetLabel(o)}
+                            {offsetLabel(t, o)}
                           </span>
                         ))}
                       </div>
@@ -444,7 +451,7 @@ export default function SettingsView({
             )}
 
             <div className="border-t border-paper-line pt-4">
-              <label className="block text-xs font-medium text-ink-softer mb-1.5">Remind me about</label>
+              <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.remindMeAboutLabel}</label>
               <div className="flex gap-1.5 mb-3">
                 <button
                   type="button"
@@ -453,7 +460,8 @@ export default function SettingsView({
                     reminderKind === 'goal' ? 'border-sage bg-sage-light text-sage-dark' : 'border-paper-line text-ink-softer'
                   }`}
                 >
-                  <Target size={14} />A goal
+                  <Target size={14} />
+                  {t.settings.remindGoalOption}
                 </button>
                 <button
                   type="button"
@@ -465,20 +473,20 @@ export default function SettingsView({
                   }`}
                 >
                   <CalendarDays size={14} />
-                  An important date
+                  {t.settings.remindDateOption}
                 </button>
               </div>
 
               {reminderKind === 'goal' ? (
                 state.goals.length === 0 ? (
-                  <p className="text-sm text-ink-softer mb-1">No goals yet — create one in the Goals tab.</p>
+                  <p className="text-sm text-ink-softer mb-1">{t.settings.noGoalsHint}</p>
                 ) : (
                   <select
                     value={reminderTargetId}
                     onChange={(e) => loadTargetIntoForm('goal', e.target.value)}
                     className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-3"
                   >
-                    <option value="">Choose a goal...</option>
+                    <option value="">{t.settings.chooseGoalOption}</option>
                     {state.goals.map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name}
@@ -487,14 +495,14 @@ export default function SettingsView({
                   </select>
                 )
               ) : state.importantDates.length === 0 ? (
-                <p className="text-sm text-ink-softer mb-1">No important dates yet — add one in the Important Dates tab.</p>
+                <p className="text-sm text-ink-softer mb-1">{t.settings.noDatesHint}</p>
               ) : (
                 <select
                   value={reminderTargetId}
                   onChange={(e) => loadTargetIntoForm('importantDate', e.target.value)}
                   className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-3"
                 >
-                  <option value="">Choose a date...</option>
+                  <option value="">{t.settings.chooseDateOption}</option>
                   {state.importantDates.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -505,7 +513,7 @@ export default function SettingsView({
 
               {reminderTargetId && (
                 <>
-                  <label className="block text-xs font-medium text-ink-softer mb-1.5">Number of notifications</label>
+                  <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.numberOfNotificationsLabel}</label>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {Array.from({ length: MAX_REMINDERS }, (_, i) => i + 1).map((n) => (
                       <button
@@ -533,7 +541,7 @@ export default function SettingsView({
                             onChange={(e) => updateReminderSlot(i, e.target.value as ReminderOffsetKey)}
                             className="flex-1 px-2.5 py-2 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
                           >
-                            {OFFSET_OPTIONS.map((opt) => (
+                            {offsetOptions(t).map((opt) => (
                               <option key={opt.key} value={opt.key}>
                                 {opt.label}
                               </option>
@@ -550,7 +558,7 @@ export default function SettingsView({
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded text-sm font-medium bg-ink text-paper"
                   >
                     <Bell size={15} />
-                    Save reminders
+                    {t.settings.saveRemindersButton}
                   </button>
                 </>
               )}
@@ -560,9 +568,9 @@ export default function SettingsView({
       </CollapsibleCard>
 
       <CollapsibleCard
-        title="Danger zone"
+        title={t.settings.dangerZoneTitle}
         titleClassName="text-clay-dark"
-        subtitle="This clears all transactions, budgets, and goals stored in this browser. This can't be undone."
+        subtitle={t.settings.dangerZoneSubtitle}
         className="border-clay/30"
       >
         {!confirmReset ? (
@@ -571,7 +579,7 @@ export default function SettingsView({
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded text-sm font-medium border border-clay text-clay-dark hover:bg-clay-light transition-colors"
           >
             <Trash2 size={15} />
-            Reset all data
+            {t.settings.resetAllDataButton}
           </button>
         ) : (
           <div className="flex gap-2">
@@ -579,13 +587,13 @@ export default function SettingsView({
               onClick={resetData}
               className="px-4 py-2.5 rounded text-sm font-medium bg-clay text-white hover:bg-clay-dark transition-colors"
             >
-              Confirm reset
+              {t.common.confirmReset}
             </button>
             <button
               onClick={() => setConfirmReset(false)}
               className="px-4 py-2.5 rounded text-sm font-medium border border-paper-line text-ink-softer"
             >
-              Cancel
+              {t.settings.cancelReset}
             </button>
           </div>
         )}

@@ -2,43 +2,48 @@ import { useState } from 'react'
 import { Plus, X, Trash2, PlusCircle } from 'lucide-react'
 import { AppState, Goal, GoalIcon } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
-import { Card, ProgressBar, GoalIconGlyph, SectionHeading } from './shared'
+import { Card, ProgressBar, GoalIconGlyph, SectionHeading, goalIconLabel } from './shared'
 import { EmptyState } from './Dashboard'
+import { Dictionary, useI18n, useT } from '../lib/i18n'
 
-const ICON_OPTIONS: { key: GoalIcon; label: string }[] = [
-  { key: 'flight', label: 'Flights' },
-  { key: 'clothes', label: 'Clothes' },
-  { key: 'travel', label: 'Travel' },
-  { key: 'tech', label: 'Tech' },
-  { key: 'home', label: 'Home' },
-  { key: 'gift', label: 'Gift' },
-  { key: 'car', label: 'Car' },
-  { key: 'education', label: 'Education' },
-  { key: 'health', label: 'Health' },
-  { key: 'emergencyFund', label: 'Emergency fund' },
-  { key: 'pet', label: 'Pet' },
-  { key: 'hobby', label: 'Hobby' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'music', label: 'Music' },
-  { key: 'fitness', label: 'Fitness' },
-  { key: 'kids', label: 'Kids' },
-  { key: 'charity', label: 'Charity' },
-  { key: 'business', label: 'Business' },
-  { key: 'renovation', label: 'Renovation' },
-  { key: 'debt', label: 'Debt' },
-  { key: 'savings', label: 'Savings' },
-  { key: 'insurance', label: 'Insurance' },
-  { key: 'outdoors', label: 'Outdoors' },
-  { key: 'wedding', label: 'Wedding' },
-  { key: 'furniture', label: 'Furniture' },
-  { key: 'books', label: 'Books' },
-  { key: 'games', label: 'Games' },
-  { key: 'food', label: 'Food' },
-  { key: 'family', label: 'Family' },
-  { key: 'shopping', label: 'Shopping' },
-  { key: 'bike', label: 'Bike' },
-  { key: 'other', label: 'Other' },
+const ICON_KEYS: GoalIcon[] = [
+  'flight',
+  'clothes',
+  'travel',
+  'tech',
+  'home',
+  'gift',
+  'car',
+  'education',
+  'health',
+  'emergencyFund',
+  'pet',
+  'hobby',
+  'phone',
+  'music',
+  'fitness',
+  'kids',
+  'charity',
+  'business',
+  'renovation',
+  'debt',
+  'savings',
+  'insurance',
+  'outdoors',
+  'wedding',
+  'furniture',
+  'books',
+  'games',
+  'food',
+  'family',
+  'shopping',
+  'bike',
+  'other',
 ]
+
+function goalIconOptions(t: Dictionary): { key: GoalIcon; label: string }[] {
+  return ICON_KEYS.map((key) => ({ key, label: goalIconLabel(t, key) }))
+}
 
 export default function GoalsView({
   state,
@@ -53,27 +58,28 @@ export default function GoalsView({
   deleteGoal: (id: string) => void
   allocateToGoal: (id: string, amount: number) => void
 }) {
+  const t = useT()
   const [showAdd, setShowAdd] = useState(false)
 
   return (
     <div>
       <SectionHeading
-        eyebrow="What you're saving for"
-        title="Goals"
+        eyebrow={t.goals.eyebrow}
+        title={t.goals.title}
         action={
           <button
             onClick={() => setShowAdd(true)}
             className="inline-flex items-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors"
           >
             <Plus size={16} />
-            New goal
+            {t.goals.newGoalButton}
           </button>
         }
       />
 
       {state.goals.length === 0 ? (
         <Card className="p-8">
-          <EmptyState text="No goals yet — create one for that flight, jacket, or trip you're saving toward." />
+          <EmptyState text={t.goals.emptyState} />
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -108,6 +114,7 @@ function GoalCard({
   onDelete: (id: string) => void
   onAllocate: (id: string, amount: number) => void
 }) {
+  const { t, locale } = useI18n()
   const [addAmount, setAddAmount] = useState('')
   const ratio = goal.savedAmount / goal.targetAmount
   const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
@@ -133,7 +140,7 @@ function GoalCard({
           <div>
             <h4 className="font-medium text-ink text-sm leading-tight">{goal.name}</h4>
             <p className="text-xs text-ink-softer mt-0.5">
-              Target {parseLocalDate(goal.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              {t.goals.targetLabel(parseLocalDate(goal.targetDate).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }))}
             </p>
           </div>
         </div>
@@ -142,7 +149,7 @@ function GoalCard({
         <button
           onClick={() => onDelete(goal.id)}
           className="p-2 -m-2 text-ink-softer hover:text-clay-dark shrink-0"
-          aria-label="Delete goal"
+          aria-label={t.goals.deleteAria}
         >
           <Trash2 size={14} />
         </button>
@@ -150,16 +157,12 @@ function GoalCard({
 
       <div className="flex justify-between items-baseline mb-2">
         <span className="font-tabular font-semibold text-lg text-ink">{formatMoney(goal.savedAmount, currency)}</span>
-        <span className="text-xs text-ink-softer font-tabular">of {formatMoney(goal.targetAmount, currency)}</span>
+        <span className="text-xs text-ink-softer font-tabular">{t.goals.ofAmount(formatMoney(goal.targetAmount, currency))}</span>
       </div>
       <ProgressBar ratio={ratio} tone={complete ? 'gold' : 'sage'} />
 
       <p className="text-xs text-ink-softer mt-3 leading-relaxed">
-        {complete
-          ? 'Fully funded — good time to make this happen.'
-          : daysLeft > 0
-          ? `About ${formatMoney(monthlyPace, currency)}/month keeps you on track for ${daysLeft} days left.`
-          : 'Target date has passed.'}
+        {complete ? t.goals.complete : daysLeft > 0 ? t.goals.onTrack(formatMoney(monthlyPace, currency), daysLeft) : t.goals.passed}
       </p>
 
       {!complete && (
@@ -170,7 +173,7 @@ function GoalCard({
             step="0.01"
             value={addAmount}
             onChange={(e) => setAddAmount(e.target.value)}
-            placeholder="Add funds"
+            placeholder={t.goals.addFundsPlaceholder}
             className="flex-1 min-w-0 px-2.5 py-2 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
           />
           <button
@@ -178,7 +181,7 @@ function GoalCard({
             className="inline-flex items-center gap-1 bg-sage text-white px-3 py-2 rounded text-sm font-medium hover:bg-sage-dark transition-colors shrink-0"
           >
             <PlusCircle size={14} />
-            Add
+            {t.goals.addFundsButton}
           </button>
         </form>
       )}
@@ -193,6 +196,7 @@ function NewGoalModal({
   onClose: () => void
   onSave: (g: Omit<Goal, 'id' | 'createdAt'>) => void
 }) {
+  const t = useT()
   const [name, setName] = useState('')
   const [targetAmount, setTargetAmount] = useState('')
   const [savedAmount, setSavedAmount] = useState('0')
@@ -204,9 +208,9 @@ function NewGoalModal({
     e.preventDefault()
     const target = parseFloat(targetAmount)
     const saved = parseFloat(savedAmount) || 0
-    if (!name.trim()) return setError('Give your goal a name.')
-    if (!target || target <= 0) return setError('Enter a target amount greater than zero.')
-    if (!targetDate) return setError('Choose a target date.')
+    if (!name.trim()) return setError(t.goals.errorName)
+    if (!target || target <= 0) return setError(t.goals.errorTarget)
+    if (!targetDate) return setError(t.goals.errorDate)
     onSave({ name: name.trim(), targetAmount: target, savedAmount: saved, targetDate, icon })
     onClose()
   }
@@ -215,28 +219,28 @@ function NewGoalModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px]">
       <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
-          <h3 className="font-display font-semibold text-lg">New goal</h3>
+          <h3 className="font-display font-semibold text-lg">{t.goals.modalTitleNew}</h3>
           <button onClick={onClose} className="text-ink-softer hover:text-ink">
             <X size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-1.5">Goal name</label>
+            <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.goals.nameLabel}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Flight to Lisbon"
+              placeholder={t.goals.namePlaceholder}
               autoFocus
               className="w-full px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-2">Icon</label>
+            <label className="block text-xs font-medium text-ink-softer mb-2">{t.goals.iconLabel}</label>
             <div className="flex flex-wrap gap-2">
-              {ICON_OPTIONS.map((opt) => (
+              {goalIconOptions(t).map((opt) => (
                 <button
                   key={opt.key}
                   type="button"
@@ -254,7 +258,7 @@ function NewGoalModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-ink-softer mb-1.5">Target amount</label>
+              <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.goals.targetAmountLabel}</label>
               <input
                 type="number"
                 min="0"
@@ -266,7 +270,7 @@ function NewGoalModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-softer mb-1.5">Already saved</label>
+              <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.goals.alreadySavedLabel}</label>
               <input
                 type="number"
                 min="0"
@@ -279,7 +283,7 @@ function NewGoalModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-ink-softer mb-1.5">Target date</label>
+            <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.goals.targetDateLabel}</label>
             <input
               type="date"
               value={targetDate}
@@ -294,7 +298,7 @@ function NewGoalModal({
             type="submit"
             className="w-full py-3 bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
           >
-            Create goal
+            {t.goals.submitCreate}
           </button>
         </form>
       </div>

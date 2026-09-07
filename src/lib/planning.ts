@@ -3,6 +3,7 @@
 import { AppState, CategoryBudget, GoalIcon, ImportantDateCategory, IncomeSource } from '../types'
 import { nextOccurrence } from './importantDates'
 import { parseLocalDate } from './utils'
+import { Dictionary } from './i18n'
 
 function startOfDay(d: Date): Date {
   const c = new Date(d)
@@ -38,14 +39,17 @@ export function duePaydaySources(
   salaryDay: number | undefined,
   incomeSources: IncomeSource[],
   handledPaydays: Record<string, string> | undefined,
-  now: Date = new Date()
+  now: Date = new Date(),
+  t?: Dictionary
 ): PaydaySource[] {
   const monthK = monthKey(now)
   const dim = daysInMonth(now.getFullYear(), now.getMonth())
   const all: PaydaySource[] = []
-  if (salaryDay && salaryDay >= 1) all.push({ key: 'primary', label: 'Basic salary', payDay: salaryDay })
+  const basicSalaryLabel = t ? t.salaryPrompt.basicSalaryLabel : 'Basic salary'
+  const incomeFallbackLabel = t ? t.salaryPrompt.incomeSourceFallbackLabel : 'Income'
+  if (salaryDay && salaryDay >= 1) all.push({ key: 'primary', label: basicSalaryLabel, payDay: salaryDay })
   for (const src of incomeSources) {
-    if (src.payDay && src.payDay >= 1) all.push({ key: src.id, label: src.name || 'Income', payDay: src.payDay })
+    if (src.payDay && src.payDay >= 1) all.push({ key: src.id, label: src.name || incomeFallbackLabel, payDay: src.payDay })
   }
   return all.filter((s) => {
     const effectiveDay = Math.min(s.payDay, dim)

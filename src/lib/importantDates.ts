@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
 import { parseLocalDate } from './utils'
+import { Dictionary } from './i18n'
 
 export const IMPORTANT_DATE_ICON_MAP: Record<ImportantDateCategory, React.ElementType> = {
   birthday: Cake,
@@ -37,23 +38,41 @@ export const IMPORTANT_DATE_ICON_MAP: Record<ImportantDateCategory, React.Elemen
   other: CalendarDays,
 }
 
-export const IMPORTANT_DATE_CATEGORY_OPTIONS: { key: ImportantDateCategory; label: string }[] = [
-  { key: 'birthday', label: 'Birthday' },
-  { key: 'anniversary', label: 'Anniversary' },
-  { key: 'holiday', label: 'Holiday' },
-  { key: 'carMaintenance', label: 'Car maintenance' },
-  { key: 'gift', label: 'Gift' },
-  { key: 'medical', label: 'Medical' },
-  { key: 'education', label: 'Education' },
-  { key: 'travel', label: 'Travel' },
-  { key: 'homeMaintenance', label: 'Home maintenance' },
-  { key: 'petCare', label: 'Pet care' },
-  { key: 'family', label: 'Family' },
-  { key: 'finance', label: 'Finance' },
-  { key: 'insurance', label: 'Insurance' },
-  { key: 'subscription', label: 'Subscription' },
-  { key: 'other', label: 'Other' },
+// The `key` order here is what drives the fixed order the category picker renders in; `label`
+// is filled in from the current language at render time via importantDateCategoryOptions(t)
+// below rather than hardcoded, so this list itself only needs to exist in one (English) form.
+const IMPORTANT_DATE_CATEGORY_KEYS: ImportantDateCategory[] = [
+  'birthday',
+  'anniversary',
+  'holiday',
+  'carMaintenance',
+  'gift',
+  'medical',
+  'education',
+  'travel',
+  'homeMaintenance',
+  'petCare',
+  'family',
+  'finance',
+  'insurance',
+  'subscription',
+  'other',
 ]
+
+/** Translated label for one important-date category. */
+export function importantDateCategoryLabel(t: Dictionary, category: ImportantDateCategory): string {
+  return t.importantDateCategories[category]
+}
+
+/** The category picker's options, translated for the current language. */
+export function importantDateCategoryOptions(t: Dictionary): { key: ImportantDateCategory; label: string }[] {
+  return IMPORTANT_DATE_CATEGORY_KEYS.map((key) => ({ key, label: importantDateCategoryLabel(t, key) }))
+}
+
+// Kept for reference/back-compat of the type shape only — components should call
+// importantDateCategoryOptions(t) instead so labels follow the selected language.
+export const IMPORTANT_DATE_CATEGORY_OPTIONS: { key: ImportantDateCategory; label: string }[] =
+  IMPORTANT_DATE_CATEGORY_KEYS.map((key) => ({ key, label: key }))
 
 export function ImportantDateIconGlyph({
   category,
@@ -68,23 +87,51 @@ export function ImportantDateIconGlyph({
   return createElement(Icon, { size, className, strokeWidth: 1.75 })
 }
 
-// One-tap starting points for the "New date" form. `date` is left blank for anything
-// whose date is personal (a birthday) or moves year to year in ways this app can't
-// compute (Mother's Day) — the person fills that part in themselves. Truly fixed-date
-// holidays get their date prefilled.
-export const QUICK_ADD_PRESETS: {
+export interface QuickAddPreset {
   label: string
   name: string
   category: ImportantDateCategory
   recurring: boolean
   date?: string // MM-DD, when fixed
-}[] = [
-  { label: 'Birthday', name: 'Birthday', category: 'birthday', recurring: true },
-  { label: 'Anniversary', name: 'Anniversary', category: 'anniversary', recurring: true },
-  { label: 'New Year', name: 'New Year', category: 'holiday', recurring: true, date: '01-01' },
-  { label: "Valentine's Day", name: "Valentine's Day", category: 'holiday', recurring: true, date: '02-14' },
-  { label: 'Car service', name: 'Car maintenance', category: 'carMaintenance', recurring: false },
-]
+}
+
+/**
+ * One-tap starting points for the "New date" form, translated for the current language. `date`
+ * is left blank for anything whose date is personal (a birthday) or moves year to year in ways
+ * this app can't compute (Mother's Day) — the person fills that part in themselves. Truly
+ * fixed-date holidays get their date prefilled.
+ *
+ * Unlike the button's own `label` (pure UI chrome), `name` becomes the actual saved
+ * ImportantDate.name the moment the person taps the preset — real data, not a fixed string — so
+ * it's translated too, in whatever language was active when they created it. Editing the name
+ * afterward works exactly as before; this only affects what gets pre-filled.
+ */
+export function getQuickAddPresets(t: Dictionary): QuickAddPreset[] {
+  return [
+    { label: t.importantDates.presetBirthdayLabel, name: t.importantDates.presetBirthdayName, category: 'birthday', recurring: true },
+    { label: t.importantDates.presetAnniversaryLabel, name: t.importantDates.presetAnniversaryName, category: 'anniversary', recurring: true },
+    {
+      label: t.importantDates.presetNewYearLabel,
+      name: t.importantDates.presetNewYearName,
+      category: 'holiday',
+      recurring: true,
+      date: '01-01',
+    },
+    {
+      label: t.importantDates.presetValentinesLabel,
+      name: t.importantDates.presetValentinesName,
+      category: 'holiday',
+      recurring: true,
+      date: '02-14',
+    },
+    {
+      label: t.importantDates.presetCarServiceLabel,
+      name: t.importantDates.presetCarServiceName,
+      category: 'carMaintenance',
+      recurring: false,
+    },
+  ]
+}
 
 function startOfDay(d: Date): Date {
   const c = new Date(d)

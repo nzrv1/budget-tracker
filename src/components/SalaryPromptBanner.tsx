@@ -4,6 +4,7 @@ import { AppState } from '../types'
 import { formatMoney } from '../lib/utils'
 import { planForMonth, startOfMonth, PaydaySource } from '../lib/planning'
 import { Card, ProgressBar } from './shared'
+import { useT } from '../lib/i18n'
 
 /** Shown on the Dashboard from payday onward, suggesting to move this month's planned
  * savings into goals and important dates in one tap. Each item can be unchecked to leave
@@ -19,6 +20,7 @@ export default function SalaryPromptBanner({
   onApply: (excludeKeys?: string[]) => void
   onDismiss: () => void
 }) {
+  const t = useT()
   const plan = planForMonth(state, startOfMonth(new Date()))
   const items = [...plan.goalItems, ...plan.dateItems]
   const currency = state.settings.currency
@@ -28,7 +30,7 @@ export default function SalaryPromptBanner({
 
   const paydayLabel =
     dueSources.length === 0
-      ? 'Payday'
+      ? t.salaryPrompt.fallbackLabel
       : dueSources.length === 1
       ? dueSources[0].label
       : dueSources.map((s) => s.label).join(' + ')
@@ -43,19 +45,16 @@ export default function SalaryPromptBanner({
             <PiggyBank size={17} strokeWidth={1.75} />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-ink">{paydayLabel} — nothing to set aside yet</p>
-            <p className="text-sm text-ink-softer mt-1 leading-relaxed">
-              None of your goals or important dates need funding this month. Add a savings target to a Goal or
-              Important Date to get suggestions here on future paydays.
-            </p>
+            <p className="text-sm font-medium text-ink">{t.salaryPrompt.nothingTitle(paydayLabel)}</p>
+            <p className="text-sm text-ink-softer mt-1 leading-relaxed">{t.salaryPrompt.nothingMessage}</p>
             <button
               onClick={onDismiss}
               className="mt-3.5 px-3.5 py-2 rounded text-sm font-medium text-ink-softer hover:bg-paper-card transition-colors border border-paper-line"
             >
-              Got it
+              {t.salaryPrompt.gotIt}
             </button>
           </div>
-          <button onClick={onDismiss} aria-label="Dismiss" className="text-ink-softer hover:text-ink shrink-0">
+          <button onClick={onDismiss} aria-label={t.salaryPrompt.dismissAria} className="text-ink-softer hover:text-ink shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -87,17 +86,15 @@ export default function SalaryPromptBanner({
           <PiggyBank size={17} strokeWidth={1.75} />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-ink">Payday — set money aside?</p>
-          <p className="text-sm text-ink-softer mt-1 leading-relaxed">
-            {paydayLabel} just landed. Here's what to set aside this month — untick anything you'd rather skip:
-          </p>
+          <p className="text-sm font-medium text-ink">{t.salaryPrompt.title}</p>
+          <p className="text-sm text-ink-softer mt-1 leading-relaxed">{t.salaryPrompt.message(paydayLabel)}</p>
 
           <div className="mt-3 mb-1">
             <div className="flex items-baseline justify-between mb-1.5 gap-2">
               <span className="font-tabular font-semibold text-lg text-ink">{formatMoney(total, currency)}</span>
               {pct !== null && (
                 <span className="text-xs text-ink-softer text-right">
-                  of {formatMoney(salary, currency)} salary ·{' '}
+                  {t.salaryPrompt.ofSalary(formatMoney(salary, currency))}{' '}
                   <span className={`font-tabular font-semibold ${pct > 100 ? 'text-clay-dark' : 'text-sage-dark'}`}>
                     {pct.toFixed(1)}%
                   </span>
@@ -154,17 +151,17 @@ export default function SalaryPromptBanner({
               className="inline-flex items-center gap-1.5 bg-ink text-paper px-3.5 py-2 rounded text-sm font-medium hover:bg-ink-light transition-colors disabled:opacity-40 disabled:pointer-events-none"
             >
               <PiggyBank size={14} />
-              Set it aside
+              {t.salaryPrompt.setItAside}
             </button>
             <button
               onClick={onDismiss}
               className="px-3.5 py-2 rounded text-sm font-medium text-ink-softer hover:bg-paper-card transition-colors"
             >
-              Not now
+              {t.salaryPrompt.notNow}
             </button>
           </div>
         </div>
-        <button onClick={onDismiss} aria-label="Dismiss" className="text-ink-softer hover:text-ink shrink-0">
+        <button onClick={onDismiss} aria-label={t.salaryPrompt.dismissAria} className="text-ink-softer hover:text-ink shrink-0">
           <X size={16} />
         </button>
       </div>

@@ -1,6 +1,7 @@
-import { AppState, DEFAULT_CATEGORY_DEFS, SAVINGS_CATEGORY, ThemeKey } from '../types'
+import { AppState, DEFAULT_CATEGORY_DEFS, Language, SAVINGS_CATEGORY, ThemeKey } from '../types'
 import { mockState } from './mockData'
 import { telegramColorScheme } from './telegram'
+import { DEFAULT_LANGUAGE } from './i18n'
 
 export const STORAGE_KEY = 'ledger_app_state_v1'
 // A separate key, deliberately outside the AppState blob itself — this is bookkeeping for cloud
@@ -11,6 +12,7 @@ export const STORAGE_KEY = 'ledger_app_state_v1'
 // synced) is treated as "as old as possible" so a real remote copy always wins over nothing.
 const LAST_CHANGED_KEY = 'ledger_last_changed_at'
 const VALID_THEMES: ThemeKey[] = ['light', 'dark', 'cyber', 'red', 'pinky', 'caramel']
+const VALID_LANGUAGES: Language[] = ['en', 'ru', 'lv']
 
 /** Fills in fields added after a person's data was first saved, so old localStorage data keeps working. */
 export function migrate(state: AppState): AppState {
@@ -27,6 +29,10 @@ export function migrate(state: AppState): AppState {
     period: b.period || 'month',
   }))
   const theme = VALID_THEMES.includes(state.settings?.theme) ? state.settings.theme : 'light'
+  // Backfills the same way theme/currency already do: anyone who saved data before this field
+  // existed gets English, matching the actual language everything was already written in — never
+  // silently switches a returning person's UI language on them.
+  const language = VALID_LANGUAGES.includes(state.settings?.language as Language) ? (state.settings.language as Language) : DEFAULT_LANGUAGE
   const importantDates = state.importantDates || []
   const incomeSources = state.incomeSources || []
   const readNotificationIds = state.readNotificationIds || []
@@ -46,7 +52,7 @@ export function migrate(state: AppState): AppState {
     reminderRules,
     incomeSources,
     readNotificationIds,
-    settings: { ...state.settings, theme, handledPaydays },
+    settings: { ...state.settings, theme, language, handledPaydays },
   }
 }
 

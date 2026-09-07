@@ -4,12 +4,18 @@ import { AppState } from '../types'
 import { formatMoney, periodRange, filterByRange, groupByCategory, totals, colorForCategory, settingsIncomeForPeriod } from '../lib/utils'
 import { Card, SectionHeading } from './shared'
 import { EmptyState } from './Dashboard'
+import { translateCategoryName } from '../lib/categoryIcons'
+import { Dictionary, useT } from '../lib/i18n'
 
 type Period = 'day' | 'week' | 'month' | 'year'
 
-const PERIOD_LABEL: Record<Period, string> = { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }
+function periodLabels(t: Dictionary): Record<Period, string> {
+  return { day: t.periods.day, week: t.periods.week, month: t.periods.month, year: t.periods.year }
+}
 
 export default function ReportsView({ state }: { state: AppState }) {
+  const t = useT()
+  const PERIOD_LABEL = periodLabels(t)
   const [period, setPeriod] = useState<Period>('month')
 
   const { from, to } = periodRange(period)
@@ -45,8 +51,9 @@ export default function ReportsView({ state }: { state: AppState }) {
     if (sorted.length <= 6) return sorted
     const top = sorted.slice(0, 6)
     const restTotal = sorted.slice(6).reduce((s, c) => s + c.value, 0)
-    return [...top, { category: 'Other categories', value: restTotal }]
-  }, [current])
+    return [...top, { category: t.reports.otherCategories, value: restTotal }]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, t])
 
   const trendData = useMemo(() => buildTrend(state.transactions, period), [state.transactions, period])
 
@@ -62,7 +69,7 @@ export default function ReportsView({ state }: { state: AppState }) {
 
   return (
     <div>
-      <SectionHeading eyebrow="Where it goes" title="Reports" />
+      <SectionHeading eyebrow={t.reports.eyebrow} title={t.reports.title} />
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
@@ -80,30 +87,29 @@ export default function ReportsView({ state }: { state: AppState }) {
 
       <div className="grid sm:grid-cols-3 gap-3 mb-6">
         <Card className="p-4">
-          <p className="text-xs text-ink-softer mb-1">Income</p>
+          <p className="text-xs text-ink-softer mb-1">{t.reports.income}</p>
           <p className="font-tabular font-semibold text-xl text-sage-dark">{formatMoney(currentTotals.income, state.settings.currency)}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-ink-softer mb-1">Expenses</p>
+          <p className="text-xs text-ink-softer mb-1">{t.reports.expenses}</p>
           <p className="font-tabular font-semibold text-xl text-clay-dark">{formatMoney(currentTotals.expense, state.settings.currency)}</p>
           {expenseChange !== null && (
             <p className={`text-xs mt-1 ${expenseChange <= 0 ? 'text-sage-dark' : 'text-clay-dark'}`}>
-              {expenseChange <= 0 ? '' : '+'}
-              {expenseChange.toFixed(0)}% vs previous {period}
+              {t.reports.vsPrevious(`${expenseChange <= 0 ? '' : '+'}${expenseChange.toFixed(0)}`, PERIOD_LABEL[period].toLowerCase())}
             </p>
           )}
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-ink-softer mb-1">Net saved</p>
+          <p className="text-xs text-ink-softer mb-1">{t.reports.netSaved}</p>
           <p className="font-tabular font-semibold text-xl text-ink">{formatMoney(currentTotals.net, state.settings.currency)}</p>
         </Card>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5 mb-6">
         <Card className="p-5">
-          <h3 className="font-display font-semibold text-base mb-4">Spending by category</h3>
+          <h3 className="font-display font-semibold text-base mb-4">{t.reports.spendingByCategory}</h3>
           {categoryData.length === 0 ? (
-            <EmptyState text="No expenses in this period yet." />
+            <EmptyState text={t.reports.noExpensesThisPeriod} />
           ) : (
             <div className="flex items-center gap-4">
               <ResponsiveContainer width="55%" height={200}>
@@ -123,7 +129,7 @@ export default function ReportsView({ state }: { state: AppState }) {
                 {categoryData.map((entry) => (
                   <div key={entry.category} className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: colorForCategory(entry.category) }} />
-                    <span className="text-ink-softer truncate flex-1">{entry.category}</span>
+                    <span className="text-ink-softer truncate flex-1">{translateCategoryName(t, entry.category)}</span>
                     <span className="font-tabular text-ink">{formatMoney(entry.value, state.settings.currency)}</span>
                   </div>
                 ))}
@@ -133,9 +139,9 @@ export default function ReportsView({ state }: { state: AppState }) {
         </Card>
 
         <Card className="p-5">
-          <h3 className="font-display font-semibold text-base mb-4">Trend over time</h3>
+          <h3 className="font-display font-semibold text-base mb-4">{t.reports.trendOverTime}</h3>
           {trendData.every((d) => d.value === 0) ? (
-            <EmptyState text="Not enough data yet to show a trend." />
+            <EmptyState text={t.reports.notEnoughTrendData} />
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={trendData}>
@@ -151,9 +157,9 @@ export default function ReportsView({ state }: { state: AppState }) {
       </div>
 
       <Card className="p-5">
-        <h3 className="font-display font-semibold text-base mb-4">Budget vs. actual</h3>
+        <h3 className="font-display font-semibold text-base mb-4">{t.reports.budgetVsActual}</h3>
         {budgetComparison.length === 0 ? (
-          <EmptyState text="Set category budgets to see this comparison." />
+          <EmptyState text={t.reports.setBudgetsToCompare} />
         ) : (
           <div className="flex flex-col gap-3">
             {budgetComparison.map((b) => {
@@ -162,7 +168,7 @@ export default function ReportsView({ state }: { state: AppState }) {
                 <div key={`${b.category}-${b.period}`}>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-ink">
-                      {b.category} <span className="text-ink-softer text-xs">· {PERIOD_LABEL[b.period]}</span>
+                      {translateCategoryName(t, b.category)} <span className="text-ink-softer text-xs">· {PERIOD_LABEL[b.period]}</span>
                     </span>
                     <span className="font-tabular text-ink-softer">
                       {formatMoney(b.spent, state.settings.currency)} / {formatMoney(b.limit, state.settings.currency)}

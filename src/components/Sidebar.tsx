@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { LayoutGrid, Receipt, PieChart, Wallet, Target, CalendarDays, Calendar, Bell, Settings, BookOpen, Palette, Check } from 'lucide-react'
 import { ViewKey } from '../App'
 import { ThemeKey } from '../types'
-import { THEMES } from '../lib/themes'
+import { THEMES, themeLabel } from '../lib/themes'
+import { Dictionary, useT } from '../lib/i18n'
 
-const NAV: { key: ViewKey; label: string; icon: React.ElementType }[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { key: 'transactions', label: 'Transactions', icon: Receipt },
-  { key: 'reports', label: 'Reports', icon: PieChart },
-  { key: 'budgets', label: 'Budgets', icon: Wallet },
-  { key: 'goals', label: 'Goals', icon: Target },
-  { key: 'important-dates', label: 'Important Dates', icon: CalendarDays },
-  { key: 'calendar', label: 'Calendar', icon: Calendar },
-  { key: 'notifications', label: 'Notifications', icon: Bell },
-  { key: 'settings', label: 'Settings', icon: Settings },
-]
+function navItems(t: Dictionary): { key: ViewKey; label: string; icon: React.ElementType }[] {
+  return [
+    { key: 'dashboard', label: t.nav.dashboard, icon: LayoutGrid },
+    { key: 'transactions', label: t.nav.transactions, icon: Receipt },
+    { key: 'reports', label: t.nav.reports, icon: PieChart },
+    { key: 'budgets', label: t.nav.budgets, icon: Wallet },
+    { key: 'goals', label: t.nav.goals, icon: Target },
+    { key: 'important-dates', label: t.nav.importantDates, icon: CalendarDays },
+    { key: 'calendar', label: t.nav.calendar, icon: Calendar },
+    { key: 'notifications', label: t.nav.notifications, icon: Bell },
+    { key: 'settings', label: t.nav.settings, icon: Settings },
+  ]
+}
 
 // One slim icon-only rail for every screen size — replaces the old wide labelled desktop
 // sidebar (w-64) plus the separate mobile top bar + bottom nav + "More" sheet. A vertical rail
@@ -35,12 +38,14 @@ export default function Sidebar({
   theme: ThemeKey
   setTheme: (t: ThemeKey) => void
 }) {
+  const t = useT()
+  const NAV = navItems(t)
   return (
     <aside
       className="fixed left-0 top-0 z-30 flex flex-col items-center w-16 h-screen bg-nav text-nav-text
                  pt-[calc(0.75rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
     >
-      <div className="mb-4 shrink-0" title="Ledger">
+      <div className="mb-4 shrink-0" title={t.nav.appName}>
         <BookOpen size={22} className="text-gold" strokeWidth={1.75} />
       </div>
 
@@ -75,6 +80,7 @@ export default function Sidebar({
 }
 
 function ThemePickerButton({ theme, setTheme }: { theme: ThemeKey; setTheme: (t: ThemeKey) => void }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -90,7 +96,7 @@ function ThemePickerButton({ theme, setTheme }: { theme: ThemeKey; setTheme: (t:
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Choose theme"
+        aria-label={t.sidebar.chooseTheme}
         className="w-11 h-11 rounded-lg flex items-center justify-center text-nav-text/60 hover:text-nav-text hover:bg-nav-light transition-colors shrink-0"
       >
         <Palette size={17} strokeWidth={1.75} />
@@ -101,22 +107,22 @@ function ThemePickerButton({ theme, setTheme }: { theme: ThemeKey; setTheme: (t:
         // flush against the screen's left edge, so a dropdown right-aligned to a button only
         // 64px from that edge would spill off-screen to the left instead of appearing on it.
         <div className="absolute left-full bottom-0 ml-2 w-44 bg-paper-card border border-paper-line rounded-lg shadow-lg shadow-ink/20 overflow-hidden z-40 text-ink">
-          {THEMES.map((t) => (
+          {THEMES.map((meta) => (
             <button
-              key={t.key}
+              key={meta.key}
               onClick={() => {
-                setTheme(t.key)
+                setTheme(meta.key)
                 setOpen(false)
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-paper text-left"
             >
               <span className="flex shrink-0 -space-x-1">
-                {t.preview.map((c, i) => (
+                {meta.preview.map((c, i) => (
                   <span key={i} className="w-3 h-3 rounded-full border border-paper-card" style={{ background: c }} />
                 ))}
               </span>
-              <span className="flex-1 truncate">{t.label}</span>
-              {theme === t.key && <Check size={14} className="text-sage-dark shrink-0" />}
+              <span className="flex-1 truncate">{themeLabel(t, meta.key)}</span>
+              {theme === meta.key && <Check size={14} className="text-sage-dark shrink-0" />}
             </button>
           ))}
         </div>

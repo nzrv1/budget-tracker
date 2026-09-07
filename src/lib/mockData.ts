@@ -129,6 +129,40 @@ export function mockState(): AppState {
       monthlyIncome: 3200,
       theme: 'light',
       salaryDay: 1,
+      language: 'en',
+    },
+  }
+}
+
+/**
+ * A genuinely blank slate — used when the person explicitly resets their data (Settings →
+ * Reset data), as opposed to mockState() above, which seeds realistic demo transactions/goals
+ * for a brand new visitor who hasn't set anything up yet. Those are two different intents that
+ * used to share one code path: resetData() cleared localStorage and reloaded, and loadState()
+ * can't tell "first-ever visit" apart from "just wiped" — both see no saved state and fell back
+ * to mockState(), so "reset" silently restored the demo dataset instead of actually emptying
+ * anything. This is saved explicitly by resetData() (see App.tsx) so the reload finds real,
+ * empty state instead of falling through to the mock-data branch in loadState().
+ *
+ * Categories are the one exception kept non-empty: they're the app's built-in taxonomy (names/
+ * icons for the category picker), not user data — an empty categories list would leave nowhere
+ * to file a transaction. A full reset clears records, not the app's basic scaffolding.
+ */
+export function emptyState(): AppState {
+  return {
+    transactions: [],
+    budgets: [],
+    categories: DEFAULT_CATEGORY_DEFS,
+    goals: [],
+    importantDates: [],
+    reminderRules: [],
+    incomeSources: [],
+    readNotificationIds: [],
+    settings: {
+      currency: 'EUR',
+      monthlyIncome: 0,
+      theme: 'light',
+      language: 'en',
     },
   }
 }

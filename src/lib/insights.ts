@@ -1,5 +1,7 @@
 import { AppState, BudgetPeriod, Insight, SAVINGS_CATEGORY, Transaction } from '../types'
 import { formatMoney, periodRange, parseLocalDate } from './utils'
+import { Dictionary } from './i18n'
+import { translateCategoryName } from './categoryIcons'
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
@@ -47,7 +49,7 @@ function categorySpend(transactions: Transaction[], category: string, from: Date
  * Generates rule-based financial insights from current app state.
  * Pure function — no side effects, safe to call on every render.
  */
-export function generateInsights(state: AppState): Insight[] {
+export function generateInsights(state: AppState, t: Dictionary, locale: string): Insight[] {
   const insights: Insight[] = []
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -66,22 +68,35 @@ export function generateInsights(state: AppState): Insight[] {
     const { from: bFrom, to: bTo } = periodRange(budget.period)
     const spent = categorySpend(state.transactions, budget.category, bFrom, bTo)
     const ratio = budget.limit > 0 ? spent / budget.limit : 0
-    const periodWord = budget.period === 'day' ? 'daily' : budget.period === 'week' ? 'weekly' : budget.period === 'year' ? 'yearly' : 'monthly'
+    const periodWord =
+      budget.period === 'day'
+        ? t.insights.periodWordDay
+        : budget.period === 'week'
+        ? t.insights.periodWordWeek
+        : budget.period === 'year'
+        ? t.insights.periodWordYear
+        : t.insights.periodWordMonth
+    const categoryName = translateCategoryName(t, budget.category)
     const instanceKey = periodInstanceKey(budget.period, bFrom)
     if (ratio >= 1) {
       insights.push({
         id: `insight-budget-${budget.category}-${budget.period}-${instanceKey}-exceeded`,
         tone: 'warning',
-        title: `${budget.category} budget exceeded`,
-        message: `You've spent ${formatMoney(spent, state.settings.currency)} of your ${formatMoney(budget.limit, state.settings.currency)} ${periodWord} ${budget.category} budget. Consider holding off on further ${budget.category.toLowerCase()} purchases.`,
+        title: t.insights.budgetExceededTitle(categoryName),
+        message: t.insights.budgetExceededMessage(
+          formatMoney(spent, state.settings.currency),
+          formatMoney(budget.limit, state.settings.currency),
+          periodWord,
+          categoryName
+        ),
         createdAt: now.toISOString(),
       })
     } else if (ratio >= 0.8) {
       insights.push({
         id: `insight-budget-${budget.category}-${budget.period}-${instanceKey}-almost`,
         tone: 'warning',
-        title: `${budget.category} budget almost used up`,
-        message: `You're at ${Math.round(ratio * 100)}% of your ${periodWord} ${budget.category} budget — worth pacing the rest of your spending here.`,
+        title: t.insights.budgetAlmostTitle(categoryName),
+        message: t.insights.budgetAlmostMessage(Math.round(ratio * 100), periodWord, categoryName),
         createdAt: now.toISOString(),
       })
     }
@@ -94,20 +109,25 @@ export function generateInsights(state: AppState): Insight[] {
     const progressRatio = goal.savedAmount / goal.targetAmount
 
     if (remaining <= 0) {
-      const actionWord = goal.icon === 'flight' ? 'book those flight tickets' : goal.icon === 'clothes' ? 'go ahead with that shopping' : 'go for it'
+      const actionWord =
+        goal.icon === 'flight' ? t.insights.actionWordFlight : goal.icon === 'clothes' ? t.insights.actionWordClothes : t.insights.actionWordGeneric
       insights.push({
         id: `insight-goal-${goal.id}-reached`,
         tone: 'positive',
-        title: `${goal.name} goal reached`,
-        message: `You've fully funded "${goal.name}". Good time to ${actionWord}.`,
+        title: t.insights.goalReachedTitle(goal.name),
+        message: t.insights.goalReachedMessage(goal.name, actionWord),
         createdAt: now.toISOString(),
       })
     } else if (progressRatio >= 0.9) {
       insights.push({
         id: `insight-goal-${goal.id}-almost`,
         tone: 'positive',
-        title: `${goal.name} — almost there`,
-        message: `Only ${formatMoney(remaining, state.settings.currency)} left to reach "${goal.name}". At this pace you'll likely hit it before ${parseLocalDate(goal.targetDate).toLocaleDateString()}.`,
+        title: t.insights.goalAlmostTitle(goal.name),
+        message: t.insights.goalAlmostMessage(
+          formatMoney(remaining, state.settings.currency),
+          goal.name,
+          parseLocalDate(goal.targetDate).toLocaleDateString(locale)
+        ),
         createdAt: now.toISOString(),
       })
     } else if (daysLeft > 0) {
@@ -117,8 +137,8 @@ export function generateInsights(state: AppState): Insight[] {
         insights.push({
           id: `insight-goal-${goal.id}-behind`,
           tone: 'warning',
-          title: `${goal.name} may fall behind`,
-          message: `You'd need to save about ${formatMoney(neededPerWeek, state.settings.currency)}/week to hit this goal by its target date — your current pace looks slower than that.`,
+          title: t.insights.goalBehindTitle(goal.name),
+          message: t.insights.goalBehindMessage(formatMoney(neededPerWeek, state.settings.currency)),
           createdAt: now.toISOString(),
         })
       }
@@ -126,8 +146,8 @@ export function generateInsights(state: AppState): Insight[] {
       insights.push({
         id: `insight-goal-${goal.id}-passed`,
         tone: 'warning',
-        title: `${goal.name} target date passed`,
-        message: `The target date for "${goal.name}" has passed with ${formatMoney(remaining, state.settings.currency)} still needed. Consider adjusting the date or the target amount.`,
+        title: t.insights.goalPassedTitle(goal.name),
+        message: t.insights.goalPassedMessage(goal.name, formatMoney(remaining, state.settings.currency)),
         createdAt: now.toISOString(),
       })
     }
@@ -140,8 +160,11 @@ export function generateInsights(state: AppState): Insight[] {
     insights.push({
       id: `insight-weekly-overspend-${startOfWeek.toISOString().slice(0, 10)}`,
       tone: 'warning',
-      title: 'Spending faster than usual this week',
-      message: `This week's spending (${formatMoney(weekExpense, state.settings.currency)}) is running well above your typical weekly pace (${formatMoney(avgWeeklySpend, state.settings.currency)}) this month.`,
+      title: t.insights.weeklyOverspendTitle,
+      message: t.insights.weeklyOverspendMessage(
+        formatMoney(weekExpense, state.settings.currency),
+        formatMoney(avgWeeklySpend, state.settings.currency)
+      ),
       createdAt: now.toISOString(),
     })
   }
@@ -156,16 +179,16 @@ export function generateInsights(state: AppState): Insight[] {
       insights.push({
         id: `insight-mom-${monthKey(startOfMonth)}-down`,
         tone: 'positive',
-        title: 'Spending trending down',
-        message: `Projected spending this month is about ${Math.round(diff)}% lower than last month. Keep it up.`,
+        title: t.insights.spendingDownTitle,
+        message: t.insights.spendingDownMessage(Math.round(diff)),
         createdAt: now.toISOString(),
       })
     } else if (diff < -8) {
       insights.push({
         id: `insight-mom-${monthKey(startOfMonth)}-up`,
         tone: 'warning',
-        title: 'Spending trending up',
-        message: `Projected spending this month is about ${Math.round(Math.abs(diff))}% higher than last month.`,
+        title: t.insights.spendingUpTitle,
+        message: t.insights.spendingUpMessage(Math.round(Math.abs(diff))),
         createdAt: now.toISOString(),
       })
     }
@@ -178,8 +201,8 @@ export function generateInsights(state: AppState): Insight[] {
       insights.push({
         id: `insight-savings-rate-${monthKey(startOfMonth)}`,
         tone: 'positive',
-        title: 'On track this month',
-        message: `You're saving about ${Math.round(savingsRate * 100)}% of your income this month — a healthy pace toward your goals.`,
+        title: t.insights.onTrackTitle,
+        message: t.insights.onTrackMessage(Math.round(savingsRate * 100)),
         createdAt: now.toISOString(),
       })
     }
