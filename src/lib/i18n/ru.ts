@@ -356,6 +356,12 @@ const ru: Dictionary = {
     notificationsTitle: 'Уведомления',
     notificationsSubtitle: 'Получайте напоминания по мере приближения даты цели или важной даты.',
     notificationsEmptyHint: 'Сначала создайте цель или важную дату, чтобы настроить для неё напоминания.',
+    pushLevelLabel: 'Telegram-уведомления',
+    pushLevelAll: 'Все',
+    pushLevelImportant: 'Только важное',
+    pushLevelOff: 'Выключить',
+    pushLevelHelp:
+      'Какие пуши шлёт бот. «Только важное» — превышение бюджета, напоминания, дедлайны, зарплата, цели; «Все» — плюс подбадривающие сообщения по расписанию.',
     removeReminderAria: (name) => `Удалить напоминания для «${name}»`,
     remindMeAboutLabel: 'Напоминать о',
     remindGoalOption: 'Цели',

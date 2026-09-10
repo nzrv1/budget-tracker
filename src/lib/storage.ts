@@ -1,4 +1,4 @@
-import { AppState, DEFAULT_CATEGORY_DEFS, Language, SAVINGS_CATEGORY, ThemeKey } from '../types'
+import { AppState, DEFAULT_CATEGORY_DEFS, Language, NotificationLevel, SAVINGS_CATEGORY, ThemeKey } from '../types'
 import { mockState } from './mockData'
 import { telegramColorScheme } from './telegram'
 import { DEFAULT_LANGUAGE } from './i18n'
@@ -13,6 +13,7 @@ export const STORAGE_KEY = 'ledger_app_state_v1'
 const LAST_CHANGED_KEY = 'ledger_last_changed_at'
 const VALID_THEMES: ThemeKey[] = ['light', 'dark', 'cyber', 'red', 'pinky', 'caramel']
 const VALID_LANGUAGES: Language[] = ['en', 'ru', 'lv']
+const VALID_NOTIFICATION_LEVELS: NotificationLevel[] = ['all', 'important_only', 'off']
 
 /** Fills in fields added after a person's data was first saved, so old localStorage data keeps working. */
 export function migrate(state: AppState): AppState {
@@ -38,6 +39,11 @@ export function migrate(state: AppState): AppState {
   // existed gets English, matching the actual language everything was already written in — never
   // silently switches a returning person's UI language on them.
   const language = VALID_LANGUAGES.includes(state.settings?.language as Language) ? (state.settings.language as Language) : DEFAULT_LANGUAGE
+  // Backfills like language/theme: anyone who saved data before Telegram notifications existed
+  // gets 'all' (notifications on) — they can dial it down in Settings.
+  const notificationLevel = VALID_NOTIFICATION_LEVELS.includes(state.settings?.notificationLevel as NotificationLevel)
+    ? (state.settings.notificationLevel as NotificationLevel)
+    : 'all'
   const importantDates = state.importantDates || []
   const incomeSources = state.incomeSources || []
   const readNotificationIds = state.readNotificationIds || []
@@ -58,7 +64,7 @@ export function migrate(state: AppState): AppState {
     reminderRules,
     incomeSources,
     readNotificationIds,
-    settings: { ...state.settings, theme, language, handledPaydays, handledBudgetPeriods },
+    settings: { ...state.settings, theme, language, notificationLevel, handledPaydays, handledBudgetPeriods },
   }
 }
 

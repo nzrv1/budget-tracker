@@ -355,6 +355,12 @@ const lv: Dictionary = {
     notificationsTitle: 'Paziņojumi',
     notificationsSubtitle: 'Saņemiet atgādinājumus, kad tuvojas mērķa vai svarīga datuma termiņš.',
     notificationsEmptyHint: 'Vispirms izveidojiet mērķi vai svarīgu datumu, lai tam iestatītu atgādinājumus.',
+    pushLevelLabel: 'Telegram paziņojumi',
+    pushLevelAll: 'Visi',
+    pushLevelImportant: 'Tikai svarīgie',
+    pushLevelOff: 'Izslēgt',
+    pushLevelHelp:
+      'Kādus push paziņojumus sūta bots. «Tikai svarīgie» — budžeta pārsniegums, atgādinājumi, termiņi, alga, mērķi; «Visi» — arī plānoti uzmundrinājumi.',
     removeReminderAria: (name) => `Dzēst atgādinājumus par "${name}"`,
     remindMeAboutLabel: 'Atgādināt par',
     remindGoalOption: 'Mērķi',
