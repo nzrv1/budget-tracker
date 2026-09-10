@@ -135,7 +135,20 @@ export interface Settings {
   // still satisfy it structurally — migrate() in storage.ts always backfills a real value
   // ('en') on load, so every other reader of Settings can treat it as always present.
   language?: Language
+  // How many Telegram push notifications the bot sends (notify-tick Edge Function reads this
+  // straight out of the synced state). Optional on the type for the same back-compat reason as
+  // `language` — migrate() backfills 'all'. See supabase/functions/_shared/notification-templates.ts.
+  notificationLevel?: NotificationLevel
 }
+
+/**
+ * Telegram push notification volume:
+ *  - 'all'            — event alerts (budget over, reminders, deadlines, payday, goal done) plus
+ *                       scheduled encouragement
+ *  - 'important_only' — only the event alerts
+ *  - 'off'            — nothing
+ */
+export type NotificationLevel = 'all' | 'important_only' | 'off'
 
 /** Supported UI languages — see src/lib/i18n/ for the dictionaries and translation hook. */
 export type Language = 'en' | 'ru' | 'lv'

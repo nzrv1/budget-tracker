@@ -12,7 +12,7 @@
 // (using the bot token, which lives only as a server-side secret) before reading or writing
 // anything, then uses its own elevated key to do so. See supabase/functions/sync-state/index.ts.
 import { AppState } from '../types'
-import { getTelegramInitData } from './telegram'
+import { getTelegramInitData, getLocalTimezone } from './telegram'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
@@ -47,6 +47,14 @@ export async function pullRemoteState(): Promise<{ state: AppState; updatedAt: s
   }
 }
 
+// The Telegram notification feature needs to know each user's local timezone (for "Friday
+// evening" / "start of the month" scheduling). Rather than a separate endpoint, we piggyback it
+// on the first push of each session — sync-state records it in the telegram_notify_state table,
+// alongside the app_states upsert that push already does (so the FK from that table is always
+// satisfied). Once per launch is enough; the value only changes if the person travels, and the
+// next launch picks that up.
+let timezoneReported = false
+
 /**
  * Pushes the current state up to Supabase for this Telegram user. Fire-and-forget by design —
  * callers don't await a meaningful result and a failure here (offline, function down) is silently
@@ -56,9 +64,12 @@ export async function pullRemoteState(): Promise<{ state: AppState; updatedAt: s
 export async function pushRemoteState(state: AppState): Promise<void> {
   const initData = getTelegramInitData()
   if (!initData) return
+  const timezone = timezoneReported ? undefined : getLocalTimezone() ?? undefined
   try {
-    await callSyncFunction({ action: 'push', initData, state })
+    await callSyncFunction({ action: 'push', initData, state, ...(timezone ? { timezone } : {}) })
+    if (timezone) timezoneReported = true
   } catch {
-    // Swallowed deliberately — see doc comment above.
+    // Swallowed deliberately — see doc comment above. timezoneReported stays false so the next
+    // push retries reporting it.
   }
 }

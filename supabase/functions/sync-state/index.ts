@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'server misconfigured: TELEGRAM_BOT_TOKEN not set' }, 500)
   }
 
-  let body: { action?: string; initData?: string; state?: unknown }
+  let body: { action?: string; initData?: string; state?: unknown; timezone?: string }
   try {
     body = await req.json()
   } catch {
@@ -143,5 +143,23 @@ Deno.serve(async (req) => {
     .from('app_states')
     .upsert({ telegram_user_id: telegramUserId, state, updated_at: new Date().toISOString() }, { onConflict: 'telegram_user_id' })
   if (error) return jsonResponse({ error: error.message }, 500)
+
+  // Telegram notification bookkeeping lives in its own table (telegram_notify_state — see that
+  // migration for why it's kept out of the state blob). The client piggybacks its current IANA
+  // timezone on the first push of each session; record it so scheduled notifications fire on the
+  // user's wall clock. This runs AFTER the app_states upsert above so the FK on that table is
+  // always satisfied. Best-effort: the state sync has already succeeded, so a failure here must
+  // not turn into an error response — it just means the timezone is recorded on a later push.
+  const timezone = body.timezone
+  if (typeof timezone === 'string' && timezone.length > 0 && timezone.length <= 64) {
+    const { error: tzError } = await supabase
+      .from('telegram_notify_state')
+      .upsert(
+        { telegram_user_id: telegramUserId, timezone, updated_at: new Date().toISOString() },
+        { onConflict: 'telegram_user_id' },
+      )
+    if (tzError) console.error('telegram_notify_state timezone upsert failed:', tzError.message)
+  }
+
   return jsonResponse({ ok: true })
 })

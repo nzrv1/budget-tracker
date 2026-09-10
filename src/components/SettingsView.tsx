@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { Trash2, Check, Plus, X, Bell, Target, CalendarDays, Briefcase } from 'lucide-react'
-import { AppState, CategoryDef, CategoryIconKey, IncomeSource, Language, ReminderOffsetKey, ReminderTargetKind, ThemeKey } from '../types'
+import {
+  AppState,
+  CategoryDef,
+  CategoryIconKey,
+  IncomeSource,
+  Language,
+  NotificationLevel,
+  ReminderOffsetKey,
+  ReminderTargetKind,
+  ThemeKey,
+} from '../types'
 import { CollapsibleCard, GoalIconGlyph, ProgressBar, SectionHeading } from './shared'
 import { formatMoney, useNumberField } from '../lib/utils'
 import { THEMES, themeLabel } from '../lib/themes'
@@ -357,6 +367,34 @@ export default function SettingsView({
         subtitle={t.settings.notificationsSubtitle}
         className="mb-5"
       >
+        <div className="mb-4 pb-4 border-b border-paper-line">
+          <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.settings.pushLevelLabel}</label>
+          <div className="flex gap-1.5">
+            {(['all', 'important_only', 'off'] as NotificationLevel[]).map((lvl) => {
+              const active = (state.settings.notificationLevel ?? 'all') === lvl
+              const label =
+                lvl === 'all'
+                  ? t.settings.pushLevelAll
+                  : lvl === 'important_only'
+                  ? t.settings.pushLevelImportant
+                  : t.settings.pushLevelOff
+              return (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => updateSettings({ notificationLevel: lvl })}
+                  className={`flex-1 px-2 py-2 rounded text-sm font-medium border transition-colors ${
+                    active ? 'border-sage bg-sage-light text-sage-dark' : 'border-paper-line text-ink-softer'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-xs text-ink-softer mt-1.5">{t.settings.pushLevelHelp}</p>
+        </div>
+
         {state.goals.length === 0 && state.importantDates.length === 0 ? (
           <p className="text-sm text-ink-softer">{t.settings.notificationsEmptyHint}</p>
         ) : (

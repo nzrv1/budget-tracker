@@ -6,3 +6,18 @@
 # endpoint that verifies its own signature.
 [functions.sync-state]
 verify_jwt = false
+
+# notify-tick is the pg_cron target for Telegram notifications. verify_jwt is off because
+# pg_cron invokes it with no Supabase Auth session (a plain net.http_post). The request carries
+# nothing user-specific and every send is throttled by telegram_notify_state.last_sent, so an
+# unauthenticated trigger is low-risk; set the NOTIFY_TICK_SECRET secret + an x-notify-secret
+# header on the cron call if you want it locked down. See supabase/functions/notify-tick/index.ts.
+[functions.notify-tick]
+verify_jwt = false
+
+# telegram-webhook is Telegram's Bot API callback endpoint. verify_jwt is off — Telegram has no
+# Supabase session. It authenticates itself instead: register the webhook with a secret_token,
+# set the same value as the TELEGRAM_WEBHOOK_SECRET secret, and the function rejects any request
+# missing the matching X-Telegram-Bot-Api-Secret-Token header. See supabase/functions/telegram-webhook/index.ts.
+[functions.telegram-webhook]
+verify_jwt = false

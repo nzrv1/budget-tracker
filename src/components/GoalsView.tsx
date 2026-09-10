@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, X, Trash2, PlusCircle } from 'lucide-react'
 import { AppState, Goal, GoalIcon } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
@@ -51,12 +51,17 @@ export default function GoalsView({
   updateGoal,
   deleteGoal,
   allocateToGoal,
+  prefill = null,
+  onPrefillConsumed,
 }: {
   state: AppState
   addGoal: (g: Omit<Goal, 'id' | 'createdAt'>) => void
   updateGoal: (id: string, patch: Partial<Goal>) => void
   deleteGoal: (id: string) => void
   allocateToGoal: (id: string, amount: number) => void
+  // From a notification deep link — pre-fill this goal's "add funds" field with `amount`.
+  prefill?: { id: string; amount: number } | null
+  onPrefillConsumed?: () => void
 }) {
   const t = useT()
   const [showAdd, setShowAdd] = useState(false)
@@ -91,6 +96,8 @@ export default function GoalsView({
               onUpdate={updateGoal}
               onDelete={deleteGoal}
               onAllocate={allocateToGoal}
+              prefillAmount={prefill?.id === g.id ? prefill.amount : undefined}
+              onPrefillConsumed={onPrefillConsumed}
             />
           ))}
         </div>
@@ -107,15 +114,30 @@ function GoalCard({
   onUpdate,
   onDelete,
   onAllocate,
+  prefillAmount,
+  onPrefillConsumed,
 }: {
   goal: Goal
   currency: string
   onUpdate: (id: string, patch: Partial<Goal>) => void
   onDelete: (id: string) => void
   onAllocate: (id: string, amount: number) => void
+  prefillAmount?: number
+  onPrefillConsumed?: () => void
 }) {
   const { t, locale } = useI18n()
   const [addAmount, setAddAmount] = useState('')
+
+  // Deep link landed on this card: drop the amount into the field and bring it into view. Runs
+  // once — the parent clears the intent via onPrefillConsumed, so this can't loop.
+  useEffect(() => {
+    if (prefillAmount == null) return
+    setAddAmount(String(prefillAmount))
+    document.getElementById(`goal-card-${goal.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    onPrefillConsumed?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillAmount])
+
   const ratio = goal.savedAmount / goal.targetAmount
   const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
   const daysLeft = Math.max(Math.round((parseLocalDate(goal.targetDate).getTime() - Date.now()) / 86400000), 0)
@@ -131,7 +153,7 @@ function GoalCard({
   }
 
   return (
-    <Card className="p-5 flex flex-col">
+    <Card id={`goal-card-${goal.id}`} className="p-5 flex flex-col">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">

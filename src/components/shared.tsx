@@ -111,9 +111,17 @@ export function goalIconLabel(t: Dictionary, icon: GoalIcon): string {
   return t.goalIcons[icon]
 }
 
-export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = '',
+  id,
+}: {
+  children: React.ReactNode
+  className?: string
+  id?: string
+}) {
   return (
-    <div className={`bg-paper-card border border-paper-line rounded-lg ${className}`}>
+    <div id={id} className={`bg-paper-card border border-paper-line rounded-lg ${className}`}>
       {children}
     </div>
   )

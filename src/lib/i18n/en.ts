@@ -357,6 +357,12 @@ const en = {
     notificationsTitle: 'Notifications',
     notificationsSubtitle: "Get reminded as a goal's target date or an important date gets closer.",
     notificationsEmptyHint: 'Create a goal or an important date first to set up reminders for it.',
+    pushLevelLabel: 'Telegram notifications',
+    pushLevelAll: 'All',
+    pushLevelImportant: 'Important only',
+    pushLevelOff: 'Off',
+    pushLevelHelp:
+      'Which push messages the bot sends. "Important only" keeps budget, reminder, deadline, payday and goal alerts; "All" also sends scheduled encouragement.',
     removeReminderAria: (name: string) => `Remove reminders for ${name}`,
     remindMeAboutLabel: 'Remind me about',
     remindGoalOption: 'A goal',

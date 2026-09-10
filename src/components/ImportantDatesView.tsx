@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, X, Trash2, PlusCircle, Pencil } from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
 import { formatMoney } from '../lib/utils'
@@ -20,12 +20,17 @@ export default function ImportantDatesView({
   updateImportantDate,
   deleteImportantDate,
   allocateToImportantDate,
+  allocatePrefill = null,
+  onPrefillConsumed,
 }: {
   state: { importantDates: ImportantDate[]; settings: { currency: string } }
   addImportantDate: (d: Omit<ImportantDate, 'id' | 'createdAt'>) => void
   updateImportantDate: (id: string, patch: Partial<ImportantDate>) => void
   deleteImportantDate: (id: string) => void
   allocateToImportantDate: (id: string, amount: number) => void
+  // From a notification deep link — pre-fill this date's "add funds" field with `amount`.
+  allocatePrefill?: { id: string; amount: number } | null
+  onPrefillConsumed?: () => void
 }) {
   const t = useT()
   const [showAdd, setShowAdd] = useState(false)
@@ -93,6 +98,8 @@ export default function ImportantDatesView({
               onDelete={deleteImportantDate}
               onEdit={setEditingDate}
               onAllocate={allocateToImportantDate}
+              prefillAmount={allocatePrefill?.id === d.id ? allocatePrefill.amount : undefined}
+              onPrefillConsumed={onPrefillConsumed}
             />
           ))}
         </div>
@@ -128,6 +135,8 @@ function DateCard({
   onDelete,
   onEdit,
   onAllocate,
+  prefillAmount,
+  onPrefillConsumed,
 }: {
   date: ImportantDate
   currency: string
@@ -135,9 +144,22 @@ function DateCard({
   onDelete: (id: string) => void
   onEdit: (date: ImportantDate) => void
   onAllocate: (id: string, amount: number) => void
+  prefillAmount?: number
+  onPrefillConsumed?: () => void
 }) {
   const { t, locale } = useI18n()
   const [addAmount, setAddAmount] = useState('')
+
+  // Deep link landed on this card: fill the amount and scroll it into view. Runs once — parent
+  // clears the intent via onPrefillConsumed.
+  useEffect(() => {
+    if (prefillAmount == null) return
+    setAddAmount(String(prefillAmount))
+    document.getElementById(`date-card-${date.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    onPrefillConsumed?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillAmount])
+
   const days = daysUntil(date)
   const occursOn = nextOccurrence(date.date, date.recurring)
 
@@ -157,7 +179,7 @@ function DateCard({
   }
 
   return (
-    <Card className="p-5 flex flex-col">
+    <Card id={`date-card-${date.id}`} className="p-5 flex flex-col">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
           <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">

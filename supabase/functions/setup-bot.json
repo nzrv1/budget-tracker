@@ -1,0 +1,29 @@
+{
+  "description": {
+    "en": "Hi! I am Ledger, your budget helper. I send budget alerts, reminders for your goals and important dates, payday nudges and a bit of encouragement. Tap Start to choose a language.",
+    "ru": "Привет! Я Ledger — помощник по бюджету. Присылаю уведомления о превышении бюджета, напоминания по целям и важным датам, подсказки в день зарплаты и пару добрых слов. Нажмите «Начать», чтобы выбрать язык.",
+    "lv": "Sveiki! Es esmu Ledger — tavs budžeta palīgs. Sūtu budžeta paziņojumus, atgādinājumus par mērķiem un svarīgiem datumiem, algas dienas atgādinājumus un mazliet uzmundrinājuma. Nospied Sākt, lai izvēlētos valodu."
+  },
+  "short_description": {
+    "en": "Budget, goals and payday notifications",
+    "ru": "Уведомления о бюджете, целях и зарплате",
+    "lv": "Budžeta, mērķu un algas paziņojumi"
+  },
+  "commands": {
+    "en": [
+      { "command": "start", "description": "Start the bot / choose language" },
+      { "command": "settings", "description": "About notification levels" },
+      { "command": "language", "description": "Change language" }
+    ],
+    "ru": [
+      { "command": "start", "description": "Запустить бота / выбрать язык" },
+      { "command": "settings", "description": "Про уровни уведомлений" },
+      { "command": "language", "description": "Сменить язык" }
+    ],
+    "lv": [
+      { "command": "start", "description": "Palaist botu / izvēlēties valodu" },
+      { "command": "settings", "description": "Par paziņojumu līmeņiem" },
+      { "command": "language", "description": "Mainīt valodu" }
+    ]
+  }
+}
