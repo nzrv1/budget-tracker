@@ -147,6 +147,9 @@ const lv: Dictionary = {
     ofLabel: 'no',
     overBy: (amount) => `Pārsniegts par ${amount}`,
     closeToLimit: 'Tuvojas limitam',
+    editTitle: 'Rediģēt budžetu',
+    limitLabel: 'Limits',
+    deleteConfirm: 'Dzēst šo budžetu?',
   },
 
   budgetReview: {

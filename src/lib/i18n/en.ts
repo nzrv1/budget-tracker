@@ -167,6 +167,9 @@ const en = {
     ofLabel: 'of',
     overBy: (amount: string) => `Over by ${amount}`,
     closeToLimit: 'Getting close to the limit',
+    editTitle: 'Edit budget',
+    limitLabel: 'Limit',
+    deleteConfirm: 'Delete this budget?',
   },
 
   // The Dashboard banner shown once a budget's period (week/month/...) has just fully closed

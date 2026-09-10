@@ -148,6 +148,9 @@ const ru: Dictionary = {
     ofLabel: 'из',
     overBy: (amount) => `Превышение на ${amount}`,
     closeToLimit: 'Приближается к лимиту',
+    editTitle: 'Изменить бюджет',
+    limitLabel: 'Лимит',
+    deleteConfirm: 'Удалить этот бюджет?',
   },
 
   budgetReview: {

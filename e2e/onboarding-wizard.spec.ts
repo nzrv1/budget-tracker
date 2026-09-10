@@ -48,7 +48,8 @@ test('the setup wizard creates real budgets, important dates and goals', async (
   await page.getByRole('button', { name: 'Budgets' }).click()
   await expect(page.getByRole('heading', { name: 'Rent', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Insurance', exact: true })).toBeVisible()
-  await expect(page.getByText('Yearly limit')).toBeVisible() // Insurance was created as a yearly budget
+  // Insurance was created as a yearly budget — its card carries a "Yearly" period pill.
+  await expect(page.getByRole('button', { name: /Insurance/ }).getByText('Yearly')).toBeVisible()
 
   // Important Dates screen: both birthdays.
   await page.getByRole('button', { name: 'Important Dates' }).click()
