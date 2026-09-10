@@ -44,12 +44,22 @@ const en = {
     calendar: 'Calendar',
     notifications: 'Notifications',
     settings: 'Settings',
-    // The phone bottom-nav's overflow tab — opens a sheet with the sections not in the bar.
-    more: 'More',
     // Shown as a title tooltip on the logo at the top of the nav rail. This is the product's
     // own name, not a generic label — left the same in every language on purpose (see the
     // localization summary note about brand names).
     appName: 'Ledger',
+  },
+
+  // Short captions for the phone bottom tab bar — all seven sections sit in one strip there,
+  // so they need to fit a ~50px column. Full labels stay in nav.* (rail tooltips, headings).
+  navShort: {
+    dashboard: 'Home',
+    transactions: 'Activity',
+    budgets: 'Budgets',
+    goals: 'Goals',
+    calendar: 'Calendar',
+    reports: 'Reports',
+    importantDates: 'Dates',
   },
 
   periods: {

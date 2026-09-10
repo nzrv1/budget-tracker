@@ -641,7 +641,7 @@ export default function App() {
         </div>
       </main>
 
-      <BottomNav view={view} setView={setView} notificationCount={unreadCount} />
+      <BottomNav view={view} setView={setView} />
       <ToastStack toasts={toasts} dismiss={dismissToast} />
     </div>
     </I18nProvider>

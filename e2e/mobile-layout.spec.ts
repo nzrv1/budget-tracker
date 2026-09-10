@@ -28,23 +28,26 @@ test.describe('375px — nothing scrolls sideways', () => {
     expect(overflow, `${where} overflows by ${overflow}px`).toBeLessThanOrEqual(0)
   }
 
-  for (const tab of ['Dashboard', 'Transactions', 'Budgets', 'Goals', 'Calendar']) {
+  for (const tab of ['Dashboard', 'Transactions', 'Budgets', 'Goals', 'Calendar', 'Reports', 'Important Dates']) {
     test(tab, async ({ page }) => {
       await page.getByRole('button', { name: tab, exact: true }).click()
       await expectNoHorizontalScroll(page, tab)
     })
   }
 
-  for (const item of ['Reports', 'Important Dates', 'Notifications', 'Settings']) {
+  for (const [item, opener] of [
+    ['Notifications', 'Open notifications'],
+    ['Settings', 'Open settings'],
+  ] as const) {
     test(item, async ({ page }) => {
-      await page.getByRole('button', { name: 'More' }).click()
-      await page.getByRole('button', { name: item, exact: true }).click()
+      await page.getByRole('button', { name: opener }).click() // the Dashboard header bell / gear
+      await expect(page.getByRole('heading', { name: item })).toBeVisible()
       await expectNoHorizontalScroll(page, item)
     })
   }
 
   test('Add transaction sheet', async ({ page }) => {
-    await page.getByRole('button', { name: 'Dashboard' }).click()
+    await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
     await page.getByRole('button', { name: 'Add transaction' }).click()
     await expect(page.getByRole('heading', { name: 'Add transaction' })).toBeVisible()
     await expectNoHorizontalScroll(page, 'Add transaction sheet')
