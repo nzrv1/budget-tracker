@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Plus, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Plus, ArrowRight, CheckCircle2, AlertTriangle, Bell, Settings } from 'lucide-react'
 import { AppState, Transaction, Insight, CategoryDef, SAVINGS_CATEGORY } from '../types'
 import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod, parseLocalDate } from '../lib/utils'
-import { Card, CardHeading, ProgressBar, StatTile } from './shared'
+import { Card, CardHeading, StatTile } from './shared'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
@@ -24,12 +24,14 @@ export default function Dashboard({
   moveBudgetSurplusToImportantDate,
   reduceBudgetLimitForOverspend,
   dismissBudgetPeriodReview,
+  notificationCount,
 }: {
   state: AppState
   insights: Insight[]
   addTransaction: (t: Omit<Transaction, 'id'>) => void
   addCategory: (def: CategoryDef) => void
   setView: (v: ViewKey) => void
+  notificationCount: number
   applyAutoAllocations: (excludeKeys?: string[]) => void
   dismissSalaryPrompt: () => void
   moveBudgetSurplusToGoal: (review: BudgetPeriodReview, goalId: string) => void
@@ -65,17 +67,12 @@ export default function Dashboard({
   // this month to stay on track. This is the number "actual money spent so far" (above)
   // doesn't capture, since most of it hasn't been logged as transactions yet.
   const plan = planForMonth(state, startOfMonth(today0))
-  const savingsGoalTotal = plan.goalsTotal
   // Actual money moved into Goals/Important Dates this month (payday auto-allocation, or the
-  // "add funds" quick-action — see allocateToGoal/allocateToImportantDate in App.tsx), not
-  // "income minus expenses" leftover cash. Using leftover cash here used to mean that *actually
-  // saving* money made this card look worse — the leftover would drop by the amount saved,
-  // shrinking the ratio right when it should have grown.
+  // "add funds" quick-action — see allocateToGoal/allocateToImportantDate in App.tsx). Shown
+  // as the "Set aside" stat tile.
   const currentMonthSaved = currentMonthTx
     .filter((t) => t.type === 'expense' && t.category === SAVINGS_CATEGORY)
     .reduce((s, t) => s + t.amount, 0)
-  const savingsGoalRatio = savingsGoalTotal > 0 ? currentMonthSaved / savingsGoalTotal : 0
-  const savingsGoalPercent = Math.max(0, Math.round(savingsGoalRatio * 100))
 
   // "In theory" projected savings: income for the selected period minus everything that
   // period is already committed to (budgets scaled the same way income is, plus goals and
@@ -119,10 +116,37 @@ export default function Dashboard({
         />
       ))}
 
-      {/* Greeting */}
-      <div className="mb-5">
-        <p className="text-sm text-ink-softer">{dayLabel}</p>
-        <h1 className="font-display font-semibold text-2xl sm:text-3xl text-ink mt-0.5">{t.dashboard.greeting}</h1>
+      {/* Greeting + quick access to notifications / settings (they live in the "More" sheet on
+          the bottom nav, so surface the two that matter day-to-day right here). */}
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div className="min-w-0">
+          <p className="text-sm text-ink-softer">{dayLabel}</p>
+          <h1 className="font-display font-semibold text-2xl sm:text-3xl text-ink mt-0.5">{t.dashboard.greeting}</h1>
+        </div>
+        <div className="flex items-center gap-1 shrink-0 -mr-1">
+          <button
+            onClick={() => setView('notifications')}
+            aria-label={t.dashboard.openNotifications}
+            className="relative flex h-11 w-11 items-center justify-center rounded-lg text-ink-softer hover:text-ink hover:bg-paper-card transition-colors"
+          >
+            <Bell size={19} strokeWidth={1.75} />
+            {notificationCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-clay text-white text-[10px] font-semibold flex items-center justify-center"
+              >
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setView('settings')}
+            aria-label={t.dashboard.openSettings}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-ink-softer hover:text-ink hover:bg-paper-card transition-colors"
+          >
+            <Settings size={19} strokeWidth={1.75} />
+          </button>
+        </div>
       </div>
 
       {/* Period toggle — drives the four figures in the strip below */}
@@ -180,22 +204,6 @@ export default function Dashboard({
           wide child can't force a grid track past the screen. */}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-6">
         <div className="lg:col-span-2 flex flex-col gap-4 lg:gap-6">
-          <Card className="p-4 sm:p-5">
-            <CardHeading title={t.dashboard.savingsGoalTitle} />
-            {savingsGoalTotal > 0 ? (
-              <>
-                <p className="font-tabular text-sm mb-2">
-                  {formatMoney(currentMonthSaved, state.settings.currency)}{' '}
-                  <span className="text-ink-softer">{t.goals.ofAmount(formatMoney(savingsGoalTotal, state.settings.currency))}</span>
-                </p>
-                <ProgressBar ratio={savingsGoalRatio} tone={savingsGoalRatio >= 1 ? 'sage' : savingsGoalRatio >= 0.5 ? 'gold' : 'clay'} />
-                <p className="text-sm text-ink-softer mt-3">{t.dashboard.savingsGoalProgress(savingsGoalPercent)}</p>
-              </>
-            ) : (
-              <p className="text-sm text-ink-softer">{t.dashboard.savingsGoalEmpty}</p>
-            )}
-          </Card>
-
           <Card className="p-4 sm:p-5">
             <CardHeading
               title={t.dashboard.recentTransactionsTitle}

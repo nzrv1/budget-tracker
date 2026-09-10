@@ -83,6 +83,8 @@ const lv: Dictionary = {
     spentLabel: 'Iztērēts',
     safeToSpend: 'Var tērēt',
     setAside: 'Atlikts',
+    openNotifications: 'Atvērt paziņojumus',
+    openSettings: 'Atvērt iestatījumus',
     savingsGoalTitle: 'Mēneša uzkrājumu mērķis',
     savingsGoalProgress: (percent) =>
       `${percent}% no šī mēneša uzkrājumu mērķa — pamatojoties uz to, cik daudz šomēnes vajadzīgs jūsu aktīvajiem mērķiem.`,

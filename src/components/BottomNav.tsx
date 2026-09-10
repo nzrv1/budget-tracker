@@ -158,6 +158,7 @@ function MoreSheet({
               <button
                 key={key}
                 onClick={() => onPick(key)}
+                aria-label={label(t, key)}
                 className={`w-full flex items-center gap-3 px-3 min-h-[48px] rounded-lg text-sm font-medium transition-colors ${
                   active ? 'bg-sage-light text-sage-dark' : 'text-ink hover:bg-paper'
                 }`}
@@ -165,7 +166,10 @@ function MoreSheet({
                 <Icon size={19} strokeWidth={1.75} className="shrink-0" />
                 <span className="flex-1 text-left">{label(t, key)}</span>
                 {key === 'notifications' && notificationCount > 0 && (
-                  <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-clay text-white text-xs font-semibold flex items-center justify-center">
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-clay text-white text-xs font-semibold flex items-center justify-center"
+                  >
                     {notificationCount}
                   </span>
                 )}

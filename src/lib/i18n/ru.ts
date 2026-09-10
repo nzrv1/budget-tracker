@@ -84,6 +84,8 @@ const ru: Dictionary = {
     spentLabel: 'Расход',
     safeToSpend: 'Можно потратить',
     setAside: 'Отложено',
+    openNotifications: 'Открыть уведомления',
+    openSettings: 'Открыть настройки',
     savingsGoalTitle: 'Месячная цель по накоплениям',
     savingsGoalProgress: (percent) =>
       `${percent}% от цели по накоплениям на этот месяц — на основе того, сколько нужно вашим активным целям в этом месяце.`,

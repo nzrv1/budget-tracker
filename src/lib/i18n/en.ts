@@ -103,6 +103,8 @@ const en = {
     spentLabel: 'Spent',
     safeToSpend: 'Safe to spend',
     setAside: 'Set aside',
+    openNotifications: 'Open notifications',
+    openSettings: 'Open settings',
     savingsGoalTitle: 'Monthly savings goal',
     savingsGoalProgress: (percent: number) =>
       `${percent}% of this month's savings goal — based on what your active Goals need this month to stay on track.`,

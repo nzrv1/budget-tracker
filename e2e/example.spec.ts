@@ -30,7 +30,7 @@ for (const tab of TABS) {
   const slug = tab.toLowerCase().replace(/\s+/g, '-')
   test(`${slug} tab screenshot`, async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: tab }).click()
+    await page.getByRole('button', { name: tab, exact: true }).click()
     await page.screenshot({ path: `e2e/screenshots/${slug}.png`, fullPage: true })
   })
 }

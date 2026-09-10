@@ -584,6 +584,7 @@ export default function App() {
               moveBudgetSurplusToImportantDate={moveBudgetSurplusToImportantDate}
               reduceBudgetLimitForOverspend={reduceBudgetLimitForOverspend}
               dismissBudgetPeriodReview={dismissBudgetPeriodReview}
+              notificationCount={unreadCount}
             />
           )}
           {view === 'transactions' && (

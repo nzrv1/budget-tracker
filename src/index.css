@@ -187,6 +187,21 @@ body {
   outline-offset: 2px;
 }
 
+/*
+  iOS Safari (and the Telegram in-app browser on iOS) zooms the whole page in when a focused
+  <input>/<select>/<textarea> has a font-size below 16px, and frequently doesn't zoom back out
+  afterwards. Force 16px on form controls at phone widths — Tailwind's `text-sm` on these
+  fields is what triggered it. `!important` because it has to beat the utility classes, and
+  this is a platform-bug workaround rather than a type-scale decision.
+*/
+@media (max-width: 1023px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

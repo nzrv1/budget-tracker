@@ -30,7 +30,7 @@ test.describe('375px — nothing scrolls sideways', () => {
 
   for (const tab of ['Dashboard', 'Transactions', 'Budgets', 'Goals', 'Calendar']) {
     test(tab, async ({ page }) => {
-      await page.getByRole('button', { name: tab }).click()
+      await page.getByRole('button', { name: tab, exact: true }).click()
       await expectNoHorizontalScroll(page, tab)
     })
   }
@@ -38,7 +38,7 @@ test.describe('375px — nothing scrolls sideways', () => {
   for (const item of ['Reports', 'Important Dates', 'Notifications', 'Settings']) {
     test(item, async ({ page }) => {
       await page.getByRole('button', { name: 'More' }).click()
-      await page.getByRole('button', { name: item }).click()
+      await page.getByRole('button', { name: item, exact: true }).click()
       await expectNoHorizontalScroll(page, item)
     })
   }

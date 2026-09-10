@@ -17,18 +17,18 @@ test.describe('phone width', () => {
   test('bottom tab bar shows the five primary sections', async ({ page }) => {
     await page.goto('/')
     for (const tab of ['Dashboard', 'Transactions', 'Budgets', 'Goals', 'Calendar']) {
-      await expect(page.getByRole('button', { name: tab })).toBeVisible()
+      await expect(page.getByRole('button', { name: tab, exact: true })).toBeVisible()
     }
     // The overflow sections are not in the bar.
     for (const hidden of ['Reports', 'Important Dates', 'Notifications', 'Settings']) {
-      await expect(page.getByRole('button', { name: hidden })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: hidden, exact: true })).toHaveCount(0)
     }
   })
 
   test('the "More" sheet reaches the remaining sections', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: 'More' }).click()
-    await page.getByRole('button', { name: 'Settings' }).click()
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   })
 
@@ -42,7 +42,7 @@ test.describe('phone width', () => {
     await page.goto('/')
     const screens = ['Dashboard', 'Transactions', 'Budgets', 'Goals', 'Calendar']
     for (const tab of screens) {
-      await page.getByRole('button', { name: tab }).click()
+      await page.getByRole('button', { name: tab, exact: true }).click()
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth
       )
@@ -65,7 +65,7 @@ test.describe('desktop width', () => {
       'Notifications',
       'Settings',
     ]) {
-      await expect(page.getByRole('button', { name: tab })).toBeVisible()
+      await expect(page.getByRole('button', { name: tab, exact: true })).toBeVisible()
     }
   })
 })
