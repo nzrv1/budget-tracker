@@ -59,7 +59,7 @@ export default function BudgetPeriodBanner({
   const iconToneClasses = isOverspent ? 'bg-clay-light text-clay-dark' : isSurplus ? 'bg-gold-light text-gold-dark' : 'bg-paper text-ink-softer'
 
   return (
-    <Card className={`p-5 mb-6 ${toneClasses}`}>
+    <Card className={`p-4 sm:p-5 mb-4 sm:mb-6 ${toneClasses}`}>
       <div className="flex items-start gap-3">
         <span className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${iconToneClasses}`}>
           <Icon size={17} strokeWidth={1.75} />
@@ -93,7 +93,7 @@ export default function BudgetPeriodBanner({
               <select
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                className="flex-1 px-3 py-2 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
+                className="flex-1 px-3 py-2 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none"
               >
                 <option value="">{t.budgetReview.choosePlaceholder}</option>
                 {goalOptions.length > 0 && (
@@ -148,7 +148,7 @@ export default function BudgetPeriodBanner({
         <button
           onClick={() => onDismiss(review)}
           aria-label={t.budgetReview.dismissAria}
-          className="text-ink-softer hover:text-ink shrink-0"
+          className="-m-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-ink shrink-0"
         >
           <X size={16} />
         </button>

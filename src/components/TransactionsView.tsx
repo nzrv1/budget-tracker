@@ -76,7 +76,7 @@ export default function TransactionsView({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as any)}
-            className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
+            className="px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none"
           >
             <option value="all">{t.transactions.allTypes}</option>
             <option value="income">{t.transactions.income}</option>
@@ -85,7 +85,7 @@ export default function TransactionsView({
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
+            className="px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none"
           >
             <option value="all">{t.transactions.allCategories}</option>
             {categoryNames.map((c) => (

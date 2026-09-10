@@ -8,9 +8,9 @@ interface Toast {
 }
 
 const TONE_STYLES: Record<Toast['tone'], { bg: string; border: string; icon: React.ElementType; iconColor: string }> = {
-  positive: { bg: 'bg-white', border: 'border-sage', icon: CheckCircle2, iconColor: 'text-sage-dark' },
-  warning: { bg: 'bg-white', border: 'border-clay', icon: AlertTriangle, iconColor: 'text-clay-dark' },
-  info: { bg: 'bg-white', border: 'border-ink-softer', icon: Info, iconColor: 'text-ink-softer' },
+  positive: { bg: 'bg-paper-card', border: 'border-sage', icon: CheckCircle2, iconColor: 'text-sage-dark' },
+  warning: { bg: 'bg-paper-card', border: 'border-clay', icon: AlertTriangle, iconColor: 'text-clay-dark' },
+  info: { bg: 'bg-paper-card', border: 'border-ink-softer', icon: Info, iconColor: 'text-ink-softer' },
 }
 
 export default function ToastStack({ toasts, dismiss }: { toasts: Toast[]; dismiss: (id: string) => void }) {

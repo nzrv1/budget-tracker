@@ -167,7 +167,7 @@ export default function SettingsView({
         <select
           value={state.settings.language || 'en'}
           onChange={(e) => updateSettings({ language: e.target.value as Language })}
-          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-1.5"
+          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none mb-1.5"
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
@@ -181,7 +181,7 @@ export default function SettingsView({
         <select
           value={state.settings.currency}
           onChange={(e) => updateSettings({ currency: e.target.value })}
-          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-4"
+          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none mb-4"
         >
           {CURRENCY_CODES.map((code) => (
             <option key={code} value={code}>
@@ -214,7 +214,7 @@ export default function SettingsView({
             delete handledPaydays.primary
             updateSettings({ salaryDay, handledPaydays })
           }}
-          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
+          className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none"
         >
           <option value="">{t.common.notSet}</option>
           {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
@@ -250,7 +250,7 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={() => deleteIncomeSource(s.id)}
-                  className="text-ink-softer hover:text-clay-dark shrink-0"
+                  className="-m-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-clay-dark shrink-0"
                   aria-label={t.settings.incomeSourceRemoveAria(s.name)}
                 >
                   <Trash2 size={14} />
@@ -281,7 +281,7 @@ export default function SettingsView({
             <select
               value={newIncomeDay}
               onChange={(e) => setNewIncomeDay(e.target.value)}
-              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white outline-none focus:border-sage"
+              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card outline-none focus:border-sage"
             >
               <option value="">{t.settings.incomePaydayPlaceholder}</option>
               {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
@@ -294,7 +294,7 @@ export default function SettingsView({
           <button
             type="button"
             onClick={handleAddIncomeSource}
-            className="inline-flex items-center gap-1.5 bg-ink text-paper px-3.5 py-2 rounded text-sm font-medium hover:bg-ink-light transition-colors"
+            className="inline-flex items-center gap-1.5 bg-ink text-paper px-4 min-h-[44px] rounded text-sm font-medium hover:bg-ink-light transition-colors"
           >
             <Plus size={14} />
             {t.settings.addIncomeSourceButton}
@@ -422,7 +422,7 @@ export default function SettingsView({
                           <button
                             type="button"
                             onClick={() => handleRemoveReminderRule('goal', rule.targetId)}
-                            className="text-ink-softer hover:text-clay-dark shrink-0"
+                            className="-m-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-clay-dark shrink-0"
                             aria-label={t.settings.removeReminderAria(goal.name)}
                           >
                             <X size={15} />
@@ -463,7 +463,7 @@ export default function SettingsView({
                         <button
                           type="button"
                           onClick={() => handleRemoveReminderRule('importantDate', rule.targetId)}
-                          className="text-ink-softer hover:text-clay-dark shrink-0"
+                          className="-m-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-clay-dark shrink-0"
                           aria-label={t.settings.removeReminderAria(date.name)}
                         >
                           <X size={15} />
@@ -524,7 +524,7 @@ export default function SettingsView({
                   <select
                     value={reminderTargetId}
                     onChange={(e) => loadTargetIntoForm('goal', e.target.value)}
-                    className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-3"
+                    className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none mb-3"
                   >
                     <option value="">{t.settings.chooseGoalOption}</option>
                     {state.goals.map((g) => (
@@ -540,7 +540,7 @@ export default function SettingsView({
                 <select
                   value={reminderTargetId}
                   onChange={(e) => loadTargetIntoForm('importantDate', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none mb-3"
+                  className="w-full px-3 py-2.5 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none mb-3"
                 >
                   <option value="">{t.settings.chooseDateOption}</option>
                   {state.importantDates.map((d) => (
@@ -560,7 +560,7 @@ export default function SettingsView({
                         key={n}
                         type="button"
                         onClick={() => setReminderCount(n)}
-                        className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium border transition-colors ${
+                        className={`h-11 min-w-[44px] px-1 rounded flex items-center justify-center text-sm font-medium border transition-colors ${
                           reminderOffsets.length === n
                             ? 'border-sage bg-sage-light text-sage-dark'
                             : 'border-paper-line text-ink-softer'
@@ -579,7 +579,7 @@ export default function SettingsView({
                           <select
                             value={offset}
                             onChange={(e) => updateReminderSlot(i, e.target.value as ReminderOffsetKey)}
-                            className="flex-1 px-2.5 py-2 border border-paper-line rounded text-sm bg-white focus:border-sage outline-none"
+                            className="flex-1 px-2.5 py-2 border border-paper-line rounded text-sm bg-paper-card focus:border-sage outline-none"
                           >
                             {offsetOptions(t).map((opt) => (
                               <option key={opt.key} value={opt.key}>

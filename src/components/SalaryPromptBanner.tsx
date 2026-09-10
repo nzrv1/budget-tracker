@@ -39,7 +39,7 @@ export default function SalaryPromptBanner({
   // nothing at all, so this doesn't look like the notification is broken.
   if (items.length === 0) {
     return (
-      <Card className="p-5 mb-6 border-gold/50 bg-gold-light/30">
+      <Card className="p-4 sm:p-5 mb-4 sm:mb-6 border-gold/50 bg-gold-light/30">
         <div className="flex items-start gap-3">
           <span className="shrink-0 w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center">
             <PiggyBank size={17} strokeWidth={1.75} />
@@ -54,7 +54,7 @@ export default function SalaryPromptBanner({
               {t.salaryPrompt.gotIt}
             </button>
           </div>
-          <button onClick={onDismiss} aria-label={t.salaryPrompt.dismissAria} className="text-ink-softer hover:text-ink shrink-0">
+          <button onClick={onDismiss} aria-label={t.salaryPrompt.dismissAria} className="-m-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-ink shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -80,7 +80,7 @@ export default function SalaryPromptBanner({
   const pct = salary > 0 ? (total / salary) * 100 : null
 
   return (
-    <Card className="p-5 mb-6 border-gold/50 bg-gold-light/30">
+    <Card className="p-4 sm:p-5 mb-4 sm:mb-6 border-gold/50 bg-gold-light/30">
       <div className="flex items-start gap-3">
         <span className="shrink-0 w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center">
           <PiggyBank size={17} strokeWidth={1.75} />
@@ -161,7 +161,7 @@ export default function SalaryPromptBanner({
             </button>
           </div>
         </div>
-        <button onClick={onDismiss} aria-label={t.salaryPrompt.dismissAria} className="text-ink-softer hover:text-ink shrink-0">
+        <button onClick={onDismiss} aria-label={t.salaryPrompt.dismissAria} className="-m-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-ink shrink-0">
           <X size={16} />
         </button>
       </div>

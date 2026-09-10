@@ -55,7 +55,7 @@ export default function AddTransactionModal({
           <h3 className="font-display font-semibold text-lg">
             {initial ? t.addTransactionModal.titleEdit : t.addTransactionModal.titleAdd}
           </h3>
-          <button onClick={onClose} className="text-ink-softer hover:text-ink">
+          <button onClick={onClose} aria-label={t.common.cancel} className="-mr-2 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-ink">
             <X size={18} />
           </button>
         </div>
@@ -67,11 +67,11 @@ export default function AddTransactionModal({
                 key={typ}
                 type="button"
                 onClick={() => setType(typ)}
-                className={`flex-1 py-2 rounded text-sm font-medium capitalize transition-colors ${
+                className={`flex-1 min-h-[40px] rounded text-sm font-medium transition-colors ${
                   type === typ ? (typ === 'income' ? 'bg-sage text-white' : 'bg-ink text-paper') : 'text-ink-softer'
                 }`}
               >
-                {typ === 'income' ? t.common.income : t.common.expense}
+                {typ === 'income' ? t.transactions.income : t.transactions.expense}
               </button>
             ))}
           </div>
@@ -86,7 +86,7 @@ export default function AddTransactionModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full px-3 py-2.5 border border-paper-line rounded font-tabular text-base focus:border-sage outline-none"
+              className="w-full px-3 min-h-[48px] border border-paper-line rounded font-tabular text-base focus:border-sage outline-none"
             />
           </div>
 
@@ -101,7 +101,7 @@ export default function AddTransactionModal({
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
+              className="w-full px-3 min-h-[44px] border border-paper-line rounded text-sm focus:border-sage outline-none"
             />
           </div>
 
@@ -112,7 +112,7 @@ export default function AddTransactionModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={t.addTransactionModal.notePlaceholder}
-              className="w-full px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
+              className="w-full px-3 min-h-[44px] border border-paper-line rounded text-sm focus:border-sage outline-none"
             />
           </div>
 
@@ -120,7 +120,7 @@ export default function AddTransactionModal({
 
           <button
             type="submit"
-            className="w-full py-3 bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
+            className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
           >
             {initial ? t.addTransactionModal.submitSaveChanges : t.addTransactionModal.submitAdd}
           </button>

@@ -14,7 +14,7 @@ import {
   ThemeKey,
 } from './types'
 import { loadState, saveState, uid, STORAGE_KEY, migrate, getLastLocalChangeAt } from './lib/storage'
-import { getStartParamIntent } from './lib/telegram'
+import { getStartParamIntent, isInsideTelegram } from './lib/telegram'
 import { emptyState } from './lib/mockData'
 import { todayLocalDateString } from './lib/utils'
 import { pullRemoteState, pushRemoteState } from './lib/sync'
@@ -25,6 +25,7 @@ import { BudgetPeriodReview, budgetKey } from './lib/budgetPeriods'
 import { createTranslator, DEFAULT_LANGUAGE, I18nProvider, localeForLanguage } from './lib/i18n'
 import Sidebar from './components/Sidebar'
 import BottomNav from './components/BottomNav'
+import AppSkeleton from './components/AppSkeleton'
 import Dashboard from './components/Dashboard'
 import TransactionsView from './components/TransactionsView'
 import ReportsView from './components/ReportsView'
@@ -110,9 +111,17 @@ export default function App() {
   // the same policy the cross-tab sync above already uses between two tabs. initialSyncDone gates
   // the debounced push effect below so it can't race ahead of this decision and blindly overwrite
   // a newer remote copy before we've even compared timestamps.
+  // Inside Telegram, the cloud pull below can replace the whole state ~1s after launch; showing
+  // the (stale) local data and then having it jump is jarring for a money app. Hold the first
+  // paint behind a skeleton until that "who's newer" decision resolves. Outside Telegram
+  // pullRemoteState() resolves immediately with nothing, so this starts true and never blocks.
+  const [syncResolved, setSyncResolved] = useState(() => !isInsideTelegram())
+
   const initialSyncDone = useRef(false)
   useEffect(() => {
     let cancelled = false
+    // Safety net: never keep the skeleton up more than ~2.5s even if the network hangs.
+    const skeletonTimeout = setTimeout(() => setSyncResolved(true), 2500)
     pullRemoteState().then((remote) => {
       if (cancelled) return
       const localChangedAt = getLastLocalChangeAt()
@@ -129,9 +138,11 @@ export default function App() {
         setState((prev) => (prev.settings.language === lang ? prev : { ...prev, settings: { ...prev.settings, language: lang } }))
       }
       initialSyncDone.current = true
+      setSyncResolved(true)
     })
     return () => {
       cancelled = true
+      clearTimeout(skeletonTimeout)
     }
     // Deliberately run once on mount — this is a one-time "who's newer" decision at launch, not a
     // reaction to every subsequent state change (the debounced effect below handles those).
@@ -157,17 +168,26 @@ export default function App() {
   const t = useMemo(() => createTranslator(language), [language])
   const locale = useMemo(() => localeForLanguage(language), [language])
 
-  // First-run setup wizard visibility. Opens automatically when the app is empty and the wizard
-  // hasn't been dismissed yet (storage.ts backfills `onboardingDone` to true for anyone who
-  // already has data, so returning users never see this); Settings can reopen it on demand.
-  const [showWizard, setShowWizard] = useState(() => {
+  // First-run setup wizard. Auto-opens once when the app is genuinely empty and the wizard
+  // hasn't been done (storage.ts backfills `onboardingDone` to true for anyone with data, so
+  // returning users never see it) — but only after the cloud pull has settled, so a Telegram
+  // user whose data lives in the cloud isn't shown the wizard over an app that's about to fill
+  // in. `openedRef` latches the auto-open so the wizard doesn't close on itself the moment it
+  // creates its first record; `setWizardOpen(true)` is also the Settings "run again" hook.
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const openedRef = useRef(false)
+  useEffect(() => {
+    if (openedRef.current || !syncResolved || state.settings.onboardingDone) return
     const empty =
       state.transactions.length === 0 &&
       state.budgets.length === 0 &&
       state.goals.length === 0 &&
       state.importantDates.length === 0
-    return empty && !state.settings.onboardingDone
-  })
+    if (empty) {
+      openedRef.current = true
+      setWizardOpen(true)
+    }
+  }, [syncResolved, state])
 
   const insights = useMemo(() => generateInsights(state, t, locale), [state, t, locale])
   const reminders = useMemo(() => generateReminders(state, t), [state, t])
@@ -467,11 +487,21 @@ export default function App() {
     window.location.reload()
   }
 
+  // Hold the first paint in Telegram until the cloud pull has decided whose copy wins (see
+  // syncResolved) — a skeleton instead of local data that jumps a second later.
+  if (!syncResolved) {
+    return (
+      <I18nProvider lang={language}>
+        <AppSkeleton />
+      </I18nProvider>
+    )
+  }
+
   // The first-run setup wizard takes over the whole screen — shown automatically the first time
   // someone opens an empty app (see storage.ts: onboardingDone), and on demand from Settings →
   // "Run the setup wizard again". It only ever adds records (through the same handlers the
   // normal forms use), so opening it over existing data is safe.
-  if (showWizard) {
+  if (wizardOpen) {
     return (
       <I18nProvider lang={language}>
         <OnboardingWizard
@@ -483,7 +513,7 @@ export default function App() {
           addGoal={addGoal}
           onComplete={() => {
             updateSettings({ onboardingDone: true })
-            setShowWizard(false)
+            setWizardOpen(false)
           }}
         />
       </I18nProvider>
@@ -564,7 +594,7 @@ export default function App() {
               state={state}
               updateSettings={updateSettings}
               resetData={resetData}
-              restartOnboarding={() => setShowWizard(true)}
+              restartOnboarding={() => setWizardOpen(true)}
               setTheme={setTheme}
               addCategory={addCategory}
               setReminderRule={setReminderRule}

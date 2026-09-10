@@ -215,7 +215,7 @@ export default function OnboardingWizard({
 
       {toast && (
         <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-40">
-          <div className="bg-white border-l-4 border-sage rounded shadow-lg shadow-ink/5 px-4 py-3 flex items-center gap-2.5 animate-[slideIn_0.2s_ease-out]">
+          <div className="bg-paper-card border-l-4 border-sage rounded shadow-lg shadow-ink/5 px-4 py-3 flex items-center gap-2.5 animate-[slideIn_0.2s_ease-out]">
             <CheckCircle2 size={17} className="text-sage-dark shrink-0" strokeWidth={1.75} />
             <p className="text-sm font-medium text-ink">{toast}</p>
           </div>

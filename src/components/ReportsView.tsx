@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+
+/** Chart ink taken from the live theme tokens rather than hardcoded hex, so axes and gridlines
+ *  stay visible on the dark / cyber / red themes (they were fixed light-theme greys). Read on
+ *  render — Reports re-renders when the theme changes. */
+function themeColor(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim()
+  return v ? `rgb(${v})` : fallback
+}
 import { AppState } from '../types'
 import { formatMoney, periodRange, filterByRange, groupByCategory, totals, colorForCategory, settingsIncomeForPeriod } from '../lib/utils'
 import { Card, SectionHeading } from './shared'
@@ -77,7 +86,7 @@ export default function ReportsView({ state }: { state: AppState }) {
             key={p}
             onClick={() => setPeriod(p)}
             className={`px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-colors ${
-              period === p ? 'bg-ink text-paper' : 'bg-white border border-paper-line text-ink-softer hover:text-ink'
+              period === p ? 'bg-ink text-paper' : 'bg-paper-card border border-paper-line text-ink-softer hover:text-ink'
             }`}
           >
             {PERIOD_LABEL[p]}
@@ -106,31 +115,33 @@ export default function ReportsView({ state }: { state: AppState }) {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5 mb-6">
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <h3 className="font-display font-semibold text-base mb-4">{t.reports.spendingByCategory}</h3>
           {categoryData.length === 0 ? (
             <EmptyState text={t.reports.noExpensesThisPeriod} />
           ) : (
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width="55%" height={200}>
-                <PieChart>
-                  <Pie data={categoryData} dataKey="value" nameKey="category" innerRadius={50} outerRadius={80} paddingAngle={2}>
-                    {categoryData.map((entry) => (
-                      <Cell key={entry.category} fill={colorForCategory(entry.category)} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => formatMoney(v, state.settings.currency)} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex-1 flex flex-col gap-2 text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="w-full sm:w-1/2 shrink-0">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={categoryData} dataKey="value" nameKey="category" innerRadius={45} outerRadius={72} paddingAngle={2}>
+                      {categoryData.map((entry) => (
+                        <Cell key={entry.category} fill={colorForCategory(entry.category)} stroke="none" />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => formatMoney(v, state.settings.currency)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 flex flex-col gap-2 text-sm min-w-0">
                 {/* No slice(0, 6) here anymore — categoryData is already capped at 6 named
                     categories plus one "Other categories" bucket, so every pie slice has a
                     matching legend row. */}
                 {categoryData.map((entry) => (
                   <div key={entry.category} className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: colorForCategory(entry.category) }} />
-                    <span className="text-ink-softer truncate flex-1">{translateCategoryName(t, entry.category)}</span>
-                    <span className="font-tabular text-ink">{formatMoney(entry.value, state.settings.currency)}</span>
+                    <span className="text-ink-softer truncate flex-1 min-w-0">{translateCategoryName(t, entry.category)}</span>
+                    <span className="font-tabular text-ink shrink-0">{formatMoney(entry.value, state.settings.currency)}</span>
                   </div>
                 ))}
               </div>
@@ -138,18 +149,18 @@ export default function ReportsView({ state }: { state: AppState }) {
           )}
         </Card>
 
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <h3 className="font-display font-semibold text-base mb-4">{t.reports.trendOverTime}</h3>
           {trendData.every((d) => d.value === 0) ? (
             <EmptyState text={t.reports.notEnoughTrendData} />
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E7E3" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#3C5158' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#3C5158' }} axisLine={false} tickLine={false} width={40} />
+                <CartesianGrid strokeDasharray="3 3" stroke={themeColor('paper-line', '#E2E7E3')} vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: themeColor('ink-softer', '#3C5158') }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: themeColor('ink-softer', '#3C5158') }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip formatter={(v: number) => formatMoney(v, state.settings.currency)} />
-                <Bar dataKey="value" fill="#7C9885" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="value" fill={themeColor('sage', '#7C9885')} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -166,11 +177,11 @@ export default function ReportsView({ state }: { state: AppState }) {
               const ratio = b.limit > 0 ? b.spent / b.limit : 0
               return (
                 <div key={`${b.category}-${b.period}`}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-ink">
+                  <div className="flex items-baseline justify-between gap-2 text-sm mb-1">
+                    <span className="text-ink truncate min-w-0">
                       {translateCategoryName(t, b.category)} <span className="text-ink-softer text-xs">· {PERIOD_LABEL[b.period]}</span>
                     </span>
-                    <span className="font-tabular text-ink-softer">
+                    <span className="font-tabular text-ink-softer text-xs shrink-0">
                       {formatMoney(b.spent, state.settings.currency)} / {formatMoney(b.limit, state.settings.currency)}
                     </span>
                   </div>
