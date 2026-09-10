@@ -169,7 +169,7 @@ function GoalCard({
   }
 
   return (
-    <Card id={`goal-card-${goal.id}`} className="p-4 sm:p-5 flex flex-col">
+    <Card id={`goal-card-${goal.id}`} className="p-4 sm:p-5 flex flex-col min-w-0">
       <div className="flex items-start gap-2.5 mb-3">
         <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">
           <GoalIconGlyph icon={goal.icon} size={16} />

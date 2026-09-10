@@ -556,9 +556,10 @@ export default function App() {
 
   return (
     <I18nProvider lang={language}>
-    {/* overflow-x: clip — a hard stop so no single wide element can ever scroll the whole page
-        sideways again (the classic mobile bug). Real width fixes land per-screen in later stages. */}
-    <div className="min-h-screen bg-paper flex text-ink font-body overflow-x-clip">
+    {/* overflow-x: hidden — a hard stop so no single wide element can scroll the whole page
+        sideways (the classic mobile bug). `hidden` not `clip`: `clip` needs iOS Safari 16+ and
+        silently no-ops in older Telegram webviews. Body also gets it in index.css. */}
+    <div className="min-h-screen bg-paper flex text-ink font-body overflow-x-hidden">
       <Sidebar
         view={view}
         setView={setView}

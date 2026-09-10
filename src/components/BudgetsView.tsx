@@ -149,8 +149,13 @@ export default function BudgetsView({
                 className="w-full pl-9 pr-3 min-h-[44px] border border-paper-line rounded text-sm focus:border-sage outline-none"
               />
             </div>
-            <div className="flex gap-2">
-              <select value={periodFilter} onChange={(e) => setPeriodFilter(e.target.value as 'all' | BudgetPeriod)} className={`${SELECT_CLASS} flex-1 sm:flex-none`}>
+            <div className="flex gap-2 min-w-0">
+              <select
+                value={periodFilter}
+                onChange={(e) => setPeriodFilter(e.target.value as 'all' | BudgetPeriod)}
+                aria-label={t.budgets.allPeriods}
+                className={`${SELECT_CLASS} flex-1 min-w-0 sm:flex-none`}
+              >
                 <option value="all">{t.budgets.allPeriods}</option>
                 {PERIODS.map((p) => (
                   <option key={p} value={p}>
@@ -158,7 +163,12 @@ export default function BudgetsView({
                   </option>
                 ))}
               </select>
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className={`${SELECT_CLASS} flex-1 sm:flex-none`}>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                aria-label={t.budgets.sortAria}
+                className={`${SELECT_CLASS} flex-1 min-w-0 sm:flex-none`}
+              >
                 <option value="name">{t.budgets.sortNameLabel}</option>
                 <option value="usage">{t.budgets.sortUsageLabel}</option>
                 <option value="limit">{t.budgets.sortLimitLabel}</option>

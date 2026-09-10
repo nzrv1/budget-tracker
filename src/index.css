@@ -162,9 +162,36 @@ html, body {
   color: rgb(var(--color-ink));
 }
 
+html,
+body {
+  /* Nothing may scroll the page sideways — a runaway wide element is clipped, not scrolled.
+     Belt-and-suspenders with the app root's own overflow-x-hidden. */
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Long unbroken strings (a pasted URL in a note, a huge number) wrap instead of pushing a
+   container wider than the screen. */
+p,
+h1,
+h2,
+h3,
+h4,
+span,
+div {
+  overflow-wrap: break-word;
+}
+
+/* A grid item defaults to min-width:auto, so a card with any wide/unbreakable content refuses
+   to shrink and pokes past the screen edge. Every card grid in this app wants the items to
+   track the column instead. */
+.grid > * {
+  min-width: 0;
 }
 
 .font-tabular {
