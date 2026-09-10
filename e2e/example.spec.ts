@@ -1,4 +1,14 @@
 import { test, expect } from '@playwright/test'
+import { mockState } from '../src/lib/mockData'
+
+// A brand-new visitor now lands on the onboarding wizard (empty AppState), which has none of
+// the sidebar tab buttons the screenshot tests below click. Seed the demo dataset first so
+// these keep exercising the real screens — mockState() is kept around precisely as this fixture.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((state) => {
+    localStorage.setItem('ledger_app_state_v1', JSON.stringify(state))
+  }, mockState())
+})
 
 // Basic smoke test: the app loads and renders something.
 // Use this as a template for UI-change checks as you develop —

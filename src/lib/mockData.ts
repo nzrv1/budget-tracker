@@ -23,6 +23,12 @@ function tx(
   return { id, date: isoDaysAgo(daysAgo), amount, type, category, note }
 }
 
+/**
+ * A realistic demo dataset. No longer the first-run default — a brand-new visitor now gets
+ * emptyState() and the onboarding wizard (see storage.ts#loadState and OnboardingWizard.tsx).
+ * Kept as a fixture for the screenshot E2E tests (e2e/example.spec.ts), and available to wire
+ * up a "load sample data" action later.
+ */
 export function mockState(): AppState {
   const transactions: Transaction[] = [
     tx('t1', 27, 3200, 'income', 'Salary', 'Monthly salary'),
@@ -135,14 +141,9 @@ export function mockState(): AppState {
 }
 
 /**
- * A genuinely blank slate — used when the person explicitly resets their data (Settings →
- * Reset data), as opposed to mockState() above, which seeds realistic demo transactions/goals
- * for a brand new visitor who hasn't set anything up yet. Those are two different intents that
- * used to share one code path: resetData() cleared localStorage and reloaded, and loadState()
- * can't tell "first-ever visit" apart from "just wiped" — both see no saved state and fell back
- * to mockState(), so "reset" silently restored the demo dataset instead of actually emptying
- * anything. This is saved explicitly by resetData() (see App.tsx) so the reload finds real,
- * empty state instead of falling through to the mock-data branch in loadState().
+ * A genuinely blank slate — both the first-run default (a new visitor lands here and the
+ * onboarding wizard opens over it, see storage.ts#loadState) and what resetData() writes when
+ * the person explicitly wipes their data (Settings → Reset data).
  *
  * Categories are the one exception kept non-empty: they're the app's built-in taxonomy (names/
  * icons for the category picker), not user data — an empty categories list would leave nowhere

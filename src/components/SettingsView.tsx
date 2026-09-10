@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, Check, Plus, X, Bell, Target, CalendarDays, Briefcase } from 'lucide-react'
+import { Trash2, Check, Plus, X, Bell, Target, CalendarDays, Briefcase, Wand2 } from 'lucide-react'
 import {
   AppState,
   CategoryDef,
@@ -25,6 +25,7 @@ export default function SettingsView({
   state,
   updateSettings,
   resetData,
+  restartOnboarding,
   setTheme,
   addCategory,
   setReminderRule,
@@ -35,6 +36,7 @@ export default function SettingsView({
   state: AppState
   updateSettings: (patch: Partial<AppState['settings']>) => void
   resetData: () => void
+  restartOnboarding: () => void
   setTheme: (t: ThemeKey) => void
   addCategory: (def: CategoryDef) => void
   setReminderRule: (targetKind: ReminderTargetKind, targetId: string, offsets: ReminderOffsetKey[]) => void
@@ -603,6 +605,16 @@ export default function SettingsView({
             </div>
           </>
         )}
+      </CollapsibleCard>
+
+      <CollapsibleCard title={t.settings.setupWizardTitle} subtitle={t.settings.setupWizardSubtitle} className="mb-5">
+        <button
+          onClick={restartOnboarding}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded text-sm font-medium border border-paper-line text-ink hover:border-ink-softer/40 transition-colors"
+        >
+          <Wand2 size={15} />
+          {t.settings.setupWizardButton}
+        </button>
       </CollapsibleCard>
 
       <CollapsibleCard

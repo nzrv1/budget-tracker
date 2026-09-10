@@ -156,11 +156,17 @@ export default function App() {
   const t = useMemo(() => createTranslator(language), [language])
   const locale = useMemo(() => localeForLanguage(language), [language])
 
-  // TEMP (stage 16.1): manual `?onboarding=1` gate so the wizard skeleton can be viewed in the
-  // browser. Stage 16.3 replaces this with real first-run detection (empty AppState) plus a
-  // "run the wizard again" entry point in Settings.
-  const showOnboardingSkeleton =
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('onboarding')
+  // First-run setup wizard visibility. Opens automatically when the app is empty and the wizard
+  // hasn't been dismissed yet (storage.ts backfills `onboardingDone` to true for anyone who
+  // already has data, so returning users never see this); Settings can reopen it on demand.
+  const [showWizard, setShowWizard] = useState(() => {
+    const empty =
+      state.transactions.length === 0 &&
+      state.budgets.length === 0 &&
+      state.goals.length === 0 &&
+      state.importantDates.length === 0
+    return empty && !state.settings.onboardingDone
+  })
 
   const insights = useMemo(() => generateInsights(state, t, locale), [state, t, locale])
   const reminders = useMemo(() => generateReminders(state, t), [state, t])
@@ -451,26 +457,33 @@ export default function App() {
   }
 
   function resetData() {
-    // Explicitly save a genuinely empty AppState rather than clearState()+reload — clearing
-    // localStorage and reloading used to fall into loadState()'s "no saved state" branch, which
-    // is also what a brand-new visitor hits, so it silently restored the demo dataset
-    // (mockState()) instead of actually resetting anything. saveState() also stamps a fresh
-    // last-changed timestamp, so if this happens inside Telegram the empty state correctly wins
-    // the next sync instead of the old cloud copy overwriting it back in.
+    // Explicitly save a genuinely empty AppState rather than clearState()+reload — saveState()
+    // also stamps a fresh last-changed timestamp, so if this happens inside Telegram the empty
+    // state correctly wins the next sync instead of the old cloud copy overwriting it back in.
+    // The empty state carries no `onboardingDone`, so the reload lands back on the wizard — a
+    // wipe is a fresh start, same as a first visit.
     saveState(emptyState())
     window.location.reload()
   }
 
-  if (showOnboardingSkeleton) {
+  // The first-run setup wizard takes over the whole screen — shown automatically the first time
+  // someone opens an empty app (see storage.ts: onboardingDone), and on demand from Settings →
+  // "Run the setup wizard again". It only ever adds records (through the same handlers the
+  // normal forms use), so opening it over existing data is safe.
+  if (showWizard) {
     return (
       <I18nProvider lang={language}>
         <OnboardingWizard
           categories={state.categories}
+          budgets={state.budgets}
           addBudget={addBudget}
           addCategory={addCategory}
           addImportantDate={addImportantDate}
           addGoal={addGoal}
-          onComplete={() => { window.location.href = window.location.pathname }}
+          onComplete={() => {
+            updateSettings({ onboardingDone: true })
+            setShowWizard(false)
+          }}
         />
       </I18nProvider>
     )
@@ -548,6 +561,7 @@ export default function App() {
               state={state}
               updateSettings={updateSettings}
               resetData={resetData}
+              restartOnboarding={() => setShowWizard(true)}
               setTheme={setTheme}
               addCategory={addCategory}
               setReminderRule={setReminderRule}

@@ -10,11 +10,13 @@ import { useT } from '../lib/i18n'
  * short blocks of questions and creates their budgets / important dates / goals from the
  * answers.
  *
- * STAGE 16.2: the mock create helpers are replaced with the real App.tsx handlers
- * (addBudget / addCategory / addImportantDate / addGoal — the same ones the normal forms use;
- * never a mutation path of its own). The local `created` state is kept only to drive the
- * running lists and the closing summary. First-run detection + the "run again" entry point in
- * Settings is stage 16.3; App.tsx still renders this behind a temporary `?onboarding=1` gate.
+ * It creates real records through the App.tsx handlers (addBudget / addCategory /
+ * addImportantDate / addGoal — the same ones the normal forms use; never a mutation path of
+ * its own). The local `created` state is kept only to drive the running lists and the closing
+ * summary. App.tsx shows it automatically on an empty first run and on demand from Settings →
+ * "Run the setup wizard again" (see the `showWizard` / `onboardingDone` handling there); since
+ * it only ever adds records, re-running it over a set-up app is safe — a preset whose budget
+ * already exists shows as already-picked and does nothing.
  */
 
 type StepId = 'monthly' | 'rare' | 'birthdays' | 'goals' | 'done'
@@ -25,13 +27,14 @@ const STEP_ORDER: StepId[] = ['monthly', 'rare', 'birthdays', 'goals', 'done']
 const DEFAULT_GOAL_ICON: Goal['icon'] = 'other'
 
 interface Created {
-  budgets: { category: string }[]
+  budgets: { category: string; period: 'month' | 'year' }[]
   dates: { name: string }[]
   goals: { name: string }[]
 }
 
 export default function OnboardingWizard({
   categories,
+  budgets,
   addBudget,
   addCategory,
   addImportantDate,
@@ -39,6 +42,7 @@ export default function OnboardingWizard({
   onComplete,
 }: {
   categories: CategoryDef[]
+  budgets: CategoryBudget[]
   addBudget: (b: Omit<CategoryBudget, 'createdAt'>) => void
   addCategory: (def: CategoryDef) => void
   addImportantDate: (d: Omit<ImportantDate, 'id' | 'createdAt'>) => void
@@ -64,14 +68,26 @@ export default function OnboardingWizard({
     setStepIndex((i) => Math.max(i - 1, 0))
   }
 
+  /** Whether a budget for this category+period already exists (either created just now in this
+   *  session, or from before — the wizard can be re-run over a set-up app from Settings). */
+  function budgetExists(category: string, period: 'month' | 'year') {
+    const lc = category.toLowerCase()
+    return (
+      budgets.some((b) => b.category.toLowerCase() === lc && b.period === period) ||
+      created.budgets.some((b) => b.category.toLowerCase() === lc && b.period === period)
+    )
+  }
+
   /** Create a budget for a category, making sure the category itself exists first (same
-   *  order the normal "add budget" form follows: pick/create category, then the budget). */
+   *  order the normal "add budget" form follows: pick/create category, then the budget).
+   *  A no-op — with no misleading toast — if that budget is already there. */
   function createBudget(category: string, icon: CategoryDef['icon'], limit: number, period: 'month' | 'year') {
-    const existing = categories.find((c) => c.name.toLowerCase() === category.toLowerCase())
-    const name = existing ? existing.name : category
-    if (!existing) addCategory({ name, icon })
+    const existingCat = categories.find((c) => c.name.toLowerCase() === category.toLowerCase())
+    const name = existingCat ? existingCat.name : category
+    if (budgetExists(name, period)) return
+    if (!existingCat) addCategory({ name, icon })
     addBudget({ category: name, limit, period })
-    setCreated((c) => ({ ...c, budgets: [...c.budgets, { category: name }] }))
+    setCreated((c) => ({ ...c, budgets: [...c.budgets, { category: name, period }] }))
     setToast(t.onboarding.budgetAdded(translateCategoryName(t, name)))
   }
 
@@ -131,7 +147,7 @@ export default function OnboardingWizard({
             bubble={t.onboarding.monthlyBubble}
             hint={t.onboarding.monthlyHint}
             presets={MONTHLY_PRESETS}
-            addedCategories={created.budgets.map((b) => b.category)}
+            isAdded={(p) => budgetExists(p.category, p.period)}
             onPick={pickPreset}
             onCustom={(name) => addCustomBudget(name, 'month')}
             onNext={goNext}
@@ -143,7 +159,7 @@ export default function OnboardingWizard({
             bubble={t.onboarding.rareBubble}
             hint={t.onboarding.rareHint}
             presets={RARE_PRESETS}
-            addedCategories={created.budgets.map((b) => b.category)}
+            isAdded={(p) => budgetExists(p.category, p.period)}
             onPick={pickPreset}
             onCustom={(name) => addCustomBudget(name, 'year')}
             onNext={goNext}
@@ -242,7 +258,7 @@ function PresetStep({
   bubble,
   hint,
   presets,
-  addedCategories,
+  isAdded,
   onPick,
   onCustom,
   onNext,
@@ -250,7 +266,7 @@ function PresetStep({
   bubble: string
   hint: string
   presets: OnboardingPreset[]
-  addedCategories: string[]
+  isAdded: (p: OnboardingPreset) => boolean
   onPick: (p: OnboardingPreset) => void
   onCustom: (name: string) => void
   onNext: () => void
@@ -268,15 +284,13 @@ function PresetStep({
     setCustomOpen(false)
   }
 
-  const isAdded = (category: string) => addedCategories.some((c) => c.toLowerCase() === category.toLowerCase())
-
   return (
     <>
       <Bubble text={bubble} hint={hint} />
 
       <div className="grid grid-cols-2 gap-2.5">
         {presets.map((p) => {
-          const added = isAdded(p.category)
+          const added = isAdded(p)
           return (
             <button
               key={p.category}

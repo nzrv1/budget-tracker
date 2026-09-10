@@ -1,5 +1,5 @@
 import { AppState, DEFAULT_CATEGORY_DEFS, Language, NotificationLevel, SAVINGS_CATEGORY, ThemeKey } from '../types'
-import { mockState } from './mockData'
+import { emptyState } from './mockData'
 import { telegramColorScheme } from './telegram'
 import { DEFAULT_LANGUAGE } from './i18n'
 
@@ -44,6 +44,15 @@ export function migrate(state: AppState): AppState {
   const notificationLevel = VALID_NOTIFICATION_LEVELS.includes(state.settings?.notificationLevel as NotificationLevel)
     ? (state.settings.notificationLevel as NotificationLevel)
     : 'all'
+  // The first-run wizard only auto-opens on a genuinely empty app. Anyone who already has any
+  // records pre-dates the wizard (or has finished it) — mark them done so it never interrupts
+  // them; a fresh/empty state stays "not done" so the wizard can greet a new person.
+  const hasAnyData =
+    (state.transactions?.length ?? 0) > 0 ||
+    (state.budgets?.length ?? 0) > 0 ||
+    (state.goals?.length ?? 0) > 0 ||
+    (state.importantDates?.length ?? 0) > 0
+  const onboardingDone = state.settings?.onboardingDone ?? hasAnyData
   const importantDates = state.importantDates || []
   const incomeSources = state.incomeSources || []
   const readNotificationIds = state.readNotificationIds || []
@@ -64,7 +73,7 @@ export function migrate(state: AppState): AppState {
     reminderRules,
     incomeSources,
     readNotificationIds,
-    settings: { ...state.settings, theme, language, notificationLevel, handledPaydays, handledBudgetPeriods },
+    settings: { ...state.settings, theme, language, notificationLevel, onboardingDone, handledPaydays, handledBudgetPeriods },
   }
 }
 
@@ -82,13 +91,13 @@ function withTelegramDefaultTheme(state: AppState): AppState {
 export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return withTelegramDefaultTheme(mockState())
+    if (!raw) return withTelegramDefaultTheme(emptyState())
     const parsed = JSON.parse(raw) as AppState
     // basic shape guard
-    if (!parsed.transactions || !parsed.settings) return withTelegramDefaultTheme(mockState())
+    if (!parsed.transactions || !parsed.settings) return withTelegramDefaultTheme(emptyState())
     return migrate(parsed)
   } catch {
-    return withTelegramDefaultTheme(mockState())
+    return withTelegramDefaultTheme(emptyState())
   }
 }
 

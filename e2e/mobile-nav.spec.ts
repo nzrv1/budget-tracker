@@ -1,4 +1,13 @@
 import { test, expect } from '@playwright/test'
+import { mockState } from '../src/lib/mockData'
+
+// A new visitor now lands on the onboarding wizard (empty AppState) — seed the demo dataset so
+// this test sees the normal app shell with its sidebar rail.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript((state) => {
+    localStorage.setItem('ledger_app_state_v1', JSON.stringify(state))
+  }, mockState())
+})
 
 // Sidebar.tsx replaced the old 4-tabs-plus-"More"-sheet mobile pattern with a single slim
 // icon-only rail used at every screen size (a vertical rail scales with height, not width, so

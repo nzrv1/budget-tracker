@@ -151,6 +151,12 @@ export interface Settings {
   // straight out of the synced state). Optional on the type for the same back-compat reason as
   // `language` — migrate() backfills 'all'. See supabase/functions/_shared/notification-templates.ts.
   notificationLevel?: NotificationLevel
+  // Whether the first-run setup wizard (src/components/OnboardingWizard.tsx) has been seen —
+  // set once the person finishes or skips it, so an empty app doesn't reopen it on every
+  // reload. migrate() backfills `true` for anyone who already has data (they pre-date the
+  // wizard and must never be interrupted by it). "Run the wizard again" in Settings opens it
+  // without clearing this flag.
+  onboardingDone?: boolean
 }
 
 /**
