@@ -136,6 +136,9 @@ const ru: Dictionary = {
     notEnoughTrendData: 'Пока недостаточно данных, чтобы показать динамику.',
     budgetVsActual: 'Бюджет и факт',
     setBudgetsToCompare: 'Задайте бюджеты по категориям, чтобы увидеть сравнение.',
+    budgetVsActualHint: 'Каждый лимит пересчитан под выбранный выше период.',
+    budgetLeft: (amount) => `осталось ${amount}`,
+    budgetOver: (amount) => `перерасход ${amount}`,
   },
 
   budgets: {

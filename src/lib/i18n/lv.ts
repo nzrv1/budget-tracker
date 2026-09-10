@@ -135,6 +135,9 @@ const lv: Dictionary = {
     notEnoughTrendData: 'Pagaidām nav pietiekami daudz datu, lai parādītu tendenci.',
     budgetVsActual: 'Budžets pret faktiskajiem izdevumiem',
     setBudgetsToCompare: 'Iestatiet kategoriju budžetus, lai redzētu šo salīdzinājumu.',
+    budgetVsActualHint: 'Katrs limits pārrēķināts izvēlētajam periodam augšā.',
+    budgetLeft: (amount) => `atlicis ${amount}`,
+    budgetOver: (amount) => `pārtērēts ${amount}`,
   },
 
   budgets: {

@@ -14,6 +14,7 @@ import { formatMoney, periodRange, filterByRange, groupByCategory, totals, color
 import { Card, SectionHeading } from './shared'
 import { EmptyState } from './Dashboard'
 import { translateCategoryName } from '../lib/categoryIcons'
+import { budgetDailyRate } from '../lib/planning'
 import { Dictionary, useT } from '../lib/i18n'
 
 type Period = 'day' | 'week' | 'month' | 'year'
@@ -68,12 +69,18 @@ export default function ReportsView({ state }: { state: AppState }) {
 
   const expenseChange = prevTotals.expense > 0 ? ((currentTotals.expense - prevTotals.expense) / prevTotals.expense) * 100 : null
 
+  // Every budget is viewed through the period picker above. A €400/month budget reads as
+  // ~€92 under "week", ~€4,800 under "year", ~€13 under "day" — the budget's own daily rate
+  // times the length of the period you're looking at. When the viewing period matches the
+  // budget's native period we show its exact limit (no 30.44/365.25 rounding drift). Spending
+  // is the category's expenses in the current period-to-date range (`current`).
+  const PERIOD_DAYS: Record<Period, number> = { day: 1, week: 7, month: 30.44, year: 365.25 }
   const budgetComparison = state.budgets.map((b) => {
-    const { from: bFrom, to: bTo } = periodRange(b.period)
-    const spent = filterByRange(state.transactions, bFrom, bTo)
-      .filter((t) => t.type === 'expense' && t.category === b.category)
-      .reduce((s, t) => s + t.amount, 0)
-    return { category: b.category, spent, limit: b.limit, period: b.period }
+    const spent = current
+      .filter((tx) => tx.type === 'expense' && tx.category === b.category)
+      .reduce((s, tx) => s + tx.amount, 0)
+    const limit = b.period === period ? b.limit : budgetDailyRate(b) * PERIOD_DAYS[period]
+    return { category: b.category, spent, limit, nativePeriod: b.period }
   })
 
   return (
@@ -168,33 +175,43 @@ export default function ReportsView({ state }: { state: AppState }) {
       </div>
 
       <Card className="p-5">
-        <h3 className="font-display font-semibold text-base mb-4">{t.reports.budgetVsActual}</h3>
+        <h3 className="font-display font-semibold text-base mb-1">{t.reports.budgetVsActual}</h3>
         {budgetComparison.length === 0 ? (
           <EmptyState text={t.reports.setBudgetsToCompare} />
         ) : (
-          <div className="flex flex-col gap-3">
-            {budgetComparison.map((b) => {
-              const ratio = b.limit > 0 ? b.spent / b.limit : 0
-              return (
-                <div key={`${b.category}-${b.period}`}>
-                  <div className="flex items-baseline justify-between gap-2 text-sm mb-1">
-                    <span className="text-ink truncate min-w-0">
-                      {translateCategoryName(t, b.category)} <span className="text-ink-softer text-xs">· {PERIOD_LABEL[b.period]}</span>
-                    </span>
-                    <span className="font-tabular text-ink-softer text-xs shrink-0">
-                      {formatMoney(b.spent, state.settings.currency)} / {formatMoney(b.limit, state.settings.currency)}
-                    </span>
+          <>
+            <p className="text-xs text-ink-softer mb-4">{t.reports.budgetVsActualHint}</p>
+            <div className="flex flex-col gap-3">
+              {budgetComparison.map((b) => {
+                const ratio = b.limit > 0 ? b.spent / b.limit : 0
+                const delta = b.limit - b.spent
+                return (
+                  <div key={`${b.category}-${b.nativePeriod}`}>
+                    <div className="flex items-baseline justify-between gap-2 text-sm mb-1">
+                      <span className="text-ink truncate min-w-0">
+                        {translateCategoryName(t, b.category)}{' '}
+                        <span className="text-ink-softer text-xs">· {PERIOD_LABEL[b.nativePeriod]}</span>
+                      </span>
+                      <span className="font-tabular text-ink-softer text-xs shrink-0">
+                        {formatMoney(b.spent, state.settings.currency)} / {formatMoney(b.limit, state.settings.currency)}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-paper-line rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${ratio >= 1 ? 'bg-clay' : ratio >= 0.75 ? 'bg-gold' : 'bg-sage'}`}
+                        style={{ width: `${Math.min(ratio * 100, 100)}%` }}
+                      />
+                    </div>
+                    <p className={`text-xs mt-1 ${delta < 0 ? 'text-clay-dark' : 'text-ink-softer'}`}>
+                      {delta < 0
+                        ? t.reports.budgetOver(formatMoney(-delta, state.settings.currency))
+                        : t.reports.budgetLeft(formatMoney(delta, state.settings.currency))}
+                    </p>
                   </div>
-                  <div className="w-full h-1.5 bg-paper-line rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${ratio >= 1 ? 'bg-clay' : ratio >= 0.75 ? 'bg-gold' : 'bg-sage'}`}
-                      style={{ width: `${Math.min(ratio * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          </>
         )}
       </Card>
     </div>
