@@ -34,6 +34,7 @@ import CalendarView from './components/CalendarView'
 import NotificationsView from './components/NotificationsView'
 import SettingsView from './components/SettingsView'
 import ToastStack from './components/ToastStack'
+import OnboardingWizard from './components/OnboardingWizard'
 
 export type ViewKey =
   | 'dashboard'
@@ -154,6 +155,12 @@ export default function App() {
   const language = state.settings.language || DEFAULT_LANGUAGE
   const t = useMemo(() => createTranslator(language), [language])
   const locale = useMemo(() => localeForLanguage(language), [language])
+
+  // TEMP (stage 16.1): manual `?onboarding=1` gate so the wizard skeleton can be viewed in the
+  // browser. Stage 16.3 replaces this with real first-run detection (empty AppState) plus a
+  // "run the wizard again" entry point in Settings.
+  const showOnboardingSkeleton =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('onboarding')
 
   const insights = useMemo(() => generateInsights(state, t, locale), [state, t, locale])
   const reminders = useMemo(() => generateReminders(state, t), [state, t])
@@ -437,6 +444,14 @@ export default function App() {
     // the next sync instead of the old cloud copy overwriting it back in.
     saveState(emptyState())
     window.location.reload()
+  }
+
+  if (showOnboardingSkeleton) {
+    return (
+      <I18nProvider lang={language}>
+        <OnboardingWizard onComplete={() => { window.location.href = window.location.pathname }} />
+      </I18nProvider>
+    )
   }
 
   return (
