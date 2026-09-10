@@ -43,6 +43,8 @@ const en = {
     calendar: 'Calendar',
     notifications: 'Notifications',
     settings: 'Settings',
+    // The phone bottom-nav's overflow tab — opens a sheet with the sections not in the bar.
+    more: 'More',
     // Shown as a title tooltip on the logo at the top of the nav rail. This is the product's
     // own name, not a generic label — left the same in every language on purpose (see the
     // localization summary note about brand names).

@@ -24,6 +24,7 @@ import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/pl
 import { BudgetPeriodReview, budgetKey } from './lib/budgetPeriods'
 import { createTranslator, DEFAULT_LANGUAGE, I18nProvider, localeForLanguage } from './lib/i18n'
 import Sidebar from './components/Sidebar'
+import BottomNav from './components/BottomNav'
 import Dashboard from './components/Dashboard'
 import TransactionsView from './components/TransactionsView'
 import ReportsView from './components/ReportsView'
@@ -491,7 +492,9 @@ export default function App() {
 
   return (
     <I18nProvider lang={language}>
-    <div className="min-h-screen bg-paper flex text-ink font-body">
+    {/* overflow-x: clip — a hard stop so no single wide element can ever scroll the whole page
+        sideways again (the classic mobile bug). Real width fixes land per-screen in later stages. */}
+    <div className="min-h-screen bg-paper flex text-ink font-body overflow-x-clip">
       <Sidebar
         view={view}
         setView={setView}
@@ -500,9 +503,9 @@ export default function App() {
         setTheme={setTheme}
       />
 
-      {/* ml-16 clears the fixed icon rail (see Sidebar.tsx) — same width at every breakpoint now,
-          so this no longer needs a separate lg: value the way the old wide desktop sidebar did. */}
-      <main className="flex-1 min-w-0 ml-16 pb-8">
+      {/* lg:ml-16 clears the desktop icon rail; below lg the rail is hidden and BottomNav takes
+          over, so the content is full-width with a bottom inset for the tab bar (h-14) + safe area. */}
+      <main className="flex-1 min-w-0 lg:ml-16 pt-[env(safe-area-inset-top)] pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pt-0 lg:pb-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 lg:py-10">
           {view === 'dashboard' && (
             <Dashboard
@@ -573,6 +576,7 @@ export default function App() {
         </div>
       </main>
 
+      <BottomNav view={view} setView={setView} notificationCount={unreadCount} />
       <ToastStack toasts={toasts} dismiss={dismissToast} />
     </div>
     </I18nProvider>

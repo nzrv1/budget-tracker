@@ -31,6 +31,7 @@ const ru: Dictionary = {
     calendar: 'Календарь',
     notifications: 'Уведомления',
     settings: 'Настройки',
+    more: 'Ещё',
     // Product/brand name — intentionally left untranslated (see en.ts comment).
     appName: 'Ledger',
   },

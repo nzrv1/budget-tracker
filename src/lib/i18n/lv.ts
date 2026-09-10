@@ -30,6 +30,7 @@ const lv: Dictionary = {
     calendar: 'Kalendārs',
     notifications: 'Paziņojumi',
     settings: 'Iestatījumi',
+    more: 'Vairāk',
     // Product/brand name — intentionally left untranslated (see en.ts comment).
     appName: 'Ledger',
   },

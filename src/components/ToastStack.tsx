@@ -23,7 +23,9 @@ export default function ToastStack({ toasts, dismiss }: { toasts: Toast[]; dismi
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-20 lg:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-40 flex flex-col gap-2 sm:w-96">
+    // bottom offset sits above the phone tab bar (h-14) + its safe-area inset; small offset on
+    // desktop where the bar is gone.
+    <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] lg:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-40 flex flex-col gap-2 sm:w-96">
       {toasts.map((t) => {
         const style = TONE_STYLES[t.tone]
         const Icon = style.icon

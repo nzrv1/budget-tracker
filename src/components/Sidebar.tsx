@@ -19,12 +19,10 @@ function navItems(t: Dictionary): { key: ViewKey; label: string; icon: React.Ele
   ]
 }
 
-// One slim icon-only rail for every screen size — replaces the old wide labelled desktop
-// sidebar (w-64) plus the separate mobile top bar + bottom nav + "More" sheet. A vertical rail
-// scales with screen HEIGHT, not width, so all 9 sections fit directly at any width, including
-// a 375px phone — no need to hide anything behind "More" the way a horizontal bottom bar did.
-// Labels are dropped in favor of a native title tooltip; aria-label keeps the same accessible
-// name as before so existing tests that query buttons by name still work unchanged.
+// The slim icon-only rail — desktop only (`lg+`). On a phone it took 64px (17% of a 375px
+// screen) permanently and forced every screen into a ~279px column; below `lg` the app uses
+// BottomNav instead (5 tabs + a "More" sheet) and this is hidden. Labels are dropped in favor
+// of a native title tooltip; aria-label keeps the same accessible name.
 export default function Sidebar({
   view,
   setView,
@@ -42,7 +40,7 @@ export default function Sidebar({
   const NAV = navItems(t)
   return (
     <aside
-      className="fixed left-0 top-0 z-30 flex flex-col items-center w-16 h-screen bg-nav text-nav-text
+      className="fixed left-0 top-0 z-30 hidden lg:flex flex-col items-center w-16 h-screen bg-nav text-nav-text
                  pt-[calc(0.75rem+env(safe-area-inset-top))] pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
     >
       <div className="mb-4 shrink-0" title={t.nav.appName}>
