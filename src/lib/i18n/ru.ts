@@ -11,6 +11,7 @@ const ru: Dictionary = {
     cancel: 'Отмена',
     delete: 'Удалить',
     edit: 'Изменить',
+    moreActions: 'Ещё',
     confirmReset: 'Подтвердить сброс',
     income: 'доход',
     expense: 'расход',
@@ -177,6 +178,7 @@ const ru: Dictionary = {
     emptyState: 'Целей пока нет — создайте цель для перелёта, куртки или поездки, на которую копите.',
     targetLabel: (date) => `Срок: ${date}`,
     deleteAria: 'Удалить цель',
+    deleteConfirm: 'Удалить эту цель?',
     ofAmount: (amount) => `из ${amount}`,
     complete: 'Цель полностью накоплена — самое время её реализовать.',
     onTrack: (pace, days) => `Около ${pace}/мес. позволит уложиться в оставшиеся ${days} ${ruDays(days)}.`,
@@ -195,6 +197,7 @@ const ru: Dictionary = {
     errorTarget: 'Введите целевую сумму больше нуля.',
     errorDate: 'Выберите целевую дату.',
     submitCreate: 'Создать цель',
+    submitSaveChanges: 'Сохранить изменения',
   },
 
   importantDates: {
@@ -209,6 +212,7 @@ const ru: Dictionary = {
     addFundsButton: 'Добавить',
     editAria: 'Изменить дату',
     deleteAria: 'Удалить дату',
+    deleteConfirm: 'Удалить эту дату?',
     modalTitleNew: 'Новая важная дата',
     modalTitleEdit: 'Изменить важную дату',
     nameLabel: 'Название',

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, X, Trash2, PlusCircle } from 'lucide-react'
+import { Plus, X, PlusCircle } from 'lucide-react'
 import { AppState, Goal, GoalIcon } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
 import { Card, ProgressBar, GoalIconGlyph, SectionHeading, goalIconLabel } from './shared'
+import RowMenu from './RowMenu'
 import { EmptyState } from './Dashboard'
 import { Dictionary, useI18n, useT } from '../lib/i18n'
 
@@ -65,6 +66,7 @@ export default function GoalsView({
 }) {
   const t = useT()
   const [showAdd, setShowAdd] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
 
   return (
     <div>
@@ -74,7 +76,7 @@ export default function GoalsView({
         action={
           <button
             onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors"
+            className="inline-flex items-center gap-2 bg-ink text-paper px-4 min-h-[44px] rounded font-medium text-sm hover:bg-ink-light transition-colors"
           >
             <Plus size={16} />
             {t.goals.newGoalButton}
@@ -93,8 +95,8 @@ export default function GoalsView({
               key={g.id}
               goal={g}
               currency={state.settings.currency}
-              onUpdate={updateGoal}
-              onDelete={deleteGoal}
+              onEdit={() => setEditingGoal(g)}
+              onDelete={() => deleteGoal(g.id)}
               onAllocate={allocateToGoal}
               prefillAmount={prefill?.id === g.id ? prefill.amount : undefined}
               onPrefillConsumed={onPrefillConsumed}
@@ -103,7 +105,21 @@ export default function GoalsView({
         </div>
       )}
 
-      {showAdd && <NewGoalModal onClose={() => setShowAdd(false)} onSave={addGoal} />}
+      {(showAdd || editingGoal) && (
+        <NewGoalModal
+          editing={editingGoal}
+          onClose={() => {
+            setShowAdd(false)
+            setEditingGoal(null)
+          }}
+          onSave={(g) => {
+            if (editingGoal) updateGoal(editingGoal.id, g)
+            else addGoal(g)
+            setShowAdd(false)
+            setEditingGoal(null)
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -111,7 +127,7 @@ export default function GoalsView({
 function GoalCard({
   goal,
   currency,
-  onUpdate,
+  onEdit,
   onDelete,
   onAllocate,
   prefillAmount,
@@ -119,8 +135,8 @@ function GoalCard({
 }: {
   goal: Goal
   currency: string
-  onUpdate: (id: string, patch: Partial<Goal>) => void
-  onDelete: (id: string) => void
+  onEdit: () => void
+  onDelete: () => void
   onAllocate: (id: string, amount: number) => void
   prefillAmount?: number
   onPrefillConsumed?: () => void
@@ -153,33 +169,28 @@ function GoalCard({
   }
 
   return (
-    <Card id={`goal-card-${goal.id}`} className="p-5 flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">
-            <GoalIconGlyph icon={goal.icon} size={16} />
-          </span>
-          <div>
-            <h4 className="font-medium text-ink text-sm leading-tight">{goal.name}</h4>
-            <p className="text-xs text-ink-softer mt-0.5">
-              {t.goals.targetLabel(parseLocalDate(goal.targetDate).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }))}
-            </p>
-          </div>
+    <Card id={`goal-card-${goal.id}`} className="p-4 sm:p-5 flex flex-col">
+      <div className="flex items-start gap-2.5 mb-3">
+        <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">
+          <GoalIconGlyph icon={goal.icon} size={16} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h4 className="font-medium text-ink text-sm leading-snug">{goal.name}</h4>
+          <p className="text-xs text-ink-softer mt-0.5">
+            {t.goals.targetLabel(parseLocalDate(goal.targetDate).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }))}
+          </p>
         </div>
-        {/* p-2 gives a ~40px tap target instead of the bare 14px icon — small icon buttons
-            were hard to hit accurately on a touchscreen. */}
-        <button
-          onClick={() => onDelete(goal.id)}
-          className="p-2 -m-2 text-ink-softer hover:text-clay-dark shrink-0"
-          aria-label={t.goals.deleteAria}
-        >
-          <Trash2 size={14} />
-        </button>
+        <RowMenu
+          label={`${t.common.moreActions} — ${goal.name}`}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          deleteConfirmLabel={t.goals.deleteConfirm}
+        />
       </div>
 
-      <div className="flex justify-between items-baseline mb-2">
-        <span className="font-tabular font-semibold text-lg text-ink">{formatMoney(goal.savedAmount, currency)}</span>
-        <span className="text-xs text-ink-softer font-tabular">{t.goals.ofAmount(formatMoney(goal.targetAmount, currency))}</span>
+      <div className="flex items-baseline justify-between gap-2 mb-2">
+        <span className="font-tabular font-semibold text-lg text-ink min-w-0 truncate">{formatMoney(goal.savedAmount, currency)}</span>
+        <span className="text-xs text-ink-softer font-tabular shrink-0">{t.goals.ofAmount(formatMoney(goal.targetAmount, currency))}</span>
       </div>
       <ProgressBar ratio={ratio} tone={complete ? 'gold' : 'sage'} />
 
@@ -193,14 +204,16 @@ function GoalCard({
             type="number"
             min="0"
             step="0.01"
+            inputMode="decimal"
             value={addAmount}
             onChange={(e) => setAddAmount(e.target.value)}
-            placeholder={t.goals.addFundsPlaceholder}
-            className="flex-1 min-w-0 px-2.5 py-2 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
+            placeholder="0.00"
+            aria-label={t.goals.addFundsButton}
+            className="flex-1 min-w-0 px-3 min-h-[44px] border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
           />
           <button
             type="submit"
-            className="inline-flex items-center gap-1 bg-sage text-white px-3 py-2 rounded text-sm font-medium hover:bg-sage-dark transition-colors shrink-0"
+            className="inline-flex items-center gap-1 bg-sage text-white px-4 min-h-[44px] rounded text-sm font-medium hover:bg-sage-dark transition-colors shrink-0"
           >
             <PlusCircle size={14} />
             {t.goals.addFundsButton}
@@ -212,18 +225,20 @@ function GoalCard({
 }
 
 function NewGoalModal({
+  editing,
   onClose,
   onSave,
 }: {
+  editing?: Goal | null
   onClose: () => void
   onSave: (g: Omit<Goal, 'id' | 'createdAt'>) => void
 }) {
   const t = useT()
-  const [name, setName] = useState('')
-  const [targetAmount, setTargetAmount] = useState('')
-  const [savedAmount, setSavedAmount] = useState('0')
-  const [targetDate, setTargetDate] = useState('')
-  const [icon, setIcon] = useState<GoalIcon>('flight')
+  const [name, setName] = useState(editing?.name ?? '')
+  const [targetAmount, setTargetAmount] = useState(editing ? String(editing.targetAmount) : '')
+  const [savedAmount, setSavedAmount] = useState(editing ? String(editing.savedAmount) : '0')
+  const [targetDate, setTargetDate] = useState(editing?.targetDate ?? '')
+  const [icon, setIcon] = useState<GoalIcon>(editing?.icon ?? 'flight')
   const [error, setError] = useState('')
 
   function handleSubmit(e: React.FormEvent) {
@@ -239,10 +254,10 @@ function NewGoalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px]">
-      <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto">
+      <div className="bg-paper-card w-full sm:max-w-md sm:rounded-lg rounded-t-lg border border-paper-line max-h-[90vh] overflow-y-auto pb-[env(safe-area-inset-bottom)] sm:pb-0">
         <div className="flex items-center justify-between px-5 py-4 border-b border-paper-line">
-          <h3 className="font-display font-semibold text-lg">{t.goals.modalTitleNew}</h3>
-          <button onClick={onClose} className="text-ink-softer hover:text-ink">
+          <h3 className="font-display font-semibold text-lg">{editing ? t.goals.modalTitleEdit : t.goals.modalTitleNew}</h3>
+          <button onClick={onClose} aria-label={t.common.cancel} className="-mr-2 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-ink">
             <X size={18} />
           </button>
         </div>
@@ -318,9 +333,9 @@ function NewGoalModal({
 
           <button
             type="submit"
-            className="w-full py-3 bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
+            className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
           >
-            {t.goals.submitCreate}
+            {editing ? t.goals.submitSaveChanges : t.goals.submitCreate}
           </button>
         </form>
       </div>

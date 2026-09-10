@@ -10,6 +10,7 @@ const lv: Dictionary = {
     cancel: 'Atcelt',
     delete: 'Dzēst',
     edit: 'Rediģēt',
+    moreActions: 'Vairāk',
     confirmReset: 'Apstiprināt atiestatīšanu',
     income: 'ienākumi',
     expense: 'izdevumi',
@@ -176,6 +177,7 @@ const lv: Dictionary = {
     emptyState: 'Mērķu vēl nav — izveidojiet mērķi lidojumam, jakai vai ceļojumam, kuram krājat.',
     targetLabel: (date) => `Termiņš: ${date}`,
     deleteAria: 'Dzēst mērķi',
+    deleteConfirm: 'Dzēst šo mērķi?',
     ofAmount: (amount) => `no ${amount}`,
     complete: 'Mērķis pilnībā sasniegts — laba iespēja to īstenot.',
     onTrack: (pace, days) => `Aptuveni ${pace}/mēnesī, un jūs paspēsit atlikušo ${days} ${lvDays(days)} laikā.`,
@@ -194,6 +196,7 @@ const lv: Dictionary = {
     errorTarget: 'Ievadiet mērķa summu, kas lielāka par nulli.',
     errorDate: 'Izvēlieties mērķa datumu.',
     submitCreate: 'Izveidot mērķi',
+    submitSaveChanges: 'Saglabāt izmaiņas',
   },
 
   importantDates: {
@@ -208,6 +211,7 @@ const lv: Dictionary = {
     addFundsButton: 'Pievienot',
     editAria: 'Rediģēt datumu',
     deleteAria: 'Dzēst datumu',
+    deleteConfirm: 'Dzēst šo datumu?',
     modalTitleNew: 'Jauns svarīgs datums',
     modalTitleEdit: 'Rediģēt svarīgu datumu',
     nameLabel: 'Nosaukums',

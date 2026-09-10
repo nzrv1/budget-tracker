@@ -16,6 +16,7 @@ const en = {
     cancel: 'Cancel',
     delete: 'Delete',
     edit: 'Edit',
+    moreActions: 'More actions',
     confirmReset: 'Confirm reset',
     income: 'income',
     expense: 'expense',
@@ -205,6 +206,7 @@ const en = {
     emptyState: "No goals yet — create one for that flight, jacket, or trip you're saving toward.",
     targetLabel: (date: string) => `Target ${date}`,
     deleteAria: 'Delete goal',
+    deleteConfirm: 'Delete this goal?',
     ofAmount: (amount: string) => `of ${amount}`,
     complete: 'Fully funded — good time to make this happen.',
     onTrack: (pace: string, days: number) => `About ${pace}/month keeps you on track for ${days} ${enDays(days)} left.`,
@@ -223,6 +225,7 @@ const en = {
     errorTarget: 'Enter a target amount greater than zero.',
     errorDate: 'Choose a target date.',
     submitCreate: 'Create goal',
+    submitSaveChanges: 'Save changes',
   },
 
   importantDates: {
@@ -237,6 +240,7 @@ const en = {
     addFundsButton: 'Add',
     editAria: 'Edit date',
     deleteAria: 'Delete date',
+    deleteConfirm: 'Delete this date?',
     modalTitleNew: 'New important date',
     modalTitleEdit: 'Edit important date',
     nameLabel: 'Name',

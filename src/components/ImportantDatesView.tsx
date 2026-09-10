@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, X, Trash2, PlusCircle, Pencil } from 'lucide-react'
+import { Plus, X, PlusCircle } from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
 import { formatMoney } from '../lib/utils'
 import { Card, ProgressBar, SectionHeading } from './shared'
+import RowMenu from './RowMenu'
 import { EmptyState } from './Dashboard'
 import {
   ImportantDateIconGlyph,
@@ -61,7 +62,7 @@ export default function ImportantDatesView({
               setPrefill({})
               setShowAdd(true)
             }}
-            className="inline-flex items-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors"
+            className="inline-flex items-center gap-2 bg-ink text-paper px-4 min-h-[44px] rounded font-medium text-sm hover:bg-ink-light transition-colors"
           >
             <Plus size={16} />
             {t.importantDates.newDateButton}
@@ -69,13 +70,15 @@ export default function ImportantDatesView({
         }
       />
 
-      <div className="flex flex-wrap gap-2 mb-5">
+      {/* Quick-add presets scroll horizontally instead of wrapping to three rows on a phone.
+          -mx-4 px-4 lets the row bleed to the screen edges so the last chip isn't clipped. */}
+      <div className="flex gap-2 mb-5 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap pb-1">
         {getQuickAddPresets(t).map((preset) => (
           <button
             key={preset.label}
             type="button"
             onClick={() => openWithPreset(preset)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-paper-line text-ink-softer hover:border-ink-softer/40 hover:text-ink transition-colors"
+            className="inline-flex items-center gap-1.5 shrink-0 px-3 min-h-[36px] rounded-full text-xs font-medium border border-paper-line text-ink-softer hover:border-ink-softer/40 hover:text-ink transition-colors"
           >
             <ImportantDateIconGlyph category={preset.category} size={13} />
             {preset.label}
@@ -179,36 +182,31 @@ function DateCard({
   }
 
   return (
-    <Card id={`date-card-${date.id}`} className="p-5 flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">
-            <ImportantDateIconGlyph category={date.category} size={16} />
-          </span>
-          <div>
-            <h4 className="font-medium text-ink text-sm leading-tight">{date.name}</h4>
-            <p className="text-xs text-ink-softer mt-0.5">
-              {occursOn.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}
-              {date.recurring && t.importantDates.recurringSuffix}
-            </p>
-          </div>
+    <Card id={`date-card-${date.id}`} className="p-4 sm:p-5 flex flex-col">
+      <div className="flex items-start gap-2.5 mb-3">
+        <span className="w-9 h-9 rounded-full bg-gold-light text-gold-dark flex items-center justify-center shrink-0">
+          <ImportantDateIconGlyph category={date.category} size={16} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h4 className="font-medium text-ink text-sm leading-snug">{date.name}</h4>
+          <p className="text-xs text-ink-softer mt-0.5">
+            {occursOn.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}
+            {date.recurring && t.importantDates.recurringSuffix}
+          </p>
         </div>
-        {/* p-2 -m-2: bigger tap target, same visual footprint (see GoalsView for the same fix). */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => onEdit(date)} className="p-2 -m-2 text-ink-softer hover:text-ink" aria-label={t.importantDates.editAria}>
-            <Pencil size={14} />
-          </button>
-          <button onClick={() => onDelete(date.id)} className="p-2 -m-2 text-ink-softer hover:text-clay-dark" aria-label={t.importantDates.deleteAria}>
-            <Trash2 size={14} />
-          </button>
-        </div>
+        <RowMenu
+          label={`${t.common.moreActions} — ${date.name}`}
+          onEdit={() => onEdit(date)}
+          onDelete={() => onDelete(date.id)}
+          deleteConfirmLabel={t.importantDates.deleteConfirm}
+        />
       </div>
 
       {hasTarget && (
         <>
-          <div className="flex justify-between items-baseline mb-2">
-            <span className="font-tabular font-semibold text-sm text-ink">{formatMoney(saved, currency)}</span>
-            <span className="text-xs text-ink-softer font-tabular">{t.importantDates.ofAmount(formatMoney(target, currency))}</span>
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <span className="font-tabular font-semibold text-sm text-ink min-w-0 truncate">{formatMoney(saved, currency)}</span>
+            <span className="text-xs text-ink-softer font-tabular shrink-0">{t.importantDates.ofAmount(formatMoney(target, currency))}</span>
           </div>
           <ProgressBar ratio={ratio} tone={complete ? 'gold' : 'sage'} />
         </>
@@ -226,14 +224,16 @@ function DateCard({
             type="number"
             min="0"
             step="0.01"
+            inputMode="decimal"
             value={addAmount}
             onChange={(e) => setAddAmount(e.target.value)}
-            placeholder={t.importantDates.addFundsPlaceholder}
-            className="flex-1 min-w-0 px-2.5 py-2 border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
+            placeholder="0.00"
+            aria-label={t.importantDates.addFundsButton}
+            className="flex-1 min-w-0 px-3 min-h-[44px] border border-paper-line rounded text-sm font-tabular focus:border-sage outline-none"
           />
           <button
             type="submit"
-            className="inline-flex items-center gap-1 bg-sage text-white px-3 py-2 rounded text-sm font-medium hover:bg-sage-dark transition-colors shrink-0"
+            className="inline-flex items-center gap-1 bg-sage text-white px-4 min-h-[44px] rounded text-sm font-medium hover:bg-sage-dark transition-colors shrink-0"
           >
             <PlusCircle size={14} />
             {t.importantDates.addFundsButton}
