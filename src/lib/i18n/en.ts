@@ -95,12 +95,6 @@ const en = {
     theoreticalSaveFor: (period: string) => `In theory, you can save ${period}`,
     theoreticalSaveSub: (percent: number, period: string) =>
       `${percent}% of income · after budgets, goals & important dates`,
-    budgetHealthTitle: 'Monthly budget health',
-    budgetHealthNoBudgets: 'No budgets set yet — set some in Budgets to track this.',
-    budgetHealthOver: 'You have gone over your combined monthly budget.',
-    budgetHealthClose: "You're pacing close to your monthly limit — worth watching the next few weeks.",
-    budgetHealthWithin: "You're comfortably within your monthly budget.",
-    budgetHealthNonMonthNote: ' Daily, weekly and yearly budgets are converted to a monthly average here.',
     savingsGoalTitle: 'Monthly savings goal',
     savingsGoalProgress: (percent: number) =>
       `${percent}% of this month's savings goal — based on what your active Goals need this month to stay on track.`,

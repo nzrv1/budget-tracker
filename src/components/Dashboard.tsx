@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, PiggyBank, Wallet2, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { AppState, Transaction, Insight, CategoryDef, SAVINGS_CATEGORY } from '../types'
 import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod, parseLocalDate } from '../lib/utils'
-import { Card, ProgressBar, budgetTone } from './shared'
+import { Card, ProgressBar } from './shared'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
 import BudgetPeriodBanner from './BudgetPeriodBanner'
-import { duePaydaySources, planForMonth, startOfMonth, budgetDailyRate } from '../lib/planning'
+import { duePaydaySources, planForMonth, startOfMonth } from '../lib/planning'
 import { BudgetPeriodReview, pendingBudgetPeriodReviews } from '../lib/budgetPeriods'
 import { ViewKey } from '../App'
 import { useI18n } from '../lib/i18n'
@@ -44,7 +44,7 @@ export default function Dashboard({
   const today0 = new Date()
 
   // Always-current-calendar-month figures, independent of the period toggle above — used
-  // for the budget health card and the savings goal card, which are inherently monthly.
+  // for the savings goal card, which is inherently monthly.
   const currentMonthRange = periodRange('month', today0)
   const currentMonthTx = filterByRange(state.transactions, currentMonthRange.from, currentMonthRange.to)
 
@@ -59,24 +59,6 @@ export default function Dashboard({
   const expense = periodLogged.expense
   const balance = totals(state.transactions).net
   const periodLabel = period === 'month' ? t.periods.thisMonth : t.periods.thisYear
-
-  // Budget health — EVERY budget counts here now, whatever its period. A day/week/year
-  // budget is converted to a monthly-equivalent limit with the same budgetDailyRate() used
-  // by planForMonth (Calendar, the payday banner, "In theory you can save" below), so a
-  // yearly budget no longer disappears from this card just because it isn't a "month"
-  // budget. "Spent" is actual spend this month per category — deduplicated by category, so a
-  // category with more than one budget period doesn't get counted twice on the spend side.
-  const dim = new Date(today0.getFullYear(), today0.getMonth() + 1, 0).getDate()
-  const totalBudget = state.budgets.reduce((s, b) => s + budgetDailyRate(b) * dim, 0)
-  const budgetedCategories = Array.from(new Set(state.budgets.map((b) => b.category)))
-  const budgetSpent = budgetedCategories.reduce((s, category) => {
-    const spent = currentMonthTx
-      .filter((t) => t.type === 'expense' && t.category === category)
-      .reduce((acc, t) => acc + t.amount, 0)
-    return s + spent
-  }, 0)
-  const budgetRatio = totalBudget > 0 ? budgetSpent / totalBudget : 0
-  const hasNonMonthBudgets = state.budgets.some((b) => b.period !== 'month')
 
   // Everything you're already committed to spending or setting aside this month — every
   // Budget (day/week/month/year budgets are all normalized to a monthly-equivalent figure
@@ -204,28 +186,8 @@ export default function Dashboard({
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Budget health + recent transactions */}
+        {/* Savings goal + recent transactions */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-semibold text-base">{t.dashboard.budgetHealthTitle}</h3>
-              <span className="text-sm font-tabular text-ink-softer">
-                {formatMoney(budgetSpent, state.settings.currency)} / {formatMoney(totalBudget, state.settings.currency)}
-              </span>
-            </div>
-            <ProgressBar ratio={budgetRatio} tone={budgetTone(budgetRatio)} />
-            <p className="text-sm text-ink-softer mt-3">
-              {state.budgets.length === 0
-                ? t.dashboard.budgetHealthNoBudgets
-                : budgetRatio >= 1
-                ? t.dashboard.budgetHealthOver
-                : budgetRatio >= 0.75
-                ? t.dashboard.budgetHealthClose
-                : t.dashboard.budgetHealthWithin}
-              {hasNonMonthBudgets && t.dashboard.budgetHealthNonMonthNote}
-            </p>
-          </Card>
-
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-semibold text-base">{t.dashboard.savingsGoalTitle}</h3>

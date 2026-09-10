@@ -77,12 +77,6 @@ const lv: Dictionary = {
     spentFor: (period) => `Iztērēts ${period}`,
     theoreticalSaveFor: (period) => `Teorētiski iespējams uzkrāt ${period}`,
     theoreticalSaveSub: (percent, _period) => `${percent}% no ienākumiem · pēc budžetiem, mērķiem un svarīgiem datumiem`,
-    budgetHealthTitle: 'Mēneša budžeta stāvoklis',
-    budgetHealthNoBudgets: 'Budžeti vēl nav iestatīti — iestatiet tos sadaļā "Budžeti", lai to izsekotu.',
-    budgetHealthOver: 'Jūs esat pārsniedzis kopējo mēneša budžetu.',
-    budgetHealthClose: 'Jūs tuvojaties mēneša limitam — nākamajās nedēļās vērts sekot izdevumiem.',
-    budgetHealthWithin: 'Jūs droši iekļaujaties mēneša budžetā.',
-    budgetHealthNonMonthNote: ' Dienas, nedēļas un gada budžeti šeit ir pārrēķināti kā vidējais mēnesī.',
     savingsGoalTitle: 'Mēneša uzkrājumu mērķis',
     savingsGoalProgress: (percent) =>
       `${percent}% no šī mēneša uzkrājumu mērķa — pamatojoties uz to, cik daudz šomēnes vajadzīgs jūsu aktīvajiem mērķiem.`,

@@ -78,12 +78,6 @@ const ru: Dictionary = {
     spentFor: (period) => `Потрачено ${period}`,
     theoreticalSaveFor: (period) => `Теоретически можно накопить ${period}`,
     theoreticalSaveSub: (percent, _period) => `${percent}% дохода · после бюджетов, целей и важных дат`,
-    budgetHealthTitle: 'Состояние месячного бюджета',
-    budgetHealthNoBudgets: 'Бюджеты пока не заданы — настройте их в разделе «Бюджеты», чтобы отслеживать это.',
-    budgetHealthOver: 'Вы превысили общий месячный бюджет.',
-    budgetHealthClose: 'Вы приближаетесь к месячному лимиту — стоит последить за расходами в ближайшие недели.',
-    budgetHealthWithin: 'Вы уверенно укладываетесь в месячный бюджет.',
-    budgetHealthNonMonthNote: ' Дневные, недельные и годовые бюджеты здесь пересчитаны в среднемесячные.',
     savingsGoalTitle: 'Месячная цель по накоплениям',
     savingsGoalProgress: (percent) =>
       `${percent}% от цели по накоплениям на этот месяц — на основе того, сколько нужно вашим активным целям в этом месяце.`,
