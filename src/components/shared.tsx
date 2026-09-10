@@ -168,12 +168,70 @@ export function CollapsibleCard({
 
 export function SectionHeading({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-end justify-between mb-4">
-      <div>
+    // flex-wrap + a min-w-0 title block: on a narrow screen the action drops to its own line
+    // instead of overlapping a long title (it used to sit on top of "Important Dates").
+    <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2 mb-4">
+      <div className="min-w-0">
         {eyebrow && <p className="text-xs text-ink-softer mb-0.5">{eyebrow}</p>}
         <h2 className="font-display font-semibold text-xl text-ink">{title}</h2>
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  )
+}
+
+/** A card's own heading row: a title and an optional trailing action (usually a "see all" link).
+ *  The action never overlaps the title — it wraps below when space is tight. */
+export function CardHeading({ title, action }: { title: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-3">
+      <h3 className="font-display font-semibold text-base min-w-0">{title}</h3>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  )
+}
+
+/** One compact figure for the Dashboard stat strip: label on its own line, value below. No
+ *  side-by-side label/value, so a wide amount can never force the tile (or its grid track)
+ *  wider than the screen. Equal height across a row via the grid. */
+export function StatTile({
+  label,
+  value,
+  tone = 'ink',
+}: {
+  label: string
+  value: string
+  tone?: 'ink' | 'sage' | 'clay' | 'gold'
+}) {
+  const valueTone: Record<string, string> = {
+    ink: 'text-ink',
+    sage: 'text-sage-dark',
+    clay: 'text-clay-dark',
+    gold: 'text-gold-dark',
+  }
+  return (
+    <div className="bg-paper-card border border-paper-line rounded-lg p-3 min-w-0">
+      <p className="text-[11px] text-ink-softer mb-1 truncate">{label}</p>
+      <p className={`font-tabular font-semibold text-base sm:text-lg truncate ${valueTone[tone]}`}>{value}</p>
+    </div>
+  )
+}
+
+/** A label/value line where the label truncates and the value is pinned to the right without
+ *  shrinking — the safe replacement for `flex justify-between` with two rigid children. */
+export function SummaryRow({
+  label,
+  value,
+  valueClassName = 'text-ink',
+}: {
+  label: string
+  value: React.ReactNode
+  valueClassName?: string
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-2">
+      <span className="text-sm text-ink-softer min-w-0 truncate">{label}</span>
+      <span className={`font-tabular text-sm font-medium shrink-0 ${valueClassName}`}>{value}</span>
     </div>
   )
 }

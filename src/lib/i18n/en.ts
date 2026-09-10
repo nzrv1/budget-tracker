@@ -97,6 +97,11 @@ const en = {
     theoreticalSaveFor: (period: string) => `In theory, you can save ${period}`,
     theoreticalSaveSub: (percent: number, period: string) =>
       `${percent}% of income · after budgets, goals & important dates`,
+    // Short labels for the compact stat strip (the period is implied by the toggle above it).
+    incomeLabel: 'Income',
+    spentLabel: 'Spent',
+    safeToSpend: 'Safe to spend',
+    setAside: 'Set aside',
     savingsGoalTitle: 'Monthly savings goal',
     savingsGoalProgress: (percent: number) =>
       `${percent}% of this month's savings goal — based on what your active Goals need this month to stay on track.`,

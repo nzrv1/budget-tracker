@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Plus, TrendingUp, TrendingDown, PiggyBank, Wallet2, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Plus, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { AppState, Transaction, Insight, CategoryDef, SAVINGS_CATEGORY } from '../types'
 import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod, parseLocalDate } from '../lib/utils'
-import { Card, ProgressBar } from './shared'
+import { Card, CardHeading, ProgressBar, StatTile } from './shared'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
@@ -58,7 +58,6 @@ export default function Dashboard({
   const income = settingsIncomeForPeriod(state.settings, state.incomeSources, period, today0) + periodLogged.income
   const expense = periodLogged.expense
   const balance = totals(state.transactions).net
-  const periodLabel = period === 'month' ? t.periods.thisMonth : t.periods.thisYear
 
   // Everything you're already committed to spending or setting aside this month — every
   // Budget (day/week/month/year budgets are all normalized to a monthly-equivalent figure
@@ -84,7 +83,6 @@ export default function Dashboard({
   // from transactions logged so far.
   const periodObligations = plan.total * monthsInPeriod
   const theoreticalSaved = income - periodObligations
-  const theoreticalSavedPercent = income > 0 ? Math.round((theoreticalSaved / income) * 100) : 0
 
   const recent = [...state.transactions]
     .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
@@ -121,25 +119,18 @@ export default function Dashboard({
         />
       ))}
 
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-        <div>
-          <p className="text-sm text-ink-softer mb-1">{dayLabel}</p>
-          <h1 className="font-display font-semibold text-2xl sm:text-3xl text-ink">{t.dashboard.greeting}</h1>
-        </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 bg-ink text-paper px-4 py-2.5 rounded font-medium text-sm hover:bg-ink-light transition-colors shrink-0"
-        >
-          <Plus size={16} />
-          {t.dashboard.addTransaction}
-        </button>
+      {/* Greeting */}
+      <div className="mb-5">
+        <p className="text-sm text-ink-softer">{dayLabel}</p>
+        <h1 className="font-display font-semibold text-2xl sm:text-3xl text-ink mt-0.5">{t.dashboard.greeting}</h1>
       </div>
 
-      <div className="flex justify-end mb-4 -mt-4">
-        <div className="inline-flex rounded-lg border border-paper-line overflow-hidden">
+      {/* Period toggle — drives the four figures in the strip below */}
+      <div className="flex justify-end mb-3">
+        <div className="inline-flex rounded-lg border border-paper-line overflow-hidden text-sm font-medium">
           <button
             onClick={() => setPeriod('month')}
-            className={`px-3.5 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 min-h-[40px] transition-colors ${
               period === 'month' ? 'bg-ink text-paper' : 'text-ink-softer hover:bg-paper-card'
             }`}
           >
@@ -147,7 +138,7 @@ export default function Dashboard({
           </button>
           <button
             onClick={() => setPeriod('year')}
-            className={`px-3.5 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 min-h-[40px] transition-colors ${
               period === 'year' ? 'bg-ink text-paper' : 'text-ink-softer hover:bg-paper-card'
             }`}
           >
@@ -156,49 +147,47 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Stat row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-        <StatCard
-          label={t.dashboard.totalBalance}
-          value={formatMoney(balance, state.settings.currency)}
-          icon={Wallet2}
-          tone="ink"
-        />
-        <StatCard
-          label={t.dashboard.incomeFor(periodLabel)}
-          value={formatMoney(income, state.settings.currency)}
-          icon={TrendingUp}
-          tone="sage"
-        />
-        <StatCard
-          label={t.dashboard.spentFor(periodLabel)}
-          value={formatMoney(expense, state.settings.currency)}
-          icon={TrendingDown}
-          tone="clay"
-        />
-        <StatCard
-          label={t.dashboard.theoreticalSaveFor(periodLabel)}
+      {/* Hero balance + stat strip. One grid so they line up: on a phone the hero is a full-width
+          row above a 2×2 of tiles; from sm up it's one 6-wide row (hero spans 2). No side-by-side
+          label/value anywhere, so a wide amount can't push a track past the screen. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
+        <div className="col-span-2 md:col-span-4 lg:col-span-2 rounded-lg bg-ink text-paper p-4 flex flex-col justify-center min-w-0">
+          <p className="text-xs opacity-70">{t.dashboard.totalBalance}</p>
+          <p className="font-display font-bold text-2xl sm:text-3xl tracking-tight tabular-nums mt-1 truncate">
+            {formatMoney(balance, state.settings.currency)}
+          </p>
+        </div>
+        <StatTile label={t.dashboard.incomeLabel} value={formatMoney(income, state.settings.currency)} tone="sage" />
+        <StatTile label={t.dashboard.spentLabel} value={formatMoney(expense, state.settings.currency)} tone="clay" />
+        <StatTile
+          label={t.dashboard.safeToSpend}
           value={formatMoney(theoreticalSaved, state.settings.currency)}
-          sub={t.dashboard.theoreticalSaveSub(theoreticalSavedPercent, periodLabel)}
-          icon={PiggyBank}
-          tone="gold"
+          tone={theoreticalSaved < 0 ? 'clay' : 'ink'}
         />
+        <StatTile label={t.dashboard.setAside} value={formatMoney(currentMonthSaved, state.settings.currency)} tone="gold" />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Savings goal + recent transactions */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-semibold text-base">{t.dashboard.savingsGoalTitle}</h3>
-              {savingsGoalTotal > 0 && (
-                <span className="text-sm font-tabular text-ink-softer">
-                  {formatMoney(currentMonthSaved, state.settings.currency)} / {formatMoney(savingsGoalTotal, state.settings.currency)}
-                </span>
-              )}
-            </div>
+      {/* Primary action — full-width on phones */}
+      <button
+        onClick={() => setShowAdd(true)}
+        className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 bg-ink text-paper px-5 rounded font-medium text-sm hover:bg-ink-light transition-colors mb-6"
+      >
+        <Plus size={16} />
+        {t.dashboard.addTransaction}
+      </button>
+
+      {/* Single column on phones; 2/3 + 1/3 split on lg. A flex column (not grid) below lg so a
+          wide child can't force a grid track past the screen. */}
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-4 lg:gap-6">
+          <Card className="p-4 sm:p-5">
+            <CardHeading title={t.dashboard.savingsGoalTitle} />
             {savingsGoalTotal > 0 ? (
               <>
+                <p className="font-tabular text-sm mb-2">
+                  {formatMoney(currentMonthSaved, state.settings.currency)}{' '}
+                  <span className="text-ink-softer">{t.goals.ofAmount(formatMoney(savingsGoalTotal, state.settings.currency))}</span>
+                </p>
                 <ProgressBar ratio={savingsGoalRatio} tone={savingsGoalRatio >= 1 ? 'sage' : savingsGoalRatio >= 0.5 ? 'gold' : 'clay'} />
                 <p className="text-sm text-ink-softer mt-3">{t.dashboard.savingsGoalProgress(savingsGoalPercent)}</p>
               </>
@@ -207,16 +196,18 @@ export default function Dashboard({
             )}
           </Card>
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display font-semibold text-base">{t.dashboard.recentTransactionsTitle}</h3>
-              <button
-                onClick={() => setView('transactions')}
-                className="text-sm text-ink-softer hover:text-ink flex items-center gap-1"
-              >
-                {t.dashboard.viewAll} <ArrowRight size={14} />
-              </button>
-            </div>
+          <Card className="p-4 sm:p-5">
+            <CardHeading
+              title={t.dashboard.recentTransactionsTitle}
+              action={
+                <button
+                  onClick={() => setView('transactions')}
+                  className="text-sm text-ink-softer hover:text-ink inline-flex items-center gap-1"
+                >
+                  {t.dashboard.viewAll} <ArrowRight size={14} />
+                </button>
+              }
+            />
             {recent.length === 0 ? (
               <EmptyState text={t.dashboard.noTransactionsYet} />
             ) : (
@@ -252,16 +243,18 @@ export default function Dashboard({
 
         {/* Insights feed */}
         <div>
-          <Card className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-display font-semibold text-base">{t.dashboard.smartInsightsTitle}</h3>
-              <button
-                onClick={() => setView('notifications')}
-                className="text-sm text-ink-softer hover:text-ink flex items-center gap-1"
-              >
-                {t.dashboard.insightsAll} <ArrowRight size={14} />
-              </button>
-            </div>
+          <Card className="p-4 sm:p-5">
+            <CardHeading
+              title={t.dashboard.smartInsightsTitle}
+              action={
+                <button
+                  onClick={() => setView('notifications')}
+                  className="text-sm text-ink-softer hover:text-ink inline-flex items-center gap-1"
+                >
+                  {t.dashboard.insightsAll} <ArrowRight size={14} />
+                </button>
+              }
+            />
             {topInsights.length === 0 ? (
               <EmptyState text={t.dashboard.insightsEmpty} />
             ) : (
@@ -294,37 +287,6 @@ export default function Dashboard({
         />
       )}
     </div>
-  )
-}
-
-function StatCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  tone,
-}: {
-  label: string
-  value: string
-  sub?: string
-  icon: React.ElementType
-  tone: 'ink' | 'sage' | 'clay' | 'gold'
-}) {
-  const toneStyles: Record<string, string> = {
-    ink: 'text-ink bg-ink/5',
-    sage: 'text-sage-dark bg-sage-light',
-    clay: 'text-clay-dark bg-clay-light',
-    gold: 'text-gold-dark bg-gold-light',
-  }
-  return (
-    <Card className="p-4">
-      <div className={`inline-flex items-center justify-center w-8 h-8 rounded ${toneStyles[tone]} mb-3`}>
-        <Icon size={16} strokeWidth={1.75} />
-      </div>
-      <p className="text-xs text-ink-softer mb-1">{label}</p>
-      <p className="font-tabular font-semibold text-lg sm:text-xl text-ink truncate">{value}</p>
-      {sub && <p className="text-xs text-ink-softer mt-1 leading-snug">{sub}</p>}
-    </Card>
   )
 }
 

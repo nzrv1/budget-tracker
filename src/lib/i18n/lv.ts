@@ -78,6 +78,10 @@ const lv: Dictionary = {
     spentFor: (period) => `Iztērēts ${period}`,
     theoreticalSaveFor: (period) => `Teorētiski iespējams uzkrāt ${period}`,
     theoreticalSaveSub: (percent, _period) => `${percent}% no ienākumiem · pēc budžetiem, mērķiem un svarīgiem datumiem`,
+    incomeLabel: 'Ienākumi',
+    spentLabel: 'Iztērēts',
+    safeToSpend: 'Var tērēt',
+    setAside: 'Atlikts',
     savingsGoalTitle: 'Mēneša uzkrājumu mērķis',
     savingsGoalProgress: (percent) =>
       `${percent}% no šī mēneša uzkrājumu mērķa — pamatojoties uz to, cik daudz šomēnes vajadzīgs jūsu aktīvajiem mērķiem.`,

@@ -79,6 +79,10 @@ const ru: Dictionary = {
     spentFor: (period) => `Потрачено ${period}`,
     theoreticalSaveFor: (period) => `Теоретически можно накопить ${period}`,
     theoreticalSaveSub: (percent, _period) => `${percent}% дохода · после бюджетов, целей и важных дат`,
+    incomeLabel: 'Доход',
+    spentLabel: 'Расход',
+    safeToSpend: 'Можно потратить',
+    setAside: 'Отложено',
     savingsGoalTitle: 'Месячная цель по накоплениям',
     savingsGoalProgress: (percent) =>
       `${percent}% от цели по накоплениям на этот месяц — на основе того, сколько нужно вашим активным целям в этом месяце.`,
