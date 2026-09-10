@@ -1,50 +1,51 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronLeft, Plus, PartyPopper, CheckCircle2 } from 'lucide-react'
-import { CategoryIconGlyph } from '../lib/categoryIcons'
+import { CategoryBudget, CategoryDef, Goal, ImportantDate } from '../types'
+import { CategoryIconGlyph, suggestIconForName, translateCategoryName } from '../lib/categoryIcons'
 import { MONTHLY_PRESETS, RARE_PRESETS, OnboardingPreset } from '../lib/onboardingPresets'
+import { useT } from '../lib/i18n'
 
 /**
  * First-run setup wizard — instead of dropping a new person into an empty app, it asks four
  * short blocks of questions and creates their budgets / important dates / goals from the
  * answers.
  *
- * STAGE 16.1 (this version): mock skeleton only. Navigation between the five steps, the
- * "skip", "add another" (no limit) and "back" controls, and the running summary all work, but
- * nothing is written to AppState yet — added items live in local state and drive the summary.
- * Wiring the real create handlers (setBudgets / addImportantDate / addGoal from App.tsx, the
- * same ones the existing forms call — never a new mutation path) is stage 16.2, and the
- * first-run detection + "run again" button in Settings is stage 16.3.
- *
- * Copy is inline Russian for now so the flow can be reviewed with real wording; it moves into
- * the i18n dictionaries (en/ru/lv) in stage 16.2.
+ * STAGE 16.2: the mock create helpers are replaced with the real App.tsx handlers
+ * (addBudget / addCategory / addImportantDate / addGoal — the same ones the normal forms use;
+ * never a mutation path of its own). The local `created` state is kept only to drive the
+ * running lists and the closing summary. First-run detection + the "run again" entry point in
+ * Settings is stage 16.3; App.tsx still renders this behind a temporary `?onboarding=1` gate.
  */
 
 type StepId = 'monthly' | 'rare' | 'birthdays' | 'goals' | 'done'
 const STEP_ORDER: StepId[] = ['monthly', 'rare', 'birthdays', 'goals', 'done']
 
-interface DraftBudget {
-  category: string
-  limit: number
-  period: 'month' | 'year'
-}
-interface DraftDate {
-  name: string
-  date: string
-  amount: number
-}
-interface DraftGoal {
-  name: string
-  amount: number
-  date: string
-}
+// Goal cards need an icon; the wizard doesn't ask for one, so everything it creates gets the
+// neutral fallback — the person can pick a real icon later when editing the goal.
+const DEFAULT_GOAL_ICON: Goal['icon'] = 'other'
 
 interface Created {
-  budgets: DraftBudget[]
-  dates: DraftDate[]
-  goals: DraftGoal[]
+  budgets: { category: string }[]
+  dates: { name: string }[]
+  goals: { name: string }[]
 }
 
-export default function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+export default function OnboardingWizard({
+  categories,
+  addBudget,
+  addCategory,
+  addImportantDate,
+  addGoal,
+  onComplete,
+}: {
+  categories: CategoryDef[]
+  addBudget: (b: Omit<CategoryBudget, 'createdAt'>) => void
+  addCategory: (def: CategoryDef) => void
+  addImportantDate: (d: Omit<ImportantDate, 'id' | 'createdAt'>) => void
+  addGoal: (g: Omit<Goal, 'id' | 'createdAt'>) => void
+  onComplete: () => void
+}) {
+  const t = useT()
   const [stepIndex, setStepIndex] = useState(0)
   const step = STEP_ORDER[stepIndex]
   const [created, setCreated] = useState<Created>({ budgets: [], dates: [], goals: [] })
@@ -63,18 +64,47 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
     setStepIndex((i) => Math.max(i - 1, 0))
   }
 
-  // --- mock "create" helpers (stage 16.1 — local state only) ---
-  function addBudget(b: DraftBudget) {
-    setCreated((c) => ({ ...c, budgets: [...c.budgets, b] }))
-    setToast(`✅ Бюджет «${b.category}» добавлен`)
+  /** Create a budget for a category, making sure the category itself exists first (same
+   *  order the normal "add budget" form follows: pick/create category, then the budget). */
+  function createBudget(category: string, icon: CategoryDef['icon'], limit: number, period: 'month' | 'year') {
+    const existing = categories.find((c) => c.name.toLowerCase() === category.toLowerCase())
+    const name = existing ? existing.name : category
+    if (!existing) addCategory({ name, icon })
+    addBudget({ category: name, limit, period })
+    setCreated((c) => ({ ...c, budgets: [...c.budgets, { category: name }] }))
+    setToast(t.onboarding.budgetAdded(translateCategoryName(t, name)))
   }
-  function addDate(d: DraftDate) {
-    setCreated((c) => ({ ...c, dates: [...c.dates, d] }))
-    setToast(`✅ Дата «${d.name}» добавлена`)
+
+  function pickPreset(p: OnboardingPreset) {
+    createBudget(p.category, p.icon, p.defaultLimit, p.period)
   }
-  function addGoal(g: DraftGoal) {
-    setCreated((c) => ({ ...c, goals: [...c.goals, g] }))
-    setToast(`✅ Цель «${g.name}» добавлена`)
+
+  /** "Something else" — the same resolution CategorySelect.confirmCreate() uses: a name that
+   *  only differs by case from an existing category resolves to that one; otherwise a new
+   *  category is created with an auto-suggested icon. */
+  function addCustomBudget(rawName: string, period: 'month' | 'year') {
+    const name = rawName.trim()
+    if (!name) return
+    createBudget(name, suggestIconForName(name) ?? 'other', 0, period)
+  }
+
+  function addBirthday(name: string, date: string, giftBudget: number) {
+    addImportantDate({
+      name,
+      date,
+      category: 'birthday',
+      recurring: true,
+      targetAmount: giftBudget > 0 ? giftBudget : undefined,
+      savedAmount: giftBudget > 0 ? 0 : undefined,
+    })
+    setCreated((c) => ({ ...c, dates: [...c.dates, { name }] }))
+    setToast(t.onboarding.dateAdded(name))
+  }
+
+  function addGoalEntry(name: string, targetAmount: number, targetDate: string) {
+    addGoal({ name, targetAmount, savedAmount: 0, targetDate, icon: DEFAULT_GOAL_ICON })
+    setCreated((c) => ({ ...c, goals: [...c.goals, { name }] }))
+    setToast(t.onboarding.goalAdded(name))
   }
 
   return (
@@ -82,11 +112,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
       <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-paper-line">
         <div className="flex items-center gap-2">
           {stepIndex > 0 && step !== 'done' && (
-            <button
-              onClick={goBack}
-              className="p-2 -ml-2 text-ink-softer hover:text-ink"
-              aria-label="Назад"
-            >
+            <button onClick={goBack} className="p-2 -ml-2 text-ink-softer hover:text-ink" aria-label={t.onboarding.back}>
               <ChevronLeft size={18} />
             </button>
           )}
@@ -94,7 +120,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
         </div>
         {step !== 'done' && (
           <button onClick={onComplete} className="text-sm text-ink-softer hover:text-ink px-2 py-2 -mr-2">
-            Пропустить
+            {t.onboarding.skip}
           </button>
         )}
       </header>
@@ -102,65 +128,61 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
       <main className="flex-1 w-full max-w-lg mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
         {step === 'monthly' && (
           <PresetStep
-            bubble="Какие траты повторяются каждый месяц?"
-            hint="Выбери подходящее — я заведу на это месячный бюджет. Сумму потом подправишь."
+            bubble={t.onboarding.monthlyBubble}
+            hint={t.onboarding.monthlyHint}
             presets={MONTHLY_PRESETS}
             addedCategories={created.budgets.map((b) => b.category)}
-            onPick={(p) => addBudget({ category: p.category, limit: p.defaultLimit, period: p.period })}
-            onCustom={(name) => addBudget({ category: name, limit: 0, period: 'month' })}
+            onPick={pickPreset}
+            onCustom={(name) => addCustomBudget(name, 'month')}
             onNext={goNext}
           />
         )}
 
         {step === 'rare' && (
           <PresetStep
-            bubble="А что бывает реже, но регулярно?"
-            hint="Это станет годовым бюджетом — удобно откладывать заранее."
+            bubble={t.onboarding.rareBubble}
+            hint={t.onboarding.rareHint}
             presets={RARE_PRESETS}
             addedCategories={created.budgets.map((b) => b.category)}
-            onPick={(p) => addBudget({ category: p.category, limit: p.defaultLimit, period: p.period })}
-            onCustom={(name) => addBudget({ category: name, limit: 0, period: 'year' })}
+            onPick={pickPreset}
+            onCustom={(name) => addCustomBudget(name, 'year')}
             onNext={goNext}
           />
         )}
 
         {step === 'birthdays' && (
           <RepeatEntryStep
-            bubble="Дни рождения, которые важно не забыть?"
+            bubble={t.onboarding.birthdaysBubble}
             added={created.dates.map((d) => d.name)}
             fields={[
-              { key: 'name', label: 'Чей день рождения', type: 'text', placeholder: 'Мама' },
-              { key: 'date', label: 'Дата', type: 'date' },
-              { key: 'amount', label: 'Бюджет на подарок', type: 'number', placeholder: '50' },
+              { key: 'name', label: t.onboarding.birthdayNameLabel, type: 'text', placeholder: t.onboarding.birthdayNamePlaceholder },
+              { key: 'date', label: t.onboarding.birthdayDateLabel, type: 'date' },
+              { key: 'amount', label: t.onboarding.birthdayGiftLabel, type: 'number', placeholder: '50' },
             ]}
-            onAdd={(v) => addDate({ name: v.name, date: v.date, amount: Number(v.amount) || 0 })}
+            onAdd={(v) => addBirthday(v.name.trim(), v.date, Number(v.amount) || 0)}
             onNext={goNext}
-            nextLabel="Дальше →"
+            nextLabel={t.onboarding.next}
           />
         )}
 
         {step === 'goals' && (
           <RepeatEntryStep
-            bubble="Крупные покупки или цели в этом году?"
+            bubble={t.onboarding.goalsBubble}
             added={created.goals.map((g) => g.name)}
             fields={[
-              { key: 'name', label: 'Название', type: 'text', placeholder: 'Новый ноутбук' },
-              { key: 'amount', label: 'Сколько нужно', type: 'number', placeholder: '1200' },
-              { key: 'date', label: 'К какому сроку', type: 'date' },
+              { key: 'name', label: t.onboarding.goalNameLabel, type: 'text', placeholder: t.onboarding.goalNamePlaceholder },
+              { key: 'amount', label: t.onboarding.goalAmountLabel, type: 'number', placeholder: '1200' },
+              { key: 'date', label: t.onboarding.goalDeadlineLabel, type: 'date' },
             ]}
-            onAdd={(v) => addGoal({ name: v.name, amount: Number(v.amount) || 0, date: v.date })}
+            onAdd={(v) => addGoalEntry(v.name.trim(), Number(v.amount) || 0, v.date)}
             onNext={goNext}
-            nextLabel="Готово"
+            nextLabel={t.onboarding.finish}
           />
         )}
 
         {step === 'done' && (
           <DoneStep
-            counts={{
-              budgets: created.budgets.length,
-              dates: created.dates.length,
-              goals: created.goals.length,
-            }}
+            counts={{ budgets: created.budgets.length, dates: created.dates.length, goals: created.goals.length }}
             onComplete={onComplete}
           />
         )}
@@ -233,6 +255,7 @@ function PresetStep({
   onCustom: (name: string) => void
   onNext: () => void
 }) {
+  const t = useT()
   const [customOpen, setCustomOpen] = useState(false)
   const [customName, setCustomName] = useState('')
 
@@ -245,13 +268,15 @@ function PresetStep({
     setCustomOpen(false)
   }
 
+  const isAdded = (category: string) => addedCategories.some((c) => c.toLowerCase() === category.toLowerCase())
+
   return (
     <>
       <Bubble text={bubble} hint={hint} />
 
       <div className="grid grid-cols-2 gap-2.5">
         {presets.map((p) => {
-          const added = addedCategories.includes(p.category)
+          const added = isAdded(p.category)
           return (
             <button
               key={p.category}
@@ -259,9 +284,7 @@ function PresetStep({
               onClick={() => !added && onPick(p)}
               disabled={added}
               className={`flex items-center gap-2 px-3 py-3 rounded border text-sm text-left transition-colors ${
-                added
-                  ? 'border-sage bg-sage-light text-sage-dark'
-                  : 'border-paper-line text-ink hover:border-ink-softer/40'
+                added ? 'border-sage bg-sage-light text-sage-dark' : 'border-paper-line text-ink hover:border-ink-softer/40'
               }`}
             >
               {added ? (
@@ -269,7 +292,7 @@ function PresetStep({
               ) : (
                 <CategoryIconGlyph icon={p.icon} size={16} className="text-ink-softer shrink-0" />
               )}
-              <span className="min-w-0 truncate">{p.category}</span>
+              <span className="min-w-0 truncate">{translateCategoryName(t, p.category)}</span>
             </button>
           )
         })}
@@ -280,7 +303,7 @@ function PresetStep({
           className="flex items-center gap-2 px-3 py-3 rounded border border-dashed border-paper-line text-sm text-ink-softer hover:text-ink hover:border-ink-softer/40 transition-colors"
         >
           <Plus size={16} className="shrink-0" />
-          Своё
+          {t.onboarding.customOption}
         </button>
       </div>
 
@@ -291,20 +314,20 @@ function PresetStep({
             autoFocus
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
-            placeholder="Название траты"
+            placeholder={t.onboarding.customPlaceholder}
             className="flex-1 min-w-0 px-3 py-2.5 border border-paper-line rounded text-sm focus:border-sage outline-none"
           />
           <button
             type="submit"
             className="px-4 py-2.5 bg-ink text-paper rounded text-sm font-medium hover:bg-ink-light transition-colors shrink-0"
           >
-            Добавить
+            {t.onboarding.customAdd}
           </button>
         </form>
       )}
 
       <div className="mt-2">
-        <PrimaryButton onClick={onNext}>Дальше →</PrimaryButton>
+        <PrimaryButton onClick={onNext}>{t.onboarding.next}</PrimaryButton>
       </div>
     </>
   )
@@ -332,6 +355,7 @@ function RepeatEntryStep({
   onNext: () => void
   nextLabel: string
 }) {
+  const t = useT()
   const empty = () => Object.fromEntries(fields.map((f) => [f.key, ''])) as Record<string, string>
   const [values, setValues] = useState<Record<string, string>>(empty())
   const [error, setError] = useState('')
@@ -340,7 +364,7 @@ function RepeatEntryStep({
     e.preventDefault()
     for (const f of fields) {
       if (!values[f.key]?.trim()) {
-        setError('Заполни все поля')
+        setError(t.onboarding.fillAllFields)
         return
       }
     }
@@ -384,7 +408,7 @@ function RepeatEntryStep({
           className="inline-flex items-center justify-center gap-1.5 min-h-[44px] py-2.5 border border-ink text-ink rounded font-medium text-sm hover:bg-paper transition-colors"
         >
           <Plus size={15} />
-          {added.length > 0 ? 'Ещё один' : 'Добавить'}
+          {added.length > 0 ? t.onboarding.addAnother : t.onboarding.addFirst}
         </button>
       </form>
 
@@ -402,33 +426,31 @@ function DoneStep({
   counts: { budgets: number; dates: number; goals: number }
   onComplete: () => void
 }) {
-  const parts = [
-    counts.budgets > 0 && `${counts.budgets} ${plural(counts.budgets, 'бюджет', 'бюджета', 'бюджетов')}`,
-    counts.dates > 0 && `${counts.dates} ${plural(counts.dates, 'дату', 'даты', 'дат')}`,
-    counts.goals > 0 && `${counts.goals} ${plural(counts.goals, 'цель', 'цели', 'целей')}`,
-  ].filter(Boolean)
+  const t = useT()
+  const lines = [
+    counts.budgets > 0 && t.onboarding.summaryBudgets(counts.budgets),
+    counts.dates > 0 && t.onboarding.summaryDates(counts.dates),
+    counts.goals > 0 && t.onboarding.summaryGoals(counts.goals),
+  ].filter(Boolean) as string[]
 
   return (
     <div className="flex flex-col items-center text-center gap-4 py-8">
       <span className="w-14 h-14 rounded-full bg-gold-light text-gold-dark flex items-center justify-center">
         <PartyPopper size={26} strokeWidth={1.75} />
       </span>
-      <h2 className="font-display font-semibold text-xl">Готово!</h2>
-      <p className="text-sm text-ink-softer max-w-xs">
-        {parts.length > 0 ? `Ты настроил: ${parts.join(', ')}.` : 'Можно начинать — настроить всё это можно и позже.'}
-      </p>
+      <h2 className="font-display font-semibold text-xl">{t.onboarding.doneTitle}</h2>
+      {lines.length > 0 ? (
+        <ul className="flex flex-col gap-1 text-sm text-ink-softer">
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-ink-softer max-w-xs">{t.onboarding.doneEmpty}</p>
+      )}
       <div className="w-full mt-2">
-        <PrimaryButton onClick={onComplete}>Перейти в приложение</PrimaryButton>
+        <PrimaryButton onClick={onComplete}>{t.onboarding.enterApp}</PrimaryButton>
       </div>
     </div>
   )
-}
-
-/** Russian numeric plural: 1 бюджет / 2 бюджета / 5 бюджетов. */
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return one
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few
-  return many
 }

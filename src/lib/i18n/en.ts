@@ -480,6 +480,14 @@ const en = {
     Freelance: 'Freelance',
     Savings: 'Savings',
     Other: 'Other',
+    // Added for the onboarding-wizard presets (src/lib/onboardingPresets.ts).
+    Subscriptions: 'Subscriptions',
+    Loan: 'Loan',
+    Gym: 'Gym',
+    Insurance: 'Insurance',
+    'Car service': 'Car service',
+    Dentist: 'Dentist',
+    'Holiday gifts': 'Holiday gifts',
   } as Record<string, string>,
 
   goalIcons: {
@@ -595,6 +603,45 @@ const en = {
     holiday: ['Getting closer — worth planning ahead.', 'Coming up soon on the calendar.', 'A good one to prepare for early.'],
     genericDate: ['Coming up on the calendar.', "Don't forget about this one.", 'Worth keeping an eye on.'],
     dateFunded: ['All set — already saved up for this one.', 'Fully funded — nothing more to set aside.'],
+  },
+
+  // First-run setup wizard — src/components/OnboardingWizard.tsx. Chat-style bubbles + option
+  // buttons that create the person's first budgets / important dates / goals. Preset button
+  // captions are NOT here — they render from `defaultCategoryNames` via translateCategoryName().
+  onboarding: {
+    skip: 'Skip',
+    back: 'Back',
+    next: 'Next →',
+    finish: 'Done',
+    customOption: 'Something else',
+    customPlaceholder: 'Name of the expense',
+    customAdd: 'Add',
+    addAnother: 'Add another',
+    addFirst: 'Add',
+    fillAllFields: 'Fill in all the fields',
+    monthlyBubble: 'What do you spend on every month?',
+    monthlyHint: "Pick what fits — I'll set up a monthly budget for it. You can adjust the amount later.",
+    rareBubble: 'And what comes up rarely, but regularly?',
+    rareHint: 'This becomes a yearly budget — handy for setting money aside ahead of time.',
+    birthdaysBubble: "Birthdays you don't want to forget?",
+    birthdayNameLabel: 'Whose birthday',
+    birthdayNamePlaceholder: 'Mom',
+    birthdayDateLabel: 'Date',
+    birthdayGiftLabel: 'Gift budget',
+    goalsBubble: 'Big purchases or goals this year?',
+    goalNameLabel: 'Name',
+    goalNamePlaceholder: 'New laptop',
+    goalAmountLabel: 'How much you need',
+    goalDeadlineLabel: 'By when',
+    budgetAdded: (name: string) => `✅ Budget "${name}" added`,
+    dateAdded: (name: string) => `✅ Date "${name}" added`,
+    goalAdded: (name: string) => `✅ Goal "${name}" added`,
+    doneTitle: 'All set!',
+    doneEmpty: "You're ready to go — you can set all this up later too.",
+    summaryBudgets: (n: number) => `Budgets: ${n}`,
+    summaryDates: (n: number) => `Important dates: ${n}`,
+    summaryGoals: (n: number) => `Goals: ${n}`,
+    enterApp: 'Go to the app',
   },
 }
 

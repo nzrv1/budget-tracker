@@ -235,6 +235,21 @@ export default function App() {
     setState((prev) => ({ ...prev, budgets }))
   }
 
+  // Appends one budget, stamping createdAt — the same shape BudgetsView.handleAdd builds before
+  // calling setBudgets([...]), lifted into a named helper (alongside addGoal/addImportantDate) so
+  // the onboarding wizard has a single "create a budget" entry point to call rather than its own
+  // state mutation. No-ops on a category+period that already has a budget, exactly like
+  // BudgetsView's own duplicate guard.
+  function addBudget(b: Omit<CategoryBudget, 'createdAt'>) {
+    setState((prev) => {
+      const exists = prev.budgets.some(
+        (x) => x.category.toLowerCase() === b.category.toLowerCase() && x.period === b.period
+      )
+      if (exists) return prev
+      return { ...prev, budgets: [...prev.budgets, { ...b, createdAt: new Date().toISOString() }] }
+    })
+  }
+
   function addCategory(def: CategoryDef) {
     setState((prev) => {
       const exists = prev.categories.some((c) => c.name.toLowerCase() === def.name.toLowerCase())
@@ -449,7 +464,14 @@ export default function App() {
   if (showOnboardingSkeleton) {
     return (
       <I18nProvider lang={language}>
-        <OnboardingWizard onComplete={() => { window.location.href = window.location.pathname }} />
+        <OnboardingWizard
+          categories={state.categories}
+          addBudget={addBudget}
+          addCategory={addCategory}
+          addImportantDate={addImportantDate}
+          addGoal={addGoal}
+          onComplete={() => { window.location.href = window.location.pathname }}
+        />
       </I18nProvider>
     )
   }
