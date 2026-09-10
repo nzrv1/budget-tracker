@@ -125,23 +125,32 @@ export default function OnboardingWizard({
 
   return (
     <div className="min-h-screen bg-paper text-ink font-body flex flex-col">
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-paper-line">
-        <div className="flex items-center gap-2">
+      {/* safe-area insets: inside Telegram the Mini App fills the whole screen, so the header
+          has to clear the notch and the scroll area has to clear the home indicator. */}
+      <header className="flex items-center justify-between px-4 sm:px-6 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))] border-b border-paper-line">
+        <div className="flex items-center gap-1">
           {stepIndex > 0 && step !== 'done' && (
-            <button onClick={goBack} className="p-2 -ml-2 text-ink-softer hover:text-ink" aria-label={t.onboarding.back}>
+            <button
+              onClick={goBack}
+              className="-ml-1 flex h-11 w-11 items-center justify-center text-ink-softer hover:text-ink"
+              aria-label={t.onboarding.back}
+            >
               <ChevronLeft size={18} />
             </button>
           )}
           <StepDots total={STEP_ORDER.length - 1} current={stepIndex} />
         </div>
         {step !== 'done' && (
-          <button onClick={onComplete} className="text-sm text-ink-softer hover:text-ink px-2 py-2 -mr-2">
+          <button
+            onClick={onComplete}
+            className="-mr-1 flex min-h-[44px] items-center px-3 text-sm text-ink-softer hover:text-ink"
+          >
             {t.onboarding.skip}
           </button>
         )}
       </header>
 
-      <main className="flex-1 w-full max-w-lg mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+      <main className="flex-1 w-full max-w-lg mx-auto px-4 sm:px-6 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))] flex flex-col gap-6">
         {step === 'monthly' && (
           <PresetStep
             bubble={t.onboarding.monthlyBubble}
@@ -205,7 +214,7 @@ export default function OnboardingWizard({
       </main>
 
       {toast && (
-        <div className="fixed bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-40">
+        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-40">
           <div className="bg-white border-l-4 border-sage rounded shadow-lg shadow-ink/5 px-4 py-3 flex items-center gap-2.5 animate-[slideIn_0.2s_ease-out]">
             <CheckCircle2 size={17} className="text-sage-dark shrink-0" strokeWidth={1.75} />
             <p className="text-sm font-medium text-ink">{toast}</p>
@@ -333,7 +342,7 @@ function PresetStep({
           />
           <button
             type="submit"
-            className="px-4 py-2.5 bg-ink text-paper rounded text-sm font-medium hover:bg-ink-light transition-colors shrink-0"
+            className="min-h-[44px] px-4 bg-ink text-paper rounded text-sm font-medium hover:bg-ink-light transition-colors shrink-0"
           >
             {t.onboarding.customAdd}
           </button>
