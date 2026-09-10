@@ -7,7 +7,7 @@ import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../li
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
 import BudgetPeriodBanner from './BudgetPeriodBanner'
-import { duePaydaySources, planForMonth, startOfMonth } from '../lib/planning'
+import { budgetDailyRate, duePaydaySources, planForMonth, startOfMonth } from '../lib/planning'
 import { BudgetPeriodReview, pendingBudgetPeriodReviews } from '../lib/budgetPeriods'
 import { ViewKey } from '../App'
 import { useI18n } from '../lib/i18n'
@@ -80,6 +80,22 @@ export default function Dashboard({
   // from transactions logged so far.
   const periodObligations = plan.total * monthsInPeriod
   const theoreticalSaved = income - periodObligations
+
+  // Compact "watch it weekly" readout: any budget whose spending this week has already
+  // passed its weekly-equivalent allowance (its own daily rate x 7). Non-interactive — the
+  // full day/week/month/year view lives in Reports.
+  const weekRange = periodRange('week', today0)
+  const weekTx = filterByRange(state.transactions, weekRange.from, weekRange.to)
+  const overWeekly = state.budgets
+    .map((b) => {
+      const spent = weekTx
+        .filter((tx) => tx.type === 'expense' && tx.category === b.category)
+        .reduce((s, tx) => s + tx.amount, 0)
+      const allowance = budgetDailyRate(b) * 7
+      return { category: b.category, spent, allowance }
+    })
+    .filter((b) => b.allowance > 0 && b.spent > b.allowance)
+    .sort((a, b) => b.spent / b.allowance - a.spent / a.allowance)
 
   const recent = [...state.transactions]
     .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
@@ -190,6 +206,26 @@ export default function Dashboard({
         />
         <StatTile label={t.dashboard.setAside} value={formatMoney(currentMonthSaved, state.settings.currency)} tone="gold" />
       </div>
+
+      {overWeekly.length > 0 && (
+        <div className="mb-6 rounded-lg border border-clay/30 bg-clay-light/40 p-3">
+          <p className="text-xs font-semibold text-clay-dark mb-2 flex items-center gap-1.5">
+            <AlertTriangle size={13} strokeWidth={2} className="shrink-0" />
+            {t.dashboard.overWeeklyTitle}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {overWeekly.map((b) => (
+              <div key={b.category} className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="text-ink truncate min-w-0">{translateCategoryName(t, b.category)}</span>
+                <span className="font-tabular text-xs text-clay-dark shrink-0">
+                  {formatMoney(b.spent, state.settings.currency)} / {formatMoney(b.allowance, state.settings.currency)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-ink-softer mt-2 leading-relaxed">{t.dashboard.overWeeklyHint}</p>
+        </div>
+      )}
 
       {/* Primary action — full-width on phones */}
       <button

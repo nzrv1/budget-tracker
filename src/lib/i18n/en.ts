@@ -115,6 +115,8 @@ const en = {
     setAside: 'Set aside',
     openNotifications: 'Open notifications',
     openSettings: 'Open settings',
+    overWeeklyTitle: 'Over budget this week',
+    overWeeklyHint: 'Tracked at a weekly pace — see Reports to change the period.',
     savingsGoalTitle: 'Monthly savings goal',
     savingsGoalProgress: (percent: number) =>
       `${percent}% of this month's savings goal — based on what your active Goals need this month to stay on track.`,

@@ -95,6 +95,8 @@ const ru: Dictionary = {
     setAside: 'Отложено',
     openNotifications: 'Открыть уведомления',
     openSettings: 'Открыть настройки',
+    overWeeklyTitle: 'Перерасход за эту неделю',
+    overWeeklyHint: 'Отслеживается в недельном темпе — период можно сменить в Отчётах.',
     savingsGoalTitle: 'Месячная цель по накоплениям',
     savingsGoalProgress: (percent) =>
       `${percent}% от цели по накоплениям на этот месяц — на основе того, сколько нужно вашим активным целям в этом месяце.`,
