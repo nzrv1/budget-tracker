@@ -64,6 +64,7 @@ export function migrate(state: AppState): AppState {
   // fold that into the new per-source map (keyed 'primary') if present.
   const legacyLastPrompt = (state.settings as any)?.lastSalaryPromptMonth as string | undefined
   const handledPaydays = state.settings?.handledPaydays || (legacyLastPrompt ? { primary: legacyLastPrompt } : {})
+  const autoIncomePaydays = state.settings?.autoIncomePaydays || {}
   const handledBudgetPeriods = state.settings?.handledBudgetPeriods || {}
   return {
     ...state,
@@ -73,7 +74,7 @@ export function migrate(state: AppState): AppState {
     reminderRules,
     incomeSources,
     readNotificationIds,
-    settings: { ...state.settings, theme, language, notificationLevel, onboardingDone, handledPaydays, handledBudgetPeriods },
+    settings: { ...state.settings, theme, language, notificationLevel, onboardingDone, handledPaydays, autoIncomePaydays, handledBudgetPeriods },
   }
 }
 

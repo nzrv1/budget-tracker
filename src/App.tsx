@@ -20,7 +20,7 @@ import { todayLocalDateString } from './lib/utils'
 import { pullRemoteState, pushRemoteState } from './lib/sync'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
-import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/planning'
+import { planForMonth, startOfMonth, monthKey, duePaydaySources, duePaydayIncome } from './lib/planning'
 import { BudgetPeriodReview, budgetKey } from './lib/budgetPeriods'
 import { createTranslator, DEFAULT_LANGUAGE, I18nProvider, localeForLanguage } from './lib/i18n'
 import Sidebar from './components/Sidebar'
@@ -167,6 +167,40 @@ export default function App() {
   const language = state.settings.language || DEFAULT_LANGUAGE
   const t = useMemo(() => createTranslator(language), [language])
   const locale = useMemo(() => localeForLanguage(language), [language])
+
+  // On (or after) payday, record the salary / income as a real income transaction so the
+  // balance reflects that it landed — once per source per month (settings.autoIncomePaydays).
+  // Waits for the cloud pull to settle so a device that's behind doesn't re-log what the newer
+  // copy already recorded. The whole decision lives inside the state updater so it's atomic:
+  // once a payday is stamped into autoIncomePaydays, duePaydayIncome returns nothing and this
+  // no-ops (also making it safe against StrictMode's double-invoke in dev).
+  useEffect(() => {
+    if (!syncResolved) return
+    setState((prev) => {
+      const due = duePaydayIncome(prev.settings, prev.incomeSources, new Date(), t)
+      if (due.length === 0) return prev
+      const monthK = monthKey(new Date())
+      const logged: Transaction[] = due.map((d) => ({
+        id: uid(),
+        type: 'income',
+        category: 'Salary',
+        amount: d.amount,
+        date: d.date,
+        note: d.label,
+      }))
+      return {
+        ...prev,
+        transactions: [...logged, ...prev.transactions],
+        settings: {
+          ...prev.settings,
+          autoIncomePaydays: {
+            ...(prev.settings.autoIncomePaydays || {}),
+            ...Object.fromEntries(due.map((d) => [d.key, monthK])),
+          },
+        },
+      }
+    })
+  }, [syncResolved, t])
 
   // First-run setup wizard. Auto-opens once when the app is genuinely empty and the wizard
   // hasn't been done (storage.ts backfills `onboardingDone` to true for anyone with data, so

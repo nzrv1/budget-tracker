@@ -105,24 +105,39 @@ export function totals(transactions: Transaction[]) {
 }
 
 /**
- * Income baked into Settings (basic salary + any extra income sources) for a given period —
- * counted on top of whatever's actually been logged as a transaction, with no de-duplication
- * between the two (the model chosen for this app: Settings is the baseline, transactions add
- * on top). day/week are prorated off the same 30.44-day month used for budget normalization
- * (see planning.ts: budgetDailyRate) so every screen treats "a month" the same way; year is
- * "months elapsed so far this year", matching periodRange('year') which runs Jan 1 → today,
- * not Jan 1 → Dec 31. Shared by Dashboard and Reports so the two screens can't drift apart.
+ * The *projected* part of Settings income (basic salary + extra income sources) for a period —
+ * counted on top of what's been logged as a transaction. A payday that has already been
+ * auto-logged for a given month (settings.autoIncomePaydays — see planning.ts#duePaydayIncome)
+ * is NOT projected here: the real income transaction is the source of truth for that month, so
+ * this returns only the sources still ahead of their payday. day/week prorate off the same
+ * 30.44-day month used for budget normalization; year is "months elapsed so far this year",
+ * matching periodRange('year'). Shared by Dashboard and Reports so the two can't drift apart.
  */
 export function settingsIncomeForPeriod(
-  settings: { monthlyIncome: number },
-  incomeSources: { amount: number }[],
+  settings: { monthlyIncome: number; autoIncomePaydays?: Record<string, string> },
+  incomeSources: { id: string; amount: number }[],
   period: 'day' | 'week' | 'month' | 'year',
   anchor: Date = new Date()
 ): number {
-  const monthlyBase = settings.monthlyIncome + incomeSources.reduce((s, src) => s + src.amount, 0)
-  if (period === 'year') return monthlyBase * (anchor.getMonth() + 1)
-  if (period === 'month') return monthlyBase
-  const daily = monthlyBase / 30.44
+  const auto = settings.autoIncomePaydays || {}
+  const sources: { key: string; amount: number }[] = [
+    { key: 'primary', amount: settings.monthlyIncome },
+    ...incomeSources.map((s) => ({ key: s.id, amount: s.amount })),
+  ]
+  const monthKeyOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const projectedFor = (d: Date) => {
+    const mk = monthKeyOf(d)
+    return sources.reduce((sum, s) => (auto[s.key] === mk ? sum : sum + s.amount), 0)
+  }
+
+  if (period === 'year') {
+    let total = 0
+    for (let m = 0; m <= anchor.getMonth(); m++) total += projectedFor(new Date(anchor.getFullYear(), m, 1))
+    return total
+  }
+  const base = projectedFor(anchor)
+  if (period === 'month') return base
+  const daily = base / 30.44
   return period === 'week' ? daily * 7 : daily
 }
 

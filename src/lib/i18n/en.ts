@@ -127,6 +127,7 @@ const en = {
     noMatch: 'No transactions match your filters.',
     editAria: 'Edit',
     deleteAria: 'Delete',
+    deleteConfirm: 'Delete this transaction?',
   },
 
   reports: {

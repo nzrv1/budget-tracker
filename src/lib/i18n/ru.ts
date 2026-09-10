@@ -108,6 +108,7 @@ const ru: Dictionary = {
     noMatch: 'Нет операций, подходящих под фильтры.',
     editAria: 'Изменить',
     deleteAria: 'Удалить',
+    deleteConfirm: 'Удалить эту операцию?',
   },
 
   reports: {

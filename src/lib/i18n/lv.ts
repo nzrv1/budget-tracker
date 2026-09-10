@@ -107,6 +107,7 @@ const lv: Dictionary = {
     noMatch: 'Nevienam darījumam neatbilst izvēlētie filtri.',
     editAria: 'Rediģēt',
     deleteAria: 'Dzēst',
+    deleteConfirm: 'Dzēst šo darījumu?',
   },
 
   reports: {

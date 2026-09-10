@@ -59,6 +59,47 @@ export function duePaydaySources(
   })
 }
 
+export interface DuePaydayIncome {
+  key: string // 'primary' or an IncomeSource id
+  label: string
+  amount: number
+  date: string // 'YYYY-MM-DD' — this month's payday, clamped to the last day of short months
+}
+
+/**
+ * Salary / income paydays that have been reached this month and haven't yet been auto-logged
+ * as an income transaction (settings.autoIncomePaydays). The App.tsx effect turns each of
+ * these into a real income transaction so the balance reflects that payday landed, then
+ * records the month so it fires once. Only ever the current month — missed months aren't
+ * back-filled, since the app can't know whether the person was even using it then.
+ */
+export function duePaydayIncome(
+  settings: { salaryDay?: number; monthlyIncome: number; autoIncomePaydays?: Record<string, string> },
+  incomeSources: IncomeSource[],
+  now: Date = new Date(),
+  t?: Dictionary
+): DuePaydayIncome[] {
+  const monthK = monthKey(now)
+  const dim = daysInMonth(now.getFullYear(), now.getMonth())
+  const auto = settings.autoIncomePaydays || {}
+  const basicSalaryLabel = t ? t.salaryPrompt.basicSalaryLabel : 'Basic salary'
+  const incomeFallbackLabel = t ? t.salaryPrompt.incomeSourceFallbackLabel : 'Income'
+  const out: DuePaydayIncome[] = []
+
+  const consider = (key: string, payDay: number | undefined, amount: number, label: string) => {
+    if (!payDay || payDay < 1 || amount <= 0) return
+    const effectiveDay = Math.min(payDay, dim)
+    if (now.getDate() < effectiveDay) return
+    if (auto[key] === monthK) return
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(effectiveDay).padStart(2, '0')}`
+    out.push({ key, label, amount, date })
+  }
+
+  consider('primary', settings.salaryDay, settings.monthlyIncome, basicSalaryLabel)
+  for (const src of incomeSources) consider(src.id, src.payDay, src.amount, src.name || incomeFallbackLabel)
+  return out
+}
+
 function monthsBetweenInclusive(from: Date, to: Date): number {
   const diff = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth())
   return Math.max(diff + 1, 1)

@@ -137,6 +137,12 @@ export interface Settings {
   // doesn't repeat. Keyed by 'primary' for the basic salary above, or an IncomeSource id
   // for an extra income source — each pays on its own day and gets its own reminder.
   handledPaydays?: Record<string, string> // key -> 'YYYY-MM'
+  // Which salary/income paydays have already been auto-logged as an income transaction this
+  // month (so the balance reflects that payday landed). Keyed the same way as handledPaydays.
+  // See lib/planning.ts#duePaydayIncome and the auto-log effect in App.tsx. Once a payday is
+  // recorded here, settingsIncomeForPeriod stops also projecting it — the real transaction is
+  // now the source of truth for that month.
+  autoIncomePaydays?: Record<string, string> // key -> 'YYYY-MM'
   // Tracks which completed budget periods have already been reviewed (surplus moved somewhere,
   // overspend acknowledged, or just dismissed) — see lib/budgetPeriods.ts. Keyed by
   // `${category}::${period}` (the same composite identity BudgetsView already treats a budget

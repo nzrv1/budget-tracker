@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { AppState, Transaction, CategoryDef } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import { Card, SectionHeading } from './shared'
+import RowMenu from './RowMenu'
 import AddTransactionModal from './AddTransactionModal'
 import { EmptyState } from './Dashboard'
 import { useI18n } from '../lib/i18n'
@@ -105,44 +106,32 @@ export default function TransactionsView({
         ) : (
           <div className="divide-y divide-paper-line">
             {filtered.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between gap-3 px-5 py-3.5 group">
-                <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0">
+              <div key={tx.id} className="flex items-start gap-3 px-4 sm:px-5 py-3">
+                <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0 mt-0.5">
                   <CategoryIconGlyph icon={iconForCategory(state.categories, tx.category)} size={14} className="text-ink-softer" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-ink truncate">{tx.note || translateCategoryName(t, tx.category)}</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-paper text-ink-softer border border-paper-line shrink-0">
-                      {translateCategoryName(t, tx.category)}
+                  {/* Line 1: what it was + the amount. Line 2: category + date, smaller. */}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-medium text-ink truncate min-w-0">
+                      {tx.note || translateCategoryName(t, tx.category)}
+                    </span>
+                    <span className={`font-tabular text-sm font-medium shrink-0 ${tx.type === 'income' ? 'text-sage-dark' : 'text-ink'}`}>
+                      {tx.type === 'income' ? '+' : '-'}
+                      {formatMoney(tx.amount, state.settings.currency)}
                     </span>
                   </div>
-                  <p className="text-xs text-ink-softer mt-0.5">
+                  <p className="text-xs text-ink-softer mt-0.5 truncate">
+                    {translateCategoryName(t, tx.category)} ·{' '}
                     {parseLocalDate(tx.date).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </p>
                 </div>
-                <span className={`font-tabular text-sm font-medium shrink-0 ${tx.type === 'income' ? 'text-sage-dark' : 'text-ink'}`}>
-                  {tx.type === 'income' ? '+' : '-'}
-                  {formatMoney(tx.amount, state.settings.currency)}
-                </span>
-                {/* Always visible below lg: touch devices have no hover, so a hover-only reveal
-                    (opacity-0 group-hover:opacity-100) made these controls undiscoverable on
-                    mobile — there was no way to edit or delete a transaction from a phone. */}
-                <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => setEditing(tx)}
-                    className="p-2 text-ink-softer hover:text-ink hover:bg-paper rounded"
-                    aria-label={t.transactions.editAria}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => deleteTransaction(tx.id)}
-                    className="p-2 text-ink-softer hover:text-clay-dark hover:bg-clay-light rounded"
-                    aria-label={t.transactions.deleteAria}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                <RowMenu
+                  label={`${t.common.moreActions} — ${tx.note || translateCategoryName(t, tx.category)}`}
+                  onEdit={() => setEditing(tx)}
+                  onDelete={() => deleteTransaction(tx.id)}
+                  deleteConfirmLabel={t.transactions.deleteConfirm}
+                />
               </div>
             ))}
           </div>
