@@ -135,3 +135,21 @@ Continues the numbering from the wizard work (last stage 16.5).
 
 Each stage: real `npx tsc --noEmit`, `npm run build`, `npx playwright test` on the user's
 machine, plus a 375 px browser pass.
+
+---
+
+## Status — all stages shipped (2026-09-10)
+
+| Stage | Commit | Result |
+|---|---|---|
+| 17.1 layout shell | `0ff422b` | bottom tab bar + More sheet, rail `lg+` only, `overflow-x: clip` guard |
+| 17.2 primitives + Dashboard | `b787e20` | `StatTile`/`SummaryRow`/`CardHeading`; Dashboard +146px → 0 |
+| 17.3 Goals + Important Dates | `cbb5e47` | `RowMenu` (⋯ → Edit/Delete+confirm); name wrap; goals editable |
+| 17.4 Budgets | `b29600b` | period dropdown; `BudgetEditSheet` replaces inline number editor |
+| 17.5 Calendar | `4aa54ff` | collapsible months (~3600px → ~1400px scroll); hover handlers gone |
+| 17.6 sweep | `aa7ab42` | 44px tap targets, theme-token charts, `bg-white`→token, H2 skeleton, `e2e/mobile-layout.spec.ts` |
+
+Horizontal scroll at 375px on every screen: **0**. `tsc` / `npm run build` /
+`npx playwright test` (33) green throughout. Desktop (`lg+`) layout unchanged
+in structure. Needs a live pass in a real Telegram client for skeleton timing
+and notched-device safe-area.
