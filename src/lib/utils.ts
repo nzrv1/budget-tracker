@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Transaction } from '../types'
+import { BudgetPeriod, Transaction } from '../types'
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   EUR: '€',
@@ -36,6 +36,17 @@ export function periodRange(period: 'day' | 'week' | 'month' | 'year', anchor: D
     from.setHours(0, 0, 0, 0)
   }
   return { from, to }
+}
+
+/** A stable key identifying "which occurrence" of a recurring period a date falls in, so
+ * something tied to one occurrence (an insight, a budget period-review banner) keeps the same
+ * identity while that occurrence is ongoing and gets a new one when the next occurrence starts
+ * (e.g. a new month) — letting it come back as unseen/unhandled. Shared by insights.ts and
+ * budgetPeriods.ts so the two can't define "which week is this" differently. */
+export function periodInstanceKey(period: BudgetPeriod, from: Date): string {
+  if (period === 'year') return String(from.getFullYear())
+  if (period === 'month') return `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}`
+  return from.toISOString().slice(0, 10)
 }
 
 /**

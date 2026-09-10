@@ -50,12 +50,12 @@ export function mockState(): AppState {
   return {
     transactions,
     budgets: [
-      { category: 'Food', limit: 300, period: 'month' },
-      { category: 'Transport', limit: 100, period: 'month' },
-      { category: 'Shopping', limit: 150, period: 'month' },
-      { category: 'Entertainment', limit: 120, period: 'month' },
-      { category: 'Bills', limit: 250, period: 'month' },
-      { category: 'Health', limit: 80, period: 'month' },
+      { category: 'Food', limit: 300, period: 'month', createdAt: isoDaysAgo(90) },
+      { category: 'Transport', limit: 100, period: 'month', createdAt: isoDaysAgo(90) },
+      { category: 'Shopping', limit: 150, period: 'month', createdAt: isoDaysAgo(90) },
+      { category: 'Entertainment', limit: 120, period: 'month', createdAt: isoDaysAgo(90) },
+      { category: 'Bills', limit: 250, period: 'month', createdAt: isoDaysAgo(90) },
+      { category: 'Health', limit: 80, period: 'month', createdAt: isoDaysAgo(90) },
     ],
     categories: DEFAULT_CATEGORY_DEFS,
     goals: [

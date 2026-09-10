@@ -7,20 +7,19 @@ import {
   CategoryDef,
   ImportantDate,
   IncomeSource,
-  Language,
   ReminderOffsetKey,
   ReminderTargetKind,
   SAVINGS_CATEGORY,
   ThemeKey,
 } from './types'
 import { loadState, saveState, uid, STORAGE_KEY, migrate, getLastLocalChangeAt } from './lib/storage'
-import { getStartParamIntent } from './lib/telegram'
 import { emptyState } from './lib/mockData'
 import { todayLocalDateString } from './lib/utils'
 import { pullRemoteState, pushRemoteState } from './lib/sync'
 import { generateInsights } from './lib/insights'
 import { generateReminders } from './lib/goalReminders'
 import { planForMonth, startOfMonth, monthKey, duePaydaySources } from './lib/planning'
+import { BudgetPeriodReview, budgetKey } from './lib/budgetPeriods'
 import { createTranslator, DEFAULT_LANGUAGE, I18nProvider, localeForLanguage } from './lib/i18n'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
@@ -51,17 +50,6 @@ export default function App() {
   const [toasts, setToasts] = useState<{ id: string; title: string; tone: 'positive' | 'warning' | 'info' }[]>([])
   const [seenToastIds, setSeenToastIds] = useState<Set<string>>(new Set())
 
-  // A notification's "Отложить сейчас" deep link (?startapp=allocate_goal_<id>_<amount>) asks us
-  // to open Goals / Important Dates with that card's "add funds" field pre-filled. This holds the
-  // pending "goal | importantDate" intent until the matching card consumes it; `payday` /
-  // `settings` just switch view and need no follow-up. Read once on mount — see the effect below.
-  const [allocateIntent, setAllocateIntent] = useState<{ kind: 'goal' | 'importantDate'; id: string; amount: number } | null>(null)
-
-  // A `?startapp=lang_ru` deep link (the bot's language picker) wants the app to open in that
-  // language. Held in a ref, not applied immediately: the initial cloud pull below can replace
-  // the whole state a beat later, so we re-assert the language once that has settled.
-  const pendingLangRef = useRef<Language | null>(null)
-
   useEffect(() => {
     saveState(state)
   }, [state])
@@ -83,24 +71,6 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', state.settings.theme)
   }, [state.settings.theme])
 
-  // Deep link from a Telegram notification — decide the landing screen once, on launch, instead
-  // of the default dashboard. No new allocation logic: for goal/date we just navigate and hand
-  // the intent to the view, which pre-fills the existing "add funds" form.
-  useEffect(() => {
-    const intent = getStartParamIntent()
-    if (!intent) return
-    if (intent.kind === 'payday') setView('dashboard')
-    else if (intent.kind === 'settings') setView('settings')
-    else if (intent.kind === 'setLanguage') {
-      pendingLangRef.current = intent.lang
-      setState((prev) => ({ ...prev, settings: { ...prev.settings, language: intent.lang } }))
-    } else {
-      setAllocateIntent(intent)
-      setView(intent.kind === 'goal' ? 'goals' : 'important-dates')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   // Cloud sync (Telegram Phase 3) — no-op entirely outside Telegram (pullRemoteState/
   // pushRemoteState both resolve to nothing without a Telegram initData). On launch, decide once
   // whether this device's local copy or the one already in Supabase is newer — "last write wins",
@@ -117,13 +87,6 @@ export default function App() {
         setState(migrate(remote.state))
       } else {
         pushRemoteState(state)
-      }
-      // Re-assert a language picked in the bot ( ?startapp=lang_xx ) — a newer remote copy just
-      // above would otherwise have overwritten it with the previously-saved language.
-      if (pendingLangRef.current) {
-        const lang = pendingLangRef.current
-        pendingLangRef.current = null
-        setState((prev) => (prev.settings.language === lang ? prev : { ...prev, settings: { ...prev.settings, language: lang } }))
       }
       initialSyncDone.current = true
     })
@@ -376,6 +339,53 @@ export default function App() {
     markDuePaydaysHandled()
   }
 
+  // Marks one completed budget period as reviewed (surplus moved, overspend acknowledged, or
+  // just dismissed) so its banner (Dashboard, see pendingBudgetPeriodReviews) doesn't come back
+  // for that same occurrence — mirrors markDuePaydaysHandled's "record which occurrence was
+  // already handled" role for the payday prompt.
+  function markBudgetPeriodReviewed(review: BudgetPeriodReview) {
+    setState((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        handledBudgetPeriods: { ...(prev.settings.handledBudgetPeriods || {}), [review.key]: review.instanceKey },
+      },
+    }))
+  }
+
+  function dismissBudgetPeriodReview(review: BudgetPeriodReview) {
+    markBudgetPeriodReviewed(review)
+  }
+
+  // Moves a completed period's unspent budget into a goal's saved amount — goes through
+  // allocateToGoal, the same real-transaction mechanism the payday banner uses, so the money
+  // actually leaves spendable balance instead of just relabeling a number.
+  function moveBudgetSurplusToGoal(review: BudgetPeriodReview, goalId: string) {
+    if (review.remaining <= 0) return
+    allocateToGoal(goalId, review.remaining)
+    markBudgetPeriodReviewed(review)
+  }
+
+  function moveBudgetSurplusToImportantDate(review: BudgetPeriodReview, dateId: string) {
+    if (review.remaining <= 0) return
+    allocateToImportantDate(dateId, review.remaining)
+    markBudgetPeriodReviewed(review)
+  }
+
+  // Overspent a period? Shrink the budget's ongoing limit by exactly the overage, so future
+  // periods absorb the difference and the running total stays roughly on track. A budget's
+  // limit here is one ongoing figure, not versioned per period, so "reduce next period" is the
+  // same lever as editing the limit by hand in BudgetsView — just computed automatically.
+  function reduceBudgetLimitForOverspend(review: BudgetPeriodReview) {
+    const overage = -review.remaining
+    if (overage <= 0) return
+    setState((prev) => ({
+      ...prev,
+      budgets: prev.budgets.map((b) => (budgetKey(b) === review.key ? { ...b, limit: Math.max(b.limit - overage, 0) } : b)),
+    }))
+    markBudgetPeriodReviewed(review)
+  }
+
   function setTheme(theme: ThemeKey) {
     setState((prev) => ({ ...prev, settings: { ...prev.settings, theme } }))
   }
@@ -415,6 +425,10 @@ export default function App() {
               setView={setView}
               applyAutoAllocations={applyAutoAllocations}
               dismissSalaryPrompt={dismissSalaryPrompt}
+              moveBudgetSurplusToGoal={moveBudgetSurplusToGoal}
+              moveBudgetSurplusToImportantDate={moveBudgetSurplusToImportantDate}
+              reduceBudgetLimitForOverspend={reduceBudgetLimitForOverspend}
+              dismissBudgetPeriodReview={dismissBudgetPeriodReview}
             />
           )}
           {view === 'transactions' && (
@@ -435,8 +449,6 @@ export default function App() {
               updateGoal={updateGoal}
               deleteGoal={deleteGoal}
               allocateToGoal={allocateToGoal}
-              prefill={allocateIntent?.kind === 'goal' ? { id: allocateIntent.id, amount: allocateIntent.amount } : null}
-              onPrefillConsumed={() => setAllocateIntent(null)}
             />
           )}
           {view === 'important-dates' && (
@@ -446,8 +458,6 @@ export default function App() {
               updateImportantDate={updateImportantDate}
               deleteImportantDate={deleteImportantDate}
               allocateToImportantDate={allocateToImportantDate}
-              allocatePrefill={allocateIntent?.kind === 'importantDate' ? { id: allocateIntent.id, amount: allocateIntent.amount } : null}
-              onPrefillConsumed={() => setAllocateIntent(null)}
             />
           )}
           {view === 'calendar' && <CalendarView state={state} />}

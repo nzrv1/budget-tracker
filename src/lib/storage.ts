@@ -1,4 +1,4 @@
-import { AppState, DEFAULT_CATEGORY_DEFS, Language, NotificationLevel, SAVINGS_CATEGORY, ThemeKey } from '../types'
+import { AppState, DEFAULT_CATEGORY_DEFS, Language, SAVINGS_CATEGORY, ThemeKey } from '../types'
 import { mockState } from './mockData'
 import { telegramColorScheme } from './telegram'
 import { DEFAULT_LANGUAGE } from './i18n'
@@ -13,7 +13,6 @@ export const STORAGE_KEY = 'ledger_app_state_v1'
 const LAST_CHANGED_KEY = 'ledger_last_changed_at'
 const VALID_THEMES: ThemeKey[] = ['light', 'dark', 'cyber', 'red', 'pinky', 'caramel']
 const VALID_LANGUAGES: Language[] = ['en', 'ru', 'lv']
-const VALID_NOTIFICATION_LEVELS: NotificationLevel[] = ['all', 'important_only', 'off']
 
 /** Fills in fields added after a person's data was first saved, so old localStorage data keeps working. */
 export function migrate(state: AppState): AppState {
@@ -24,21 +23,21 @@ export function migrate(state: AppState): AppState {
   // be backfilled explicitly here, or every pre-existing user would be missing it.
   const hasSavingsCategory = baseCategories.some((c) => c.name.toLowerCase() === SAVINGS_CATEGORY.toLowerCase())
   const categories = hasSavingsCategory ? baseCategories : [...baseCategories, { name: SAVINGS_CATEGORY, icon: 'savings' as const }]
+  // createdAt backfilled to an old-enough timestamp (not "now") — an existing budget should be
+  // eligible for a period review right away, not treated as brand new the moment this field
+  // was introduced. Only a budget actually created after this ships gets a real timestamp,
+  // from BudgetsView's handleAdd.
   const budgets = (state.budgets || []).map((b: any) => ({
     category: b.category,
     limit: b.limit,
     period: b.period || 'month',
+    createdAt: b.createdAt || new Date(0).toISOString(),
   }))
   const theme = VALID_THEMES.includes(state.settings?.theme) ? state.settings.theme : 'light'
   // Backfills the same way theme/currency already do: anyone who saved data before this field
   // existed gets English, matching the actual language everything was already written in — never
   // silently switches a returning person's UI language on them.
   const language = VALID_LANGUAGES.includes(state.settings?.language as Language) ? (state.settings.language as Language) : DEFAULT_LANGUAGE
-  // Backfills like language/theme: anyone who saved data before Telegram notifications existed
-  // gets 'all' (notifications on) — they can dial it down in Settings.
-  const notificationLevel = VALID_NOTIFICATION_LEVELS.includes(state.settings?.notificationLevel as NotificationLevel)
-    ? (state.settings.notificationLevel as NotificationLevel)
-    : 'all'
   const importantDates = state.importantDates || []
   const incomeSources = state.incomeSources || []
   const readNotificationIds = state.readNotificationIds || []
@@ -50,6 +49,7 @@ export function migrate(state: AppState): AppState {
   // fold that into the new per-source map (keyed 'primary') if present.
   const legacyLastPrompt = (state.settings as any)?.lastSalaryPromptMonth as string | undefined
   const handledPaydays = state.settings?.handledPaydays || (legacyLastPrompt ? { primary: legacyLastPrompt } : {})
+  const handledBudgetPeriods = state.settings?.handledBudgetPeriods || {}
   return {
     ...state,
     categories,
@@ -58,7 +58,7 @@ export function migrate(state: AppState): AppState {
     reminderRules,
     incomeSources,
     readNotificationIds,
-    settings: { ...state.settings, theme, language, notificationLevel, handledPaydays },
+    settings: { ...state.settings, theme, language, handledPaydays, handledBudgetPeriods },
   }
 }
 

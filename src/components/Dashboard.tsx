@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, PiggyBank, Wallet2, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { AppState, Transaction, Insight, CategoryDef, SAVINGS_CATEGORY } from '../types'
 import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod, parseLocalDate } from '../lib/utils'
@@ -6,7 +6,9 @@ import { Card, ProgressBar, budgetTone } from './shared'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
 import SalaryPromptBanner from './SalaryPromptBanner'
+import BudgetPeriodBanner from './BudgetPeriodBanner'
 import { duePaydaySources, planForMonth, startOfMonth, budgetDailyRate } from '../lib/planning'
+import { BudgetPeriodReview, pendingBudgetPeriodReviews } from '../lib/budgetPeriods'
 import { ViewKey } from '../App'
 import { useI18n } from '../lib/i18n'
 
@@ -18,6 +20,10 @@ export default function Dashboard({
   setView,
   applyAutoAllocations,
   dismissSalaryPrompt,
+  moveBudgetSurplusToGoal,
+  moveBudgetSurplusToImportantDate,
+  reduceBudgetLimitForOverspend,
+  dismissBudgetPeriodReview,
 }: {
   state: AppState
   insights: Insight[]
@@ -26,6 +32,10 @@ export default function Dashboard({
   setView: (v: ViewKey) => void
   applyAutoAllocations: (excludeKeys?: string[]) => void
   dismissSalaryPrompt: () => void
+  moveBudgetSurplusToGoal: (review: BudgetPeriodReview, goalId: string) => void
+  moveBudgetSurplusToImportantDate: (review: BudgetPeriodReview, dateId: string) => void
+  reduceBudgetLimitForOverspend: (review: BudgetPeriodReview) => void
+  dismissBudgetPeriodReview: (review: BudgetPeriodReview) => void
 }) {
   const { t, locale } = useI18n()
   const [showAdd, setShowAdd] = useState(false)
@@ -104,6 +114,7 @@ export default function Dashboard({
   const dayLabel = today.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' })
 
   const duePaydays = duePaydaySources(state.settings.salaryDay, state.incomeSources, state.settings.handledPaydays, today, t)
+  const budgetReviews = useMemo(() => pendingBudgetPeriodReviews(state), [state])
 
   return (
     <div>
@@ -115,6 +126,18 @@ export default function Dashboard({
           onDismiss={dismissSalaryPrompt}
         />
       )}
+
+      {budgetReviews.map((review) => (
+        <BudgetPeriodBanner
+          key={review.key}
+          state={state}
+          review={review}
+          onMoveToGoal={moveBudgetSurplusToGoal}
+          onMoveToImportantDate={moveBudgetSurplusToImportantDate}
+          onReduceNextPeriod={reduceBudgetLimitForOverspend}
+          onDismiss={dismissBudgetPeriodReview}
+        />
+      ))}
 
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>

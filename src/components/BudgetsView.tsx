@@ -73,7 +73,7 @@ export default function BudgetsView({
       (b) => b.category.toLowerCase() === newCategory.trim().toLowerCase() && b.period === newPeriod
     )
     if (duplicate) return setFormError(t.budgets.errorDuplicate(PERIOD_LABEL[newPeriod]))
-    setBudgets([...state.budgets, { category: newCategory.trim(), limit, period: newPeriod }])
+    setBudgets([...state.budgets, { category: newCategory.trim(), limit, period: newPeriod, createdAt: new Date().toISOString() }])
     setNewCategory('')
     setNewLimit('')
   }

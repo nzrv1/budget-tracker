@@ -167,6 +167,36 @@ const en = {
     closeToLimit: 'Getting close to the limit',
   },
 
+  // The Dashboard banner shown once a budget's period (week/month/...) has just fully closed
+  // out — how much of it got spent, and what to do about what's left over or gone over. See
+  // lib/budgetPeriods.ts for the detection logic and BudgetPeriodBanner.tsx for the UI.
+  budgetReview: {
+    // Adjective form of each period, for gluing into the sentences below — kept separate from
+    // periods.day/week/... (those are adverbs: "Daily", used as a toggle label) the same way
+    // insights.periodWordDay/... is kept separate, since the two need different grammar and
+    // that split lets Russian/Latvian pick the correct case for each without fighting a
+    // one-size-fits-all interpolation.
+    periodWord: { day: 'daily', week: 'weekly', month: 'monthly', year: 'yearly' },
+    surplusTitle: (category: string, periodWord: string) => `${category} — ${periodWord} budget wrapped up`,
+    overspentTitle: (category: string, periodWord: string) => `${category} — over ${periodWord} budget`,
+    exactTitle: (category: string, periodWord: string) => `${category} — ${periodWord} budget right on target`,
+    surplusMessage: (spent: string, limit: string) => `You spent ${spent} of your ${limit} budget.`,
+    overspentMessage: (spent: string, limit: string) => `You spent ${spent} of your ${limit} budget.`,
+    exactMessage: 'You spent exactly your budget for this period.',
+    surplusAmount: (amount: string) => `${amount} left over`,
+    overspentAmount: (amount: string) => `${amount} over`,
+    choosePlaceholder: 'Choose where to move it...',
+    goalsGroupLabel: 'Goals',
+    datesGroupLabel: 'Important dates',
+    moveButton: 'Move',
+    // Shown instead of the move-to picker when there's a surplus but nowhere to send it yet.
+    noTargets: 'Create a goal or important date to redirect leftover budget there.',
+    reduceButton: (amount: string) => `Reduce next period by ${amount}`,
+    skipButton: 'Skip',
+    gotIt: 'Got it',
+    dismissAria: 'Dismiss',
+  },
+
   goals: {
     eyebrow: "What you're saving for",
     title: 'Goals',
@@ -357,12 +387,6 @@ const en = {
     notificationsTitle: 'Notifications',
     notificationsSubtitle: "Get reminded as a goal's target date or an important date gets closer.",
     notificationsEmptyHint: 'Create a goal or an important date first to set up reminders for it.',
-    pushLevelLabel: 'Telegram notifications',
-    pushLevelAll: 'All',
-    pushLevelImportant: 'Important only',
-    pushLevelOff: 'Off',
-    pushLevelHelp:
-      'Which push messages the bot sends. "Important only" keeps budget, reminder, deadline, payday and goal alerts; "All" also sends scheduled encouragement.',
     removeReminderAria: (name: string) => `Remove reminders for ${name}`,
     remindMeAboutLabel: 'Remind me about',
     remindGoalOption: 'A goal',

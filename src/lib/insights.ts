@@ -1,19 +1,10 @@
-import { AppState, BudgetPeriod, Insight, SAVINGS_CATEGORY, Transaction } from '../types'
-import { formatMoney, periodRange, parseLocalDate } from './utils'
+import { AppState, Insight, SAVINGS_CATEGORY, Transaction } from '../types'
+import { formatMoney, periodRange, parseLocalDate, periodInstanceKey } from './utils'
 import { Dictionary } from './i18n'
 import { translateCategoryName } from './categoryIcons'
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-/** A stable key identifying "which occurrence" of a recurring period a date falls in,
- * so an insight's id stays the same while that occurrence is ongoing and changes when
- * the next one starts (e.g. a new month) — letting it come back as unread. */
-function periodInstanceKey(period: BudgetPeriod, from: Date): string {
-  if (period === 'year') return String(from.getFullYear())
-  if (period === 'month') return `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}`
-  return from.toISOString().slice(0, 10)
 }
 
 function monthKey(d: Date): string {

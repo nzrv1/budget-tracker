@@ -76,6 +76,12 @@ export interface CategoryBudget {
   category: string
   limit: number
   period: BudgetPeriod
+  // When this budget was created — used only to tell whether a given completed period (e.g.
+  // "last week") happened before or after this budget existed, so the period-review banner
+  // (lib/budgetPeriods.ts) doesn't review a period this budget wasn't around to track.
+  // migrate() backfills existing budgets with an old-enough timestamp so they're reviewed
+  // right away — only a genuinely new budget skips its first not-yet-lived-through period.
+  createdAt: string
 }
 
 export type GoalIcon =
@@ -131,24 +137,17 @@ export interface Settings {
   // doesn't repeat. Keyed by 'primary' for the basic salary above, or an IncomeSource id
   // for an extra income source — each pays on its own day and gets its own reminder.
   handledPaydays?: Record<string, string> // key -> 'YYYY-MM'
+  // Tracks which completed budget periods have already been reviewed (surplus moved somewhere,
+  // overspend acknowledged, or just dismissed) — see lib/budgetPeriods.ts. Keyed by
+  // `${category}::${period}` (the same composite identity BudgetsView already treats a budget
+  // by), value is that budget's periodInstanceKey at last review, so the banner reappears
+  // exactly once per newly-completed period and never repeats for one already handled.
+  handledBudgetPeriods?: Record<string, string>
   // UI language. Optional on the type only so older saved states (before this field existed)
   // still satisfy it structurally — migrate() in storage.ts always backfills a real value
   // ('en') on load, so every other reader of Settings can treat it as always present.
   language?: Language
-  // How many Telegram push notifications the bot sends (notify-tick Edge Function reads this
-  // straight out of the synced state). Optional on the type for the same back-compat reason as
-  // `language` — migrate() backfills 'all'. See supabase/functions/_shared/notification-templates.ts.
-  notificationLevel?: NotificationLevel
 }
-
-/**
- * Telegram push notification volume:
- *  - 'all'            — event alerts (budget over, reminders, deadlines, payday, goal done) plus
- *                       scheduled encouragement
- *  - 'important_only' — only the event alerts
- *  - 'off'            — nothing
- */
-export type NotificationLevel = 'all' | 'important_only' | 'off'
 
 /** Supported UI languages — see src/lib/i18n/ for the dictionaries and translation hook. */
 export type Language = 'en' | 'ru' | 'lv'
