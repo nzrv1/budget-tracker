@@ -69,17 +69,23 @@ export default function ReportsView({ state }: { state: AppState }) {
 
   const expenseChange = prevTotals.expense > 0 ? ((currentTotals.expense - prevTotals.expense) / prevTotals.expense) * 100 : null
 
-  // Every budget is viewed through the period picker above. A €400/month budget reads as
-  // ~€92 under "week", ~€4,800 under "year", ~€13 under "day" — the budget's own daily rate
-  // times the length of the period you're looking at. When the viewing period matches the
-  // budget's native period we show its exact limit (no 30.44/365.25 rounding drift). Spending
-  // is the category's expenses in the current period-to-date range (`current`).
+  // "Budget vs. actual" gets its own day/week/month/year picker, separate from the one above —
+  // that top picker drives income/expenses/category/trend, and tying the budget card to it meant
+  // you couldn't look at spending by category and re-scale a budget at the same time. This is
+  // the point of the feature: set a budget on one cadence (say, monthly) and keep an eye on it
+  // on a different one (say, weekly) without switching the rest of the screen.
+  const [budgetPeriod, setBudgetPeriod] = useState<Period>('month')
+  const budgetRange = periodRange(budgetPeriod)
+  const budgetPeriodTx = filterByRange(state.transactions, budgetRange.from, budgetRange.to)
   const PERIOD_DAYS: Record<Period, number> = { day: 1, week: 7, month: 30.44, year: 365.25 }
   const budgetComparison = state.budgets.map((b) => {
-    const spent = current
+    const spent = budgetPeriodTx
       .filter((tx) => tx.type === 'expense' && tx.category === b.category)
       .reduce((s, tx) => s + tx.amount, 0)
-    const limit = b.period === period ? b.limit : budgetDailyRate(b) * PERIOD_DAYS[period]
+    // A budget's own daily rate times the length of the period being viewed. When the viewing
+    // period matches the budget's native period we show its exact limit (no 30.44/365.25
+    // rounding drift).
+    const limit = b.period === budgetPeriod ? b.limit : budgetDailyRate(b) * PERIOD_DAYS[budgetPeriod]
     return { category: b.category, spent, limit, nativePeriod: b.period }
   })
 
@@ -180,7 +186,25 @@ export default function ReportsView({ state }: { state: AppState }) {
           <EmptyState text={t.reports.setBudgetsToCompare} />
         ) : (
           <>
-            <p className="text-xs text-ink-softer mb-4">{t.reports.budgetVsActualHint}</p>
+            <p className="text-xs text-ink-softer mb-3">{t.reports.budgetVsActualHint}</p>
+            {/* This picker is its own control, deliberately separate from the one at the top of
+                the screen — it only re-scales the budgets below, it doesn't touch income /
+                expenses / category / trend above. Lets you set a budget on one cadence (e.g.
+                monthly) and watch it on another (e.g. weekly) independently of the rest of the
+                report. */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+              {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setBudgetPeriod(p)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors ${
+                    budgetPeriod === p ? 'bg-ink text-paper' : 'bg-paper border border-paper-line text-ink-softer hover:text-ink'
+                  }`}
+                >
+                  {PERIOD_LABEL[p]}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-col gap-3">
               {budgetComparison.map((b) => {
                 const ratio = b.limit > 0 ? b.spent / b.limit : 0

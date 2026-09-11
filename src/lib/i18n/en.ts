@@ -158,7 +158,7 @@ const en = {
     notEnoughTrendData: 'Not enough data yet to show a trend.',
     budgetVsActual: 'Budget vs. actual',
     setBudgetsToCompare: 'Set category budgets to see this comparison.',
-    budgetVsActualHint: 'Each limit is rescaled to the period you pick above.',
+    budgetVsActualHint: "View any budget on a different cadence than you set it — build one monthly and watch it weekly, or check a weekly budget's yearly pace.",
     budgetLeft: (amount: string) => `${amount} left`,
     budgetOver: (amount: string) => `${amount} over`,
   },
