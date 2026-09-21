@@ -16,7 +16,7 @@
 import { AppState, Goal, ImportantDate } from '../types'
 import { planForMonth, startOfMonth, addMonths, budgetDailyRate, monthKey } from './planning'
 import { nextOccurrence } from './importantDates'
-import { parseLocalDate, settingsIncomeForPeriod } from './utils'
+import { parseLocalDate, settingsIncomeForPeriod, filterByRange } from './utils'
 
 const HORIZON_CAP_MONTHS = 24
 // A fix that would need to push a date out further than this many months isn't a reasonable
@@ -97,7 +97,17 @@ export function findDeficitMonths(state: AppState): MonthDeficit[] {
   for (let i = 0; i <= horizon; i++) {
     const monthStart = addMonths(thisMonthStart, i)
     const plan = planForMonth(state, monthStart)
-    const income = settingsIncomeForPeriod(state.settings, state.incomeSources, 'month', monthStart)
+    // settingsIncomeForPeriod deliberately drops a source once its payday for that month has
+    // already been auto-logged as a real transaction (settings.autoIncomePaydays) — it assumes
+    // whatever adds that back is also summing actual income transactions for the period, the way
+    // Dashboard/Reports do. This is the current month once payday has passed: without adding the
+    // real transaction back in here, a month whose salary already landed would otherwise look
+    // like it has €0 income, turning every euro of planned spending into "deficit".
+    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999)
+    const loggedIncome = filterByRange(state.transactions, monthStart, monthEnd)
+      .filter((t) => t.type === 'income')
+      .reduce((s, t) => s + t.amount, 0)
+    const income = settingsIncomeForPeriod(state.settings, state.incomeSources, 'month', monthStart) + loggedIncome
     const deficit = plan.total - income
     if (deficit <= 0) continue
 
