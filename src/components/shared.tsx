@@ -61,7 +61,7 @@ export function ProgressBar({
 }
 
 export function budgetTone(ratio: number): 'sage' | 'gold' | 'clay' {
-  if (ratio >= 1) return 'clay'
+  if (ratio > 1) return 'clay'
   if (ratio >= 0.75) return 'gold'
   return 'sage'
 }
@@ -213,6 +213,14 @@ export function StatTile({
     <div className="bg-paper-card border border-paper-line rounded-lg p-3 min-w-0">
       <p className="text-[11px] text-ink-softer mb-1 truncate">{label}</p>
       <p className={`font-tabular font-semibold text-base sm:text-lg truncate ${valueTone[tone]}`}>{value}</p>
+    </div>
+  )
+}
+
+export function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="text-center py-8">
+      <p className="text-sm text-ink-softer">{text}</p>
     </div>
   )
 }

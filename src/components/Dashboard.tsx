@@ -1,20 +1,20 @@
 import { useMemo, useState } from 'react'
-import { Plus, ArrowRight, CheckCircle2, AlertTriangle, Bell, Settings } from 'lucide-react'
-import { AppState, Transaction, Insight, CategoryDef, SAVINGS_CATEGORY } from '../types'
+import { Plus, Minus, ArrowRight, AlertTriangle, Bell, Settings } from 'lucide-react'
+import { AppState, Transaction, TransactionType, CategoryDef } from '../types'
 import { formatMoney, periodRange, filterByRange, totals, settingsIncomeForPeriod, parseLocalDate } from '../lib/utils'
-import { Card, CardHeading, StatTile } from './shared'
+import { Card, CardHeading, EmptyState, StatTile } from './shared'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
 import AddTransactionModal from './AddTransactionModal'
+import BudgetVsActualCard from './BudgetVsActualCard'
 import SalaryPromptBanner from './SalaryPromptBanner'
 import BudgetPeriodBanner from './BudgetPeriodBanner'
-import { budgetDailyRate, duePaydaySources, planForMonth, startOfMonth } from '../lib/planning'
+import { duePaydaySources } from '../lib/planning'
 import { BudgetPeriodReview, pendingBudgetPeriodReviews } from '../lib/budgetPeriods'
 import { ViewKey } from '../App'
 import { useI18n } from '../lib/i18n'
 
 export default function Dashboard({
   state,
-  insights,
   addTransaction,
   addCategory,
   setView,
@@ -27,7 +27,6 @@ export default function Dashboard({
   notificationCount,
 }: {
   state: AppState
-  insights: Insight[]
   addTransaction: (t: Omit<Transaction, 'id'>) => void
   addCategory: (def: CategoryDef) => void
   setView: (v: ViewKey) => void
@@ -40,15 +39,10 @@ export default function Dashboard({
   dismissBudgetPeriodReview: (review: BudgetPeriodReview) => void
 }) {
   const { t, locale } = useI18n()
-  const [showAdd, setShowAdd] = useState(false)
+  const [showAdd, setShowAdd] = useState<TransactionType | false>(false)
   const [period, setPeriod] = useState<'month' | 'year'>('month')
 
   const today0 = new Date()
-
-  // Always-current-calendar-month figures, independent of the period toggle above — used
-  // for the savings goal card, which is inherently monthly.
-  const currentMonthRange = periodRange('month', today0)
-  const currentMonthTx = filterByRange(state.transactions, currentMonthRange.from, currentMonthRange.to)
 
   // Figures for the stat row, which follow the "This Month" / "This Year" toggle. Uses the
   // same settingsIncomeForPeriod() helper Reports uses, so the two screens can't drift apart
@@ -56,43 +50,24 @@ export default function Dashboard({
   const { from, to } = periodRange(period, today0)
   const periodTx = filterByRange(state.transactions, from, to)
   const periodLogged = totals(periodTx)
-  const monthsInPeriod = period === 'month' ? 1 : today0.getMonth() + 1
   const income = settingsIncomeForPeriod(state.settings, state.incomeSources, period, today0) + periodLogged.income
   const expense = periodLogged.expense
   const balance = totals(state.transactions).net
 
-  // Everything you're already committed to spending or setting aside this month — every
-  // Budget (day/week/month/year budgets are all normalized to a monthly-equivalent figure
-  // here, so a yearly budget still counts), plus what active Goals and Important Dates need
-  // this month to stay on track. This is the number "actual money spent so far" (above)
-  // doesn't capture, since most of it hasn't been logged as transactions yet.
-  const plan = planForMonth(state, startOfMonth(today0))
-  // Actual money moved into Goals/Important Dates this month (payday auto-allocation, or the
-  // "add funds" quick-action — see allocateToGoal/allocateToImportantDate in App.tsx). Shown
-  // as the "Set aside" stat tile.
-  const currentMonthSaved = currentMonthTx
-    .filter((t) => t.type === 'expense' && t.category === SAVINGS_CATEGORY)
-    .reduce((s, t) => s + t.amount, 0)
-
-  // "In theory" projected savings: income for the selected period minus everything that
-  // period is already committed to (budgets scaled the same way income is, plus goals and
-  // important dates). This is what's realistically left over, not just what's left over
-  // from transactions logged so far.
-  const periodObligations = plan.total * monthsInPeriod
-  const theoreticalSaved = income - periodObligations
-
-  // Compact "watch it weekly" readout: any budget whose spending this week has already
-  // passed its weekly-equivalent allowance (its own daily rate x 7). Non-interactive — the
-  // full day/week/month/year view lives in Reports.
+  // "Over budget this week" readout: only budgets the user themselves configured with a
+  // *weekly* period, compared directly against this week's actual spend for that category.
+  // A monthly/yearly budget must never surface here just because it's normalized to a
+  // weekly-equivalent rate — notifications follow the period the user picked when creating
+  // the budget, not an app-invented one.
   const weekRange = periodRange('week', today0)
   const weekTx = filterByRange(state.transactions, weekRange.from, weekRange.to)
   const overWeekly = state.budgets
+    .filter((b) => b.period === 'week')
     .map((b) => {
       const spent = weekTx
         .filter((tx) => tx.type === 'expense' && tx.category === b.category)
         .reduce((s, tx) => s + tx.amount, 0)
-      const allowance = budgetDailyRate(b) * 7
-      return { category: b.category, spent, allowance }
+      return { category: b.category, spent, allowance: b.limit }
     })
     .filter((b) => b.allowance > 0 && b.spent > b.allowance)
     .sort((a, b) => b.spent / b.allowance - a.spent / a.allowance)
@@ -100,8 +75,6 @@ export default function Dashboard({
   const recent = [...state.transactions]
     .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
     .slice(0, 5)
-
-  const topInsights = insights.slice(0, 3)
 
   const today = new Date()
   const dayLabel = today.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' })
@@ -188,10 +161,10 @@ export default function Dashboard({
       </div>
 
       {/* Hero balance + stat strip. One grid so they line up: on a phone the hero is a full-width
-          row above a 2×2 of tiles; from sm up it's one 6-wide row (hero spans 2). No side-by-side
-          label/value anywhere, so a wide amount can't push a track past the screen. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
-        <div className="col-span-2 md:col-span-4 lg:col-span-2 rounded-lg bg-ink text-paper p-4 flex flex-col justify-center min-w-0">
+          row above a 2-wide row of tiles; from lg up it's one 4-wide row (hero spans 2). No
+          side-by-side label/value anywhere, so a wide amount can't push a track past the screen. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+        <div className="col-span-2 rounded-lg bg-ink text-paper p-4 flex flex-col justify-center min-w-0">
           <p className="text-xs opacity-70">{t.dashboard.totalBalance}</p>
           <p className="font-display font-bold text-2xl sm:text-3xl tracking-tight tabular-nums mt-1 truncate">
             {formatMoney(balance, state.settings.currency)}
@@ -199,12 +172,6 @@ export default function Dashboard({
         </div>
         <StatTile label={t.dashboard.incomeLabel} value={formatMoney(income, state.settings.currency)} tone="sage" />
         <StatTile label={t.dashboard.spentLabel} value={formatMoney(expense, state.settings.currency)} tone="clay" />
-        <StatTile
-          label={t.dashboard.safeToSpend}
-          value={formatMoney(theoreticalSaved, state.settings.currency)}
-          tone={theoreticalSaved < 0 ? 'clay' : 'ink'}
-        />
-        <StatTile label={t.dashboard.setAside} value={formatMoney(currentMonthSaved, state.settings.currency)} tone="gold" />
       </div>
 
       {overWeekly.length > 0 && (
@@ -227,117 +194,82 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Primary action — full-width on phones */}
-      <button
-        onClick={() => setShowAdd(true)}
-        className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center gap-2 bg-ink text-paper px-5 rounded font-medium text-sm hover:bg-ink-light transition-colors mb-6"
-      >
-        <Plus size={16} />
-        {t.dashboard.addTransaction}
-      </button>
+      {/* Primary actions — one tap straight to the amount field, already scoped to expense or
+          income, instead of a single button that then makes you pick the type inside the modal. */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <button
+          onClick={() => setShowAdd('expense')}
+          className="min-h-[52px] inline-flex items-center justify-center gap-2 bg-clay text-white px-5 rounded-lg font-medium text-sm hover:bg-clay-dark transition-colors"
+        >
+          <Minus size={17} strokeWidth={2.25} />
+          {t.transactions.expense}
+        </button>
+        <button
+          onClick={() => setShowAdd('income')}
+          className="min-h-[52px] inline-flex items-center justify-center gap-2 bg-sage text-white px-5 rounded-lg font-medium text-sm hover:bg-sage-dark transition-colors"
+        >
+          <Plus size={17} strokeWidth={2.25} />
+          {t.transactions.income}
+        </button>
+      </div>
 
-      {/* Single column on phones; 2/3 + 1/3 split on lg. A flex column (not grid) below lg so a
-          wide child can't force a grid track past the screen. */}
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-6">
-        <div className="lg:col-span-2 flex flex-col gap-4 lg:gap-6">
-          <Card className="p-4 sm:p-5">
-            <CardHeading
-              title={t.dashboard.recentTransactionsTitle}
-              action={
-                <button
-                  onClick={() => setView('transactions')}
-                  className="text-sm text-ink-softer hover:text-ink inline-flex items-center gap-1"
-                >
-                  {t.dashboard.viewAll} <ArrowRight size={14} />
-                </button>
-              }
-            />
-            {recent.length === 0 ? (
-              <EmptyState text={t.dashboard.noTransactionsYet} />
-            ) : (
-              <div className="flex flex-col divide-y divide-paper-line">
-                {recent.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0">
-                        <CategoryIconGlyph icon={iconForCategory(state.categories, tx.category)} size={14} className="text-ink-softer" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink truncate">{tx.note || translateCategoryName(t, tx.category)}</p>
-                        <p className="text-xs text-ink-softer">
-                          {translateCategoryName(t, tx.category)} ·{' '}
-                          {parseLocalDate(tx.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`font-tabular text-sm font-medium shrink-0 ml-3 ${
-                        tx.type === 'income' ? 'text-sage-dark' : 'text-ink'
-                      }`}
-                    >
-                      {tx.type === 'income' ? '+' : '-'}
-                      {formatMoney(tx.amount, state.settings.currency)}
+      <div className="flex flex-col gap-4 lg:gap-6">
+        <Card className="p-4 sm:p-5">
+          <CardHeading
+            title={t.dashboard.recentTransactionsTitle}
+            action={
+              <button
+                onClick={() => setView('transactions')}
+                className="text-sm text-ink-softer hover:text-ink inline-flex items-center gap-1"
+              >
+                {t.dashboard.viewAll} <ArrowRight size={14} />
+              </button>
+            }
+          />
+          {recent.length === 0 ? (
+            <EmptyState text={t.dashboard.noTransactionsYet} />
+          ) : (
+            <div className="flex flex-col divide-y divide-paper-line">
+              {recent.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center shrink-0">
+                      <CategoryIconGlyph icon={iconForCategory(state.categories, tx.category)} size={14} className="text-ink-softer" />
                     </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Insights feed */}
-        <div>
-          <Card className="p-4 sm:p-5">
-            <CardHeading
-              title={t.dashboard.smartInsightsTitle}
-              action={
-                <button
-                  onClick={() => setView('notifications')}
-                  className="text-sm text-ink-softer hover:text-ink inline-flex items-center gap-1"
-                >
-                  {t.dashboard.insightsAll} <ArrowRight size={14} />
-                </button>
-              }
-            />
-            {topInsights.length === 0 ? (
-              <EmptyState text={t.dashboard.insightsEmpty} />
-            ) : (
-              <div className="flex flex-col gap-3">
-                {topInsights.map((insight) => (
-                  <div key={insight.id} className="flex gap-2.5">
-                    {insight.tone === 'positive' ? (
-                      <CheckCircle2 size={16} className="text-sage-dark shrink-0 mt-0.5" strokeWidth={1.75} />
-                    ) : (
-                      <AlertTriangle size={16} className="text-clay-dark shrink-0 mt-0.5" strokeWidth={1.75} />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-ink leading-snug">{insight.title}</p>
-                      <p className="text-xs text-ink-softer mt-0.5 leading-relaxed">{insight.message}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">{tx.note || translateCategoryName(t, tx.category)}</p>
+                      <p className="text-xs text-ink-softer">
+                        {translateCategoryName(t, tx.category)} ·{' '}
+                        {parseLocalDate(tx.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
+                  <span
+                    className={`font-tabular text-sm font-medium shrink-0 ml-3 ${
+                      tx.type === 'income' ? 'text-sage-dark' : 'text-ink'
+                    }`}
+                  >
+                    {tx.type === 'income' ? '+' : '-'}
+                    {formatMoney(tx.amount, state.settings.currency)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <BudgetVsActualCard state={state} />
       </div>
 
       {showAdd && (
         <AddTransactionModal
           onClose={() => setShowAdd(false)}
           onSave={addTransaction}
+          initialType={showAdd}
           categories={state.categories}
           onAddCategory={addCategory}
         />
       )}
-    </div>
-  )
-}
-
-export function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="text-center py-8">
-      <p className="text-sm text-ink-softer">{text}</p>
     </div>
   )
 }

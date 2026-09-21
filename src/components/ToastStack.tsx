@@ -23,9 +23,8 @@ export default function ToastStack({ toasts, dismiss }: { toasts: Toast[]; dismi
   if (toasts.length === 0) return null
 
   return (
-    // bottom offset sits above the phone tab bar (h-14) + its safe-area inset; small offset on
-    // desktop where the bar is gone.
-    <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] lg:bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-40 flex flex-col gap-2 sm:w-96">
+    // top offset clears the app header + its safe-area inset, on phone and desktop alike.
+    <div className="fixed top-[calc(0.75rem+env(safe-area-inset-top))] right-4 left-4 sm:left-auto sm:right-6 z-40 flex flex-col gap-2 sm:w-96">
       {toasts.map((t) => {
         const style = TONE_STYLES[t.tone]
         const Icon = style.icon
@@ -44,7 +43,7 @@ export default function ToastStack({ toasts, dismiss }: { toasts: Toast[]; dismi
       })}
       <style>{`
         @keyframes slideIn {
-          from { opacity: 0; transform: translateY(8px); }
+          from { opacity: 0; transform: translateY(-8px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>

@@ -3,8 +3,7 @@ import { Insight } from '../types'
 import { Reminder, offsetLabel } from '../lib/goalReminders'
 import { ImportantDateIconGlyph } from '../lib/importantDates'
 import { formatMoney } from '../lib/utils'
-import { Card, ProgressBar, GoalIconGlyph, SectionHeading } from './shared'
-import { EmptyState } from './Dashboard'
+import { Card, EmptyState, ProgressBar, GoalIconGlyph, SectionHeading } from './shared'
 import { useT } from '../lib/i18n'
 
 export default function NotificationsView({

@@ -66,6 +66,7 @@ export function migrate(state: AppState): AppState {
   const handledPaydays = state.settings?.handledPaydays || (legacyLastPrompt ? { primary: legacyLastPrompt } : {})
   const autoIncomePaydays = state.settings?.autoIncomePaydays || {}
   const handledBudgetPeriods = state.settings?.handledBudgetPeriods || {}
+  const dismissedDeficitMonths = state.settings?.dismissedDeficitMonths || {}
   return {
     ...state,
     categories,
@@ -74,7 +75,17 @@ export function migrate(state: AppState): AppState {
     reminderRules,
     incomeSources,
     readNotificationIds,
-    settings: { ...state.settings, theme, language, notificationLevel, onboardingDone, handledPaydays, autoIncomePaydays, handledBudgetPeriods },
+    settings: {
+      ...state.settings,
+      theme,
+      language,
+      notificationLevel,
+      onboardingDone,
+      handledPaydays,
+      autoIncomePaydays,
+      handledBudgetPeriods,
+      dismissedDeficitMonths,
+    },
   }
 }
 

@@ -163,6 +163,13 @@ export interface Settings {
   // wizard and must never be interrupted by it). "Run the wizard again" in Settings opens it
   // without clearing this flag.
   onboardingDone?: boolean
+  // Which future "structural deficit" months (see lib/deficit.ts) have been acknowledged on the
+  // Calendar screen — keyed by the deficit month's own 'YYYY-MM', value is the *real-world*
+  // 'YYYY-MM' at the moment it was dismissed. A month's warning badge only stays "read" (recolored
+  // to the theme color instead of red) while today's real month still equals that stored value —
+  // the moment the calendar rolls over to a new real month, every dismissal goes stale and every
+  // still-true deficit lights back up red on its own, with no explicit reset needed.
+  dismissedDeficitMonths?: Record<string, string>
 }
 
 /**

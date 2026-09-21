@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { Plus, X, PlusCircle } from 'lucide-react'
 import { AppState, Goal, GoalIcon } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
-import { Card, ProgressBar, GoalIconGlyph, SectionHeading, goalIconLabel } from './shared'
+import { Card, EmptyState, ProgressBar, GoalIconGlyph, SectionHeading, goalIconLabel } from './shared'
 import RowMenu from './RowMenu'
-import { EmptyState } from './Dashboard'
 import { Dictionary, useI18n, useT } from '../lib/i18n'
 
 const ICON_KEYS: GoalIcon[] = [

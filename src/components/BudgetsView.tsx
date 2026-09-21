@@ -3,9 +3,8 @@ import { Plus, Search, ChevronRight, X } from 'lucide-react'
 import { AppState, CategoryBudget, CategoryDef, BudgetPeriod } from '../types'
 import { formatMoney, periodRange, filterByRange } from '../lib/utils'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
-import { Card, ProgressBar, budgetTone, SectionHeading } from './shared'
+import { Card, EmptyState, ProgressBar, budgetTone, SectionHeading } from './shared'
 import CategorySelect from './CategorySelect'
-import { EmptyState } from './Dashboard'
 import { Dictionary, useT } from '../lib/i18n'
 import { showTelegramBackButton } from '../lib/telegram'
 
@@ -105,7 +104,7 @@ export default function BudgetsView({
             <input
               type="number"
               min="0"
-              step="1"
+              step="0.01"
               inputMode="decimal"
               value={newLimit}
               onChange={(e) => setNewLimit(e.target.value)}
@@ -218,10 +217,10 @@ export default function BudgetsView({
                     </span>
                   </div>
                   <ProgressBar ratio={b.ratio} tone={tone} />
-                  {b.ratio >= 1 && (
+                  {b.ratio > 1 && (
                     <p className="text-xs text-clay-dark mt-2">{t.budgets.overBy(formatMoney(b.spent - b.limit, state.settings.currency))}</p>
                   )}
-                  {b.ratio >= 0.75 && b.ratio < 1 && <p className="text-xs text-gold-dark mt-2">{t.budgets.closeToLimit}</p>}
+                  {b.ratio >= 0.75 && b.ratio <= 1 && <p className="text-xs text-gold-dark mt-2">{t.budgets.closeToLimit}</p>}
                 </Card>
               </button>
             )
@@ -311,7 +310,7 @@ function BudgetEditSheet({
             <input
               type="number"
               min="0"
-              step="1"
+              step="0.01"
               inputMode="decimal"
               autoFocus
               value={limitText}

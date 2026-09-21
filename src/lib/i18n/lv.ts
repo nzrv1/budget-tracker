@@ -80,7 +80,6 @@ const lv: Dictionary = {
 
   dashboard: {
     greeting: 'Jūsu budžets — vienā skatā',
-    addTransaction: 'Pievienot darījumu',
     thisMonth: 'Šis mēnesis',
     thisYear: 'Šis gads',
     totalBalance: 'Kopējais atlikums',
@@ -90,8 +89,6 @@ const lv: Dictionary = {
     theoreticalSaveSub: (percent, _period) => `${percent}% no ienākumiem · pēc budžetiem, mērķiem un svarīgiem datumiem`,
     incomeLabel: 'Ienākumi',
     spentLabel: 'Iztērēts',
-    safeToSpend: 'Var tērēt',
-    setAside: 'Atlikts',
     openNotifications: 'Atvērt paziņojumus',
     openSettings: 'Atvērt iestatījumus',
     overWeeklyTitle: 'Pārtērēts šonedēļ',
@@ -103,9 +100,6 @@ const lv: Dictionary = {
     recentTransactionsTitle: 'Jaunākie darījumi',
     viewAll: 'Skatīt visus',
     noTransactionsYet: 'Darījumu vēl nav — pievienojiet pirmo, lai sāktu.',
-    smartInsightsTitle: 'Gudrie ieteikumi',
-    insightsAll: 'Visi',
-    insightsEmpty: 'Pievienojiet dažus darījumus un mērķus — šeit parādīsies ieteikumi.',
   },
 
   transactions: {
@@ -282,6 +276,24 @@ const lv: Dictionary = {
     nothingPlannedThisWeek: 'Šai nedēļai nekas nav ieplānots.',
     monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jūn', 'Jūl', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
     weekdayLetters: ['P', 'O', 'T', 'C', 'P', 'S', 'S'],
+    viewSpending: 'Skatīt šī mēneša tēriņus',
+    spendingByCategory: 'Tēriņi pa kategorijām',
+    allTransactionsThisMonth: 'Visi šī mēneša darījumi',
+    noSpendingThisMonth: 'Šajā mēnesī vēl nav darījumu.',
+    deficitBadgeAria: 'Plānotie tēriņi pārsniedz ienākumus šajā mēnesī — skatīt risinājumus',
+    deficitPanelTitle: 'Plāni pārsniedz ienākumus',
+    deficitPanelHint:
+      'Ieskatoties nākotnē, dažos mēnešos budžeti, mērķi un svarīgie datumi kopā pārsniedz jūsu parastos ienākumus. Izvēlieties mēnesi, lai redzētu, kas to izraisa, un kā to labot.',
+    deficitOverBy: (amount) => `Pārsniegts par ${amount}`,
+    deficitPickItemHint: 'Izvēlieties, ko koriģēt:',
+    deficitBudgetComment: (amount) =>
+      `Tikai budžeti šajā mēnesī pārsniedz ienākumus par ${amount}. Budžeti šeit tiek uzskatīti par obligātiem — ja vēlaties to samazināt, rediģējiet tos pats sadaļā "Budžeti".`,
+    deficitFixPushDate: (date) => `Pārcelt termiņu uz ${date}`,
+    deficitFixLowerAmount: (amount) => `Samazināt summu līdz ${amount}`,
+    deficitFixBoth: (date, amount) => `Pārcelt uz ${date} un samazināt līdz ${amount}`,
+    deficitDismiss: 'Atzīmēt kā lasītu',
+    deficitDismissedHint: 'Lasīts — atgādinās vēlreiz nākamajā mēnesī, ja pārsniegums saglabāsies.',
+    deficitFixPartialHint: (remaining) => `Samazina pārsniegumu, bet pilnībā to neaizver — vēl paliks ${remaining}.`,
   },
 
   notifications: {
@@ -344,6 +356,7 @@ const lv: Dictionary = {
     createIconLabel: 'Ikona',
     createCancel: 'Atcelt',
     createConfirm: 'Izveidot',
+    addNewTile: 'Jauna',
   },
 
   settings: {
@@ -564,6 +577,25 @@ const lv: Dictionary = {
     spendingUpMessage: (percent) => `Šī mēneša plānotie izdevumi ir aptuveni par ${percent}% lielāki nekā iepriekšējā mēnesī.`,
     onTrackTitle: 'Šomēnes viss norit pēc plāna',
     onTrackMessage: (percent) => `Šomēnes jūs uzkrājat aptuveni ${percent}% no ienākumiem — veselīgs temps ceļā uz jūsu mērķiem.`,
+    budgetPaceTitle: (category) => `Budžets "${category}" — tempa brīdinājums`,
+    budgetPaceMessage: (daysEarly, periodWord, category) =>
+      `Ar pašreizējo tempu jūs pārsniegsiet ${periodWord} budžetu "${category}" aptuveni ${daysEarly} ${lvDays(daysEarly)} pirms perioda beigām.`,
+    streakTitle: (category) => `Sērija — "${category}"`,
+    streakMessage: (streak, periodWord, category) =>
+      `${streak} ${periodWord} periodi pēc kārtas budžeta "${category}" ietvaros — laba stabilitāte.`,
+    noBudgetTitle: (category) => `Nav budžeta kategorijai "${category}"`,
+    noBudgetMessage: (spent, category) =>
+      `Šomēnes esat iztērējis ${spent} kategorijā "${category}" bez budžeta uzraudzības — varbūt laiks noteikt limitu?`,
+    runwayTitle: 'Atlikums var beigties pirms algas',
+    runwayMessage: (daysLeft, paydayDate) =>
+      `Ar pēdējā laika tēriņu tempu atlikums var beigties apmēram pēc ${daysLeft} ${lvDays(daysLeft)} — pirms nākamās algas ${paydayDate}.`,
+    unexpectedIncomeTitle: 'Saņemti papildu ienākumi',
+    unexpectedIncomeMessage: (amount) => `Jūs saņēmāt ${amount} papildus parastajiem ienākumiem — varbūt daļu atlikt kādam mērķim?`,
+    savingsDeclineTitle: 'Uzkrājumu temps samazinās',
+    savingsDeclineMessage: (rate2, rate1, rate0) =>
+      `Uzkrājumu temps krītas jau trešo mēnesi pēc kārtas: ${rate2}% → ${rate1}% → ${rate0}% (prognoze). Vērts paskatīties, kas mainījies.`,
+    milestoneTitle: 'Sasniegts atskaites punkts',
+    milestoneMessage: (amount) => `Jūsu atlikums pārsniedzis ${amount} — lieliski paveikts.`,
   },
 
   reminderComments: {

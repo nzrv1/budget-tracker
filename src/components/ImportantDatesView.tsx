@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { Plus, X, PlusCircle } from 'lucide-react'
 import { ImportantDate, ImportantDateCategory } from '../types'
 import { formatMoney } from '../lib/utils'
-import { Card, ProgressBar, SectionHeading } from './shared'
+import { Card, EmptyState, ProgressBar, SectionHeading } from './shared'
 import RowMenu from './RowMenu'
-import { EmptyState } from './Dashboard'
 import {
   ImportantDateIconGlyph,
   QuickAddPreset,

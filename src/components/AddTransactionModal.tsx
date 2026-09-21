@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { Transaction, TransactionType, CategoryDef, DEFAULT_CATEGORIES } from '../types'
-import CategorySelect from './CategorySelect'
+import CategoryGridPicker from './CategoryGridPicker'
 import { showTelegramBackButton } from '../lib/telegram'
 import { todayLocalDateString } from '../lib/utils'
 import { useT } from '../lib/i18n'
@@ -10,17 +10,21 @@ export default function AddTransactionModal({
   onClose,
   onSave,
   initial,
+  initialType,
   categories,
   onAddCategory,
 }: {
   onClose: () => void
   onSave: (t: Omit<Transaction, 'id'>) => void
   initial?: Transaction
+  /** Preselects the expense/income toggle — set when the modal was opened from one of the
+   *  Dashboard's two dedicated "+ Expense" / "+ Income" buttons rather than a generic one. */
+  initialType?: TransactionType
   categories: CategoryDef[]
   onAddCategory: (def: CategoryDef) => void
 }) {
   const t = useT()
-  const [type, setType] = useState<TransactionType>(initial?.type || 'expense')
+  const [type, setType] = useState<TransactionType>(initial?.type || initialType || 'expense')
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [category, setCategory] = useState(initial?.category || DEFAULT_CATEGORIES[0])
   const [date, setDate] = useState(initial?.date || todayLocalDateString())
@@ -61,20 +65,33 @@ export default function AddTransactionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-4">
-          <div className="flex bg-paper rounded p-1 border border-paper-line">
-            {(['expense', 'income'] as TransactionType[]).map((typ) => (
-              <button
-                key={typ}
-                type="button"
-                onClick={() => setType(typ)}
-                className={`flex-1 min-h-[40px] rounded text-sm font-medium transition-colors ${
-                  type === typ ? (typ === 'income' ? 'bg-sage text-white' : 'bg-ink text-paper') : 'text-ink-softer'
-                }`}
-              >
-                {typ === 'income' ? t.transactions.income : t.transactions.expense}
-              </button>
-            ))}
-          </div>
+          {initialType ? (
+            // Opened from one of the Dashboard's dedicated "+ Expense" / "+ Income" buttons —
+            // the type is already settled, so the segmented toggle would be redundant here.
+            // The submit action takes its place at the top instead of sitting below the fold
+            // at the bottom of the form.
+            <button
+              type="submit"
+              className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors"
+            >
+              {t.addTransactionModal.submitAdd}
+            </button>
+          ) : (
+            <div className="flex bg-paper rounded p-1 border border-paper-line">
+              {(['expense', 'income'] as TransactionType[]).map((typ) => (
+                <button
+                  key={typ}
+                  type="button"
+                  onClick={() => setType(typ)}
+                  className={`flex-1 min-h-[40px] rounded text-sm font-medium transition-colors ${
+                    type === typ ? (typ === 'income' ? 'bg-sage text-white' : 'bg-ink text-paper') : 'text-ink-softer'
+                  }`}
+                >
+                  {typ === 'income' ? t.transactions.income : t.transactions.expense}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.addTransactionModal.amountLabel}</label>
@@ -92,7 +109,7 @@ export default function AddTransactionModal({
 
           <div>
             <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.addTransactionModal.categoryLabel}</label>
-            <CategorySelect categories={categories} value={category} onChange={setCategory} onAddCategory={onAddCategory} />
+            <CategoryGridPicker categories={categories} value={category} onChange={setCategory} onAddCategory={onAddCategory} />
           </div>
 
           <div>
@@ -118,12 +135,14 @@ export default function AddTransactionModal({
 
           {error && <p className="text-sm text-clay-dark">{error}</p>}
 
-          <button
-            type="submit"
-            className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
-          >
-            {initial ? t.addTransactionModal.submitSaveChanges : t.addTransactionModal.submitAdd}
-          </button>
+          {!initialType && (
+            <button
+              type="submit"
+              className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
+            >
+              {initial ? t.addTransactionModal.submitSaveChanges : t.addTransactionModal.submitAdd}
+            </button>
+          )}
         </form>
       </div>
     </div>

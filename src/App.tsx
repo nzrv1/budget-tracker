@@ -575,7 +575,6 @@ export default function App() {
           {view === 'dashboard' && (
             <Dashboard
               state={state}
-              insights={insights}
               addTransaction={addTransaction}
               addCategory={addCategory}
               setView={setView}
@@ -621,7 +620,14 @@ export default function App() {
               onPrefillConsumed={() => setAllocateIntent(null)}
             />
           )}
-          {view === 'calendar' && <CalendarView state={state} />}
+          {view === 'calendar' && (
+            <CalendarView
+              state={state}
+              updateGoal={updateGoal}
+              updateImportantDate={updateImportantDate}
+              updateSettings={updateSettings}
+            />
+          )}
           {view === 'notifications' && (
             <NotificationsView insights={insights} reminders={reminders} currency={state.settings.currency} />
           )}

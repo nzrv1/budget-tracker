@@ -99,7 +99,6 @@ const en = {
 
   dashboard: {
     greeting: 'Your budget, at a glance',
-    addTransaction: 'Add transaction',
     thisMonth: 'This Month',
     thisYear: 'This Year',
     totalBalance: 'Total balance',
@@ -111,8 +110,6 @@ const en = {
     // Short labels for the compact stat strip (the period is implied by the toggle above it).
     incomeLabel: 'Income',
     spentLabel: 'Spent',
-    safeToSpend: 'Safe to spend',
-    setAside: 'Set aside',
     openNotifications: 'Open notifications',
     openSettings: 'Open settings',
     overWeeklyTitle: 'Over budget this week',
@@ -124,9 +121,6 @@ const en = {
     recentTransactionsTitle: 'Recent transactions',
     viewAll: 'View all',
     noTransactionsYet: 'No transactions yet — add your first one to get started.',
-    smartInsightsTitle: 'Smart insights',
-    insightsAll: 'All',
-    insightsEmpty: 'Add a few transactions and goals — tips will show up here.',
   },
 
   transactions: {
@@ -315,6 +309,24 @@ const en = {
     nothingPlannedThisWeek: 'Nothing planned this week.',
     monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     weekdayLetters: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+    viewSpending: 'View this month\'s spending',
+    spendingByCategory: 'Spending by category',
+    allTransactionsThisMonth: 'All transactions this month',
+    noSpendingThisMonth: 'No transactions yet this month.',
+    deficitBadgeAria: 'Planned spending exceeds income this month — see options',
+    deficitPanelTitle: 'Plans outrun income',
+    deficitPanelHint:
+      "Looking ahead, some months' budgets, goals, and important dates add up to more than your usual income. Pick a month to see what's driving it and how to fix it.",
+    deficitOverBy: (amount: string) => `Over by ${amount}`,
+    deficitPickItemHint: 'Pick what to adjust:',
+    deficitBudgetComment: (amount: string) =>
+      `Budgets alone push this month over by ${amount}. Budgets are treated as obligatory here — edit them yourself in Budgets if you want to bring this down.`,
+    deficitFixPushDate: (date: string) => `Push the target to ${date}`,
+    deficitFixLowerAmount: (amount: string) => `Lower the target to ${amount}`,
+    deficitFixBoth: (date: string, amount: string) => `Push to ${date} and lower to ${amount}`,
+    deficitDismiss: 'Mark as read',
+    deficitDismissedHint: 'Read — will flag again next month if still true.',
+    deficitFixPartialHint: (remaining: string) => `Reduces the gap, but doesn't close it alone — ${remaining} would still be over.`,
   },
 
   notifications: {
@@ -379,6 +391,7 @@ const en = {
     createIconLabel: 'Icon',
     createCancel: 'Cancel',
     createConfirm: 'Create',
+    addNewTile: 'New',
   },
 
   settings: {
@@ -610,6 +623,25 @@ const en = {
     spendingUpMessage: (percent: number) => `Projected spending this month is about ${percent}% higher than last month.`,
     onTrackTitle: 'On track this month',
     onTrackMessage: (percent: number) => `You're saving about ${percent}% of your income this month — a healthy pace toward your goals.`,
+    budgetPaceTitle: (category: string) => `${category} budget — pace warning`,
+    budgetPaceMessage: (daysEarly: number, periodWord: string, category: string) =>
+      `At your current pace you'll hit this ${periodWord} ${category} budget about ${daysEarly} day${daysEarly === 1 ? '' : 's'} before the period ends.`,
+    streakTitle: (category: string) => `${category} streak`,
+    streakMessage: (streak: number, periodWord: string, category: string) =>
+      `${streak} ${periodWord} periods in a row under your ${category} budget — nice consistency.`,
+    noBudgetTitle: (category: string) => `No budget set for ${category}`,
+    noBudgetMessage: (spent: string, category: string) =>
+      `You've spent ${spent} on ${category} this month with no budget tracking it — worth setting a limit?`,
+    runwayTitle: 'Balance may run low before payday',
+    runwayMessage: (daysLeft: number, paydayDate: string) =>
+      `At your recent spending pace, your balance may run out in about ${daysLeft} day${daysLeft === 1 ? '' : 's'} — before your next payday on ${paydayDate}.`,
+    unexpectedIncomeTitle: 'Extra income landed',
+    unexpectedIncomeMessage: (amount: string) => `You got ${amount} outside your usual income — worth setting some of it aside for a goal?`,
+    savingsDeclineTitle: 'Savings rate has been slipping',
+    savingsDeclineMessage: (rate2: number, rate1: number, rate0: number) =>
+      `Your savings rate has dropped three months running: ${rate2}% → ${rate1}% → ${rate0}% (projected). Worth a look at what changed.`,
+    milestoneTitle: 'Milestone reached',
+    milestoneMessage: (amount: string) => `Your balance has passed ${amount} — nice work.`,
   },
 
   // lib/goalReminders.ts — short encouragement lines shown alongside a due reminder. Each pool

@@ -1,5 +1,5 @@
 import type { Dictionary } from './en'
-import { ruDays } from './plural'
+import { ruDays, ruPlural } from './plural'
 
 // Natural Russian copy, not a word-for-word translation of the English — see the localization
 // summary for the handful of ambiguous source phrases that got a deliberate (documented) reading
@@ -81,7 +81,6 @@ const ru: Dictionary = {
 
   dashboard: {
     greeting: 'Ваш бюджет — одним взглядом',
-    addTransaction: 'Добавить операцию',
     thisMonth: 'Этот месяц',
     thisYear: 'Этот год',
     totalBalance: 'Общий баланс',
@@ -91,8 +90,6 @@ const ru: Dictionary = {
     theoreticalSaveSub: (percent, _period) => `${percent}% дохода · после бюджетов, целей и важных дат`,
     incomeLabel: 'Доход',
     spentLabel: 'Расход',
-    safeToSpend: 'Можно потратить',
-    setAside: 'Отложено',
     openNotifications: 'Открыть уведомления',
     openSettings: 'Открыть настройки',
     overWeeklyTitle: 'Перерасход за эту неделю',
@@ -104,9 +101,6 @@ const ru: Dictionary = {
     recentTransactionsTitle: 'Последние операции',
     viewAll: 'Все операции',
     noTransactionsYet: 'Операций пока нет — добавьте первую, чтобы начать.',
-    smartInsightsTitle: 'Умные подсказки',
-    insightsAll: 'Все',
-    insightsEmpty: 'Добавьте несколько операций и целей — здесь появятся подсказки.',
   },
 
   transactions: {
@@ -283,6 +277,24 @@ const ru: Dictionary = {
     nothingPlannedThisWeek: 'На этой неделе ничего не запланировано.',
     monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
     weekdayLetters: ['П', 'В', 'С', 'Ч', 'П', 'С', 'В'],
+    viewSpending: 'Смотреть траты за месяц',
+    spendingByCategory: 'Траты по категориям',
+    allTransactionsThisMonth: 'Все операции за месяц',
+    noSpendingThisMonth: 'В этом месяце пока нет операций.',
+    deficitBadgeAria: 'Запланированные траты превышают доход в этом месяце — смотреть варианты',
+    deficitPanelTitle: 'Планы превышают доход',
+    deficitPanelHint:
+      'Если заглянуть вперёд, в некоторых месяцах бюджеты, цели и важные даты в сумме превышают обычный доход. Выберите месяц, чтобы увидеть, из-за чего это, и как это поправить.',
+    deficitOverBy: (amount) => `Превышение на ${amount}`,
+    deficitPickItemHint: 'Выберите, что скорректировать:',
+    deficitBudgetComment: (amount) =>
+      `Одни только бюджеты превышают доход в этом месяце на ${amount}. Бюджеты здесь считаются обязательными тратами — если хотите снизить эту сумму, отредактируйте их сами в разделе «Бюджеты».`,
+    deficitFixPushDate: (date) => `Перенести срок на ${date}`,
+    deficitFixLowerAmount: (amount) => `Снизить сумму до ${amount}`,
+    deficitFixBoth: (date, amount) => `Перенести на ${date} и снизить до ${amount}`,
+    deficitDismiss: 'Отметить прочитанным',
+    deficitDismissedHint: 'Прочитано — снова напомнит в следующем месяце, если превышение сохранится.',
+    deficitFixPartialHint: (remaining) => `Снижает превышение, но не закрывает его полностью — ещё останется ${remaining}.`,
   },
 
   notifications: {
@@ -345,6 +357,7 @@ const ru: Dictionary = {
     createIconLabel: 'Иконка',
     createCancel: 'Отмена',
     createConfirm: 'Создать',
+    addNewTile: 'Новая',
   },
 
   settings: {
@@ -565,6 +578,25 @@ const ru: Dictionary = {
     spendingUpMessage: (percent) => `Прогнозируемые траты в этом месяце примерно на ${percent}% выше, чем в прошлом.`,
     onTrackTitle: 'Всё по плану в этом месяце',
     onTrackMessage: (percent) => `В этом месяце вы откладываете около ${percent}% дохода — хороший темп для ваших целей.`,
+    budgetPaceTitle: (category) => `Бюджет «${category}» — предупреждение о темпе`,
+    budgetPaceMessage: (daysEarly, periodWord, category) =>
+      `При таком темпе вы выйдете за пределы вашего ${periodWord} бюджета на «${category}» примерно на ${daysEarly} ${ruDays(daysEarly)} раньше конца периода.`,
+    streakTitle: (category) => `Серия по «${category}»`,
+    streakMessage: (streak, periodWord, category) =>
+      `${streak} ${ruPlural(streak, 'период', 'периода', 'периодов')} подряд в рамках вашего ${periodWord} бюджета на «${category}» — отличная стабильность.`,
+    noBudgetTitle: (category) => `Нет бюджета для «${category}»`,
+    noBudgetMessage: (spent, category) =>
+      `В этом месяце вы потратили ${spent} на «${category}» без отслеживания бюджетом — не пора ли задать лимит?`,
+    runwayTitle: 'Баланс может закончиться до зарплаты',
+    runwayMessage: (daysLeft, paydayDate) =>
+      `При недавнем темпе трат баланс может закончиться примерно через ${daysLeft} ${ruDays(daysLeft)} — раньше следующей зарплаты ${paydayDate}.`,
+    unexpectedIncomeTitle: 'Пришёл дополнительный доход',
+    unexpectedIncomeMessage: (amount) => `Вы получили ${amount} сверх обычного дохода — не отложить ли часть в цель?`,
+    savingsDeclineTitle: 'Норма сбережений снижается',
+    savingsDeclineMessage: (rate2, rate1, rate0) =>
+      `Норма сбережений падает уже третий месяц подряд: ${rate2}% → ${rate1}% → ${rate0}% (прогноз). Стоит посмотреть, что изменилось.`,
+    milestoneTitle: 'Веха достигнута',
+    milestoneMessage: (amount) => `Ваш баланс превысил ${amount} — отличная работа.`,
   },
 
   reminderComments: {

@@ -48,7 +48,9 @@ test.describe('375px — nothing scrolls sideways', () => {
 
   test('Add transaction sheet', async ({ page }) => {
     await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
-    await page.getByRole('button', { name: 'Add transaction' }).click()
+    // Dashboard's single "Add transaction" button was replaced by two dedicated
+    // "Expense" / "Income" buttons that preselect the type — see Dashboard.tsx.
+    await page.getByRole('button', { name: 'Expense', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Add transaction' })).toBeVisible()
     await expectNoHorizontalScroll(page, 'Add transaction sheet')
   })

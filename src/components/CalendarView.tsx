@@ -1,9 +1,12 @@
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, ChevronDown, Wallet, Target, CalendarDays } from 'lucide-react'
-import { AppState } from '../types'
+import { useMemo, useRef, useState } from 'react'
+import { AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, Wallet, Target, CalendarDays } from 'lucide-react'
+import { AppState, Goal, ImportantDate } from '../types'
 import { formatMoney } from '../lib/utils'
 import { Card, GoalIconGlyph, ProgressBar, SectionHeading } from './shared'
 import { ImportantDateIconGlyph } from '../lib/importantDates'
+import MonthSpendingModal from './MonthSpendingModal'
+import DeficitPanel from './DeficitPanel'
+import { findDeficitMonths, MonthDeficit } from '../lib/deficit'
 import {
   planForMonth,
   planForWeek,
@@ -12,15 +15,45 @@ import {
   startOfWeek,
   addDays,
   addMonths,
+  monthKey,
   CalendarEvent,
 } from '../lib/planning'
 import { Dictionary, useI18n, useT } from '../lib/i18n'
 
-export default function CalendarView({ state }: { state: AppState }) {
+export default function CalendarView({
+  state,
+  updateGoal,
+  updateImportantDate,
+  updateSettings,
+}: {
+  state: AppState
+  updateGoal: (id: string, patch: Partial<Goal>) => void
+  updateImportantDate: (id: string, patch: Partial<ImportantDate>) => void
+  updateSettings: (patch: Partial<AppState['settings']>) => void
+}) {
   const t = useT()
   const [mode, setMode] = useState<'month' | 'week'>('month')
   const [year, setYear] = useState(new Date().getFullYear())
   const [monthAnchor, setMonthAnchor] = useState(() => startOfMonth(new Date()))
+
+  // "Structural deficit" — see lib/deficit.ts. Computed once here and threaded down to both the
+  // month grid (for the red badge) and the panel at the bottom (for the detail/fix UI) so the
+  // two always agree on the same numbers and the same open/selected month.
+  const deficits = useMemo(() => findDeficitMonths(state), [state])
+  const [openDeficitMonth, setOpenDeficitMonth] = useState<string | null>(null)
+  const deficitPanelRef = useRef<HTMLDivElement>(null)
+
+  const currentRealMonthKey = monthKey(new Date())
+  function isDeficitDismissed(mk: string) {
+    return state.settings.dismissedDeficitMonths?.[mk] === currentRealMonthKey
+  }
+  function dismissDeficitMonth(mk: string) {
+    updateSettings({ dismissedDeficitMonths: { ...(state.settings.dismissedDeficitMonths || {}), [mk]: currentRealMonthKey } })
+  }
+  function openDeficitFor(mk: string) {
+    setOpenDeficitMonth(mk)
+    deficitPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div>
@@ -52,7 +85,22 @@ export default function CalendarView({ state }: { state: AppState }) {
       <p className="text-sm text-ink-softer mb-5 -mt-2">{t.calendar.description}</p>
 
       {mode === 'month' ? (
-        <MonthGridView state={state} year={year} setYear={setYear} />
+        <>
+          <MonthGridView state={state} year={year} setYear={setYear} deficits={deficits} isDeficitDismissed={isDeficitDismissed} onOpenDeficit={openDeficitFor} />
+          <div className="mt-4">
+            <DeficitPanel
+              deficits={deficits}
+              state={state}
+              updateGoal={updateGoal}
+              updateImportantDate={updateImportantDate}
+              isDismissed={isDeficitDismissed}
+              onDismiss={dismissDeficitMonth}
+              openMonthKey={openDeficitMonth}
+              setOpenMonthKey={setOpenDeficitMonth}
+              panelRef={deficitPanelRef}
+            />
+          </div>
+        </>
       ) : (
         <WeekListView state={state} monthAnchor={monthAnchor} setMonthAnchor={setMonthAnchor} />
       )}
@@ -60,7 +108,21 @@ export default function CalendarView({ state }: { state: AppState }) {
   )
 }
 
-function MonthGridView({ state, year, setYear }: { state: AppState; year: number; setYear: (y: number) => void }) {
+function MonthGridView({
+  state,
+  year,
+  setYear,
+  deficits,
+  isDeficitDismissed,
+  onOpenDeficit,
+}: {
+  state: AppState
+  year: number
+  setYear: (y: number) => void
+  deficits: MonthDeficit[]
+  isDeficitDismissed: (mk: string) => boolean
+  onOpenDeficit: (mk: string) => void
+}) {
   const t = useT()
   const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1))
   const now = new Date()
@@ -91,8 +153,17 @@ function MonthGridView({ state, year, setYear }: { state: AppState; year: number
       <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 sm:items-start">
         {months.map((m) => {
           const monthsAhead = (m.getFullYear() - now.getFullYear()) * 12 + (m.getMonth() - now.getMonth())
+          const deficit = deficits.find((d) => d.monthKey === monthKey(m))
           return (
-            <MonthCard key={m.getMonth()} state={state} monthStart={m} defaultExpanded={monthsAhead >= 0 && monthsAhead <= 2} />
+            <MonthCard
+              key={m.getMonth()}
+              state={state}
+              monthStart={m}
+              defaultExpanded={monthsAhead >= 0 && monthsAhead <= 2}
+              deficit={deficit}
+              deficitDismissed={deficit ? isDeficitDismissed(deficit.monthKey) : false}
+              onOpenDeficit={onOpenDeficit}
+            />
           )
         })}
       </div>
@@ -100,12 +171,27 @@ function MonthGridView({ state, year, setYear }: { state: AppState; year: number
   )
 }
 
-function MonthCard({ state, monthStart, defaultExpanded }: { state: AppState; monthStart: Date; defaultExpanded: boolean }) {
+function MonthCard({
+  state,
+  monthStart,
+  defaultExpanded,
+  deficit,
+  deficitDismissed,
+  onOpenDeficit,
+}: {
+  state: AppState
+  monthStart: Date
+  defaultExpanded: boolean
+  deficit?: MonthDeficit
+  deficitDismissed: boolean
+  onOpenDeficit: (mk: string) => void
+}) {
   const t = useT()
   const plan = planForMonth(state, monthStart)
   const events = eventsInMonth(state, monthStart)
   const [openDay, setOpenDay] = useState<number | null>(null)
   const [expanded, setExpanded] = useState(defaultExpanded)
+  const [showSpending, setShowSpending] = useState(false)
 
   const eventsByDay = new Map<number, CalendarEvent[]>()
   for (const e of events) {
@@ -132,16 +218,28 @@ function MonthCard({ state, monthStart, defaultExpanded }: { state: AppState; mo
 
   return (
     <Card className="p-4">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="w-full flex items-center gap-2 -m-1 p-1 text-left"
-      >
-        <h4 className="font-display font-semibold text-base text-ink flex-1">{t.calendar.monthNamesShort[month]}</h4>
-        <span className="font-tabular font-semibold text-sm text-sage-dark shrink-0">{formatMoney(plan.total, currency)}</span>
-        <ChevronDown size={16} className={`text-ink-softer shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-      </button>
+      <div className="w-full flex items-center gap-1 -m-1 p-1">
+        {deficit && (
+          <button
+            type="button"
+            onClick={() => onOpenDeficit(deficit.monthKey)}
+            aria-label={t.calendar.deficitBadgeAria}
+            className="shrink-0 p-1 -m-1 rounded hover:bg-paper"
+          >
+            <AlertTriangle size={15} className={deficitDismissed ? 'text-ink-softer' : 'text-clay-dark'} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="flex-1 flex items-center gap-2 text-left min-w-0"
+        >
+          <h4 className="font-display font-semibold text-base text-ink flex-1 truncate">{t.calendar.monthNamesShort[month]}</h4>
+          <span className="font-tabular font-semibold text-sm text-sage-dark shrink-0">{formatMoney(plan.total, currency)}</span>
+          <ChevronDown size={16} className={`text-ink-softer shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
 
       {expanded && (
         <>
@@ -260,8 +358,21 @@ function MonthCard({ state, monthStart, defaultExpanded }: { state: AppState; mo
           )}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={() => setShowSpending(true)}
+        className={`w-full flex items-center justify-between text-sm text-ink-softer hover:text-sage-dark transition-colors ${
+          hasBreakdown ? 'mt-2' : 'mt-3'
+        } pt-3 border-t border-paper-line`}
+      >
+        <span>{t.calendar.viewSpending}</span>
+        <ChevronRight size={15} />
+      </button>
         </>
       )}
+
+      {showSpending && <MonthSpendingModal state={state} monthStart={monthStart} onClose={() => setShowSpending(false)} />}
     </Card>
   )
 }

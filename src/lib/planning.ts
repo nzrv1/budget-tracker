@@ -59,6 +59,37 @@ export function duePaydaySources(
   })
 }
 
+/**
+ * The single soonest upcoming payday across the basic salary and every extra income source —
+ * today counts as "upcoming" if its payday hasn't passed yet. Unlike duePaydaySources (which
+ * only looks at paydays already reached this month), this always resolves to a real future
+ * date: this month's payday if it's still ahead, otherwise next month's. Used by the "will the
+ * balance last until payday" insight — feeds it how many days of runway it actually needs.
+ * Returns null if no payday is configured anywhere (no basic salary day, no income sources).
+ */
+export function nextPaydayDate(salaryDay: number | undefined, incomeSources: IncomeSource[], now: Date = new Date()): Date | null {
+  const days: number[] = []
+  if (salaryDay && salaryDay >= 1) days.push(salaryDay)
+  for (const src of incomeSources) {
+    if (src.payDay && src.payDay >= 1) days.push(src.payDay)
+  }
+  if (days.length === 0) return null
+
+  let soonest: Date | null = null
+  for (const day of days) {
+    const dimThisMonth = daysInMonth(now.getFullYear(), now.getMonth())
+    const effectiveThisMonth = Math.min(day, dimThisMonth)
+    let candidate = new Date(now.getFullYear(), now.getMonth(), effectiveThisMonth)
+    if (startOfDay(candidate).getTime() < startOfDay(now).getTime()) {
+      const nextMonth = addMonths(now, 1)
+      const dimNextMonth = daysInMonth(nextMonth.getFullYear(), nextMonth.getMonth())
+      candidate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), Math.min(day, dimNextMonth))
+    }
+    if (!soonest || candidate.getTime() < soonest.getTime()) soonest = candidate
+  }
+  return soonest
+}
+
 export interface DuePaydayIncome {
   key: string // 'primary' or an IncomeSource id
   label: string

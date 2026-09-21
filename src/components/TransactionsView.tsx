@@ -3,10 +3,9 @@ import { Plus, Search } from 'lucide-react'
 import { AppState, Transaction, CategoryDef } from '../types'
 import { formatMoney, parseLocalDate } from '../lib/utils'
 import { CategoryIconGlyph, iconForCategory, translateCategoryName } from '../lib/categoryIcons'
-import { Card, SectionHeading } from './shared'
+import { Card, EmptyState, SectionHeading } from './shared'
 import RowMenu from './RowMenu'
 import AddTransactionModal from './AddTransactionModal'
-import { EmptyState } from './Dashboard'
 import { useI18n } from '../lib/i18n'
 
 export default function TransactionsView({

@@ -1,7 +1,45 @@
-import { AppState, Insight, SAVINGS_CATEGORY, Transaction } from '../types'
-import { formatMoney, periodRange, parseLocalDate, periodInstanceKey } from './utils'
+import { AppState, BudgetPeriod, Insight, SAVINGS_CATEGORY, Transaction } from '../types'
+import { formatMoney, periodRange, parseLocalDate, periodInstanceKey, totals } from './utils'
+import { nextPaydayDate } from './planning'
 import { Dictionary } from './i18n'
 import { translateCategoryName } from './categoryIcons'
+
+// Balance milestones celebrated by the gamification insight below — ordered so the highest one
+// already reached can be picked with a simple reverse scan.
+const BALANCE_MILESTONES = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000]
+
+/** The start of the period immediately before `anchor`'s — used to walk backward through a
+ *  budget's past periods for the streak insight. */
+function shiftPeriodBack(period: BudgetPeriod, anchor: Date): Date {
+  const d = new Date(anchor)
+  if (period === 'day') d.setDate(d.getDate() - 1)
+  else if (period === 'week') d.setDate(d.getDate() - 7)
+  else if (period === 'month') d.setMonth(d.getMonth() - 1)
+  else d.setFullYear(d.getFullYear() - 1)
+  return d
+}
+
+/** The real last moment of the period starting at `from` — NOT periodRange()'s `to`, which is
+ *  only ever "now" (periodRange is built for "this period so far", not "the whole period"; see
+ *  its own doc comment). The pace-extrapolation insight below needs the period's actual length
+ *  to project a daily rate across, so it computes this separately. */
+function periodEnd(period: BudgetPeriod, from: Date): Date {
+  if (period === 'day') {
+    const end = new Date(from)
+    end.setHours(23, 59, 59, 999)
+    return end
+  }
+  if (period === 'week') {
+    const end = new Date(from)
+    end.setDate(end.getDate() + 6)
+    end.setHours(23, 59, 59, 999)
+    return end
+  }
+  if (period === 'month') {
+    return new Date(from.getFullYear(), from.getMonth() + 1, 0, 23, 59, 59, 999)
+  }
+  return new Date(from.getFullYear(), 11, 31, 23, 59, 59, 999)
+}
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
@@ -69,7 +107,7 @@ export function generateInsights(state: AppState, t: Dictionary, locale: string)
         : t.insights.periodWordMonth
     const categoryName = translateCategoryName(t, budget.category)
     const instanceKey = periodInstanceKey(budget.period, bFrom)
-    if (ratio >= 1) {
+    if (ratio > 1) {
       insights.push({
         id: `insight-budget-${budget.category}-${budget.period}-${instanceKey}-exceeded`,
         tone: 'warning',
@@ -82,12 +120,100 @@ export function generateInsights(state: AppState, t: Dictionary, locale: string)
         ),
         createdAt: now.toISOString(),
       })
-    } else if (ratio >= 0.8) {
+    } else {
+      // Pace extrapolation: rather than waiting for 80% used, project the current spend rate
+      // (spent-so-far / days elapsed in the period) forward across the whole period and, if
+      // that pace would blow the limit, say exactly how many days early — a concrete date beats
+      // a vague "getting close" once there's enough of the period elapsed to trust the rate.
+      const totalDays = Math.max(daysBetween(bFrom, periodEnd(budget.period, bFrom)) + 1, 1)
+      const elapsedDays = Math.min(Math.max(daysBetween(bFrom, now) + 1, 1), totalDays)
+      const dailyRate = spent / elapsedDays
+      const projectedTotal = dailyRate * totalDays
+      let pacedWarning = false
+      if (elapsedDays / totalDays >= 0.15 && spent > 0 && projectedTotal > budget.limit) {
+        const daysToLimit = Math.ceil(budget.limit / dailyRate)
+        const daysEarly = totalDays - daysToLimit
+        if (daysEarly >= 1) {
+          pacedWarning = true
+          insights.push({
+            id: `insight-budget-${budget.category}-${budget.period}-${instanceKey}-pace`,
+            tone: 'warning',
+            title: t.insights.budgetPaceTitle(categoryName),
+            message: t.insights.budgetPaceMessage(daysEarly, periodWord, categoryName),
+            createdAt: now.toISOString(),
+          })
+        }
+      }
+      if (!pacedWarning && ratio >= 0.8) {
+        insights.push({
+          id: `insight-budget-${budget.category}-${budget.period}-${instanceKey}-almost`,
+          tone: 'warning',
+          title: t.insights.budgetAlmostTitle(categoryName),
+          message: t.insights.budgetAlmostMessage(Math.round(ratio * 100), periodWord, categoryName),
+          createdAt: now.toISOString(),
+        })
+      }
+    }
+  }
+
+  // 1b. Streak — N consecutive already-completed periods spent at or under a budget's limit.
+  // Walks backward one period at a time from the period right before the current (in-progress)
+  // one, stopping at the first period that went over, or once we're back past the budget's own
+  // createdAt (it wasn't around to "keep" a streak before it existed), or after a sane cap of
+  // periods so a years-old daily budget doesn't walk back thousands of iterations.
+  for (const budget of state.budgets) {
+    const { from: curFrom } = periodRange(budget.period)
+    const createdAt = new Date(budget.createdAt)
+    let cursor = shiftPeriodBack(budget.period, curFrom)
+    let streak = 0
+    for (let i = 0; i < 24; i++) {
+      if (cursor.getTime() < createdAt.getTime()) break
+      const { from: pFrom, to: pTo } = periodRange(budget.period, cursor)
+      const spent = categorySpend(state.transactions, budget.category, pFrom, pTo)
+      if (spent > budget.limit) break
+      streak++
+      cursor = shiftPeriodBack(budget.period, cursor)
+    }
+    if (streak >= 2) {
+      const periodWord =
+        budget.period === 'day'
+          ? t.insights.periodWordDay
+          : budget.period === 'week'
+          ? t.insights.periodWordWeek
+          : budget.period === 'year'
+          ? t.insights.periodWordYear
+          : t.insights.periodWordMonth
+      const categoryName = translateCategoryName(t, budget.category)
+      const instanceKey = periodInstanceKey(budget.period, curFrom)
       insights.push({
-        id: `insight-budget-${budget.category}-${budget.period}-${instanceKey}-almost`,
-        tone: 'warning',
-        title: t.insights.budgetAlmostTitle(categoryName),
-        message: t.insights.budgetAlmostMessage(Math.round(ratio * 100), periodWord, categoryName),
+        id: `insight-streak-${budget.category}-${budget.period}-${instanceKey}`,
+        tone: 'positive',
+        title: t.insights.streakTitle(categoryName),
+        message: t.insights.streakMessage(streak, periodWord, categoryName),
+        createdAt: now.toISOString(),
+      })
+    }
+  }
+
+  // 1c. Spending in a category with real volume but no budget set for it at all — a nudge to
+  // put a ceiling on it before it grows unchecked.
+  {
+    const budgetedCategories = new Set(state.budgets.map((b) => b.category.toLowerCase()))
+    const byCategory = new Map<string, number>()
+    for (const tx of state.transactions) {
+      if (tx.type !== 'expense' || tx.category === SAVINGS_CATEGORY) continue
+      if (parseLocalDate(tx.date) < startOfMonth || parseLocalDate(tx.date) > now) continue
+      byCategory.set(tx.category, (byCategory.get(tx.category) || 0) + tx.amount)
+    }
+    const NO_BUDGET_THRESHOLD = 100
+    for (const [category, spent] of byCategory) {
+      if (budgetedCategories.has(category.toLowerCase())) continue
+      if (spent < NO_BUDGET_THRESHOLD) continue
+      insights.push({
+        id: `insight-no-budget-${category}-${monthKey(startOfMonth)}`,
+        tone: 'info',
+        title: t.insights.noBudgetTitle(translateCategoryName(t, category)),
+        message: t.insights.noBudgetMessage(formatMoney(spent, state.settings.currency), translateCategoryName(t, category)),
         createdAt: now.toISOString(),
       })
     }
@@ -194,6 +320,111 @@ export function generateInsights(state: AppState, t: Dictionary, locale: string)
         tone: 'positive',
         title: t.insights.onTrackTitle,
         message: t.insights.onTrackMessage(Math.round(savingsRate * 100)),
+        createdAt: now.toISOString(),
+      })
+    }
+  }
+
+  // 6. Will the balance last until the next payday — projects the recent daily spend rate
+  // forward instead of waiting for the balance to actually run dry. Only fires when a payday is
+  // configured anywhere (basic salary or an income source) — otherwise there's nothing to
+  // compare against.
+  {
+    const nextPayday = nextPaydayDate(state.settings.salaryDay, state.incomeSources, now)
+    if (nextPayday) {
+      const daysUntilPayday = Math.max(daysBetween(now, nextPayday), 0)
+      const lookback = new Date(now)
+      lookback.setDate(lookback.getDate() - 14)
+      const recentExpense = sumInRange(state.transactions, 'expense', lookback, now, true)
+      const avgDailySpend = recentExpense / 14
+      const balance = totals(state.transactions).net
+      if (avgDailySpend > 0 && daysUntilPayday > 0) {
+        const runwayDays = Math.max(balance, 0) / avgDailySpend
+        if (runwayDays < daysUntilPayday) {
+          insights.push({
+            id: `insight-runway-${now.toISOString().slice(0, 10)}`,
+            tone: 'warning',
+            title: t.insights.runwayTitle,
+            message: t.insights.runwayMessage(
+              Math.max(Math.floor(runwayDays), 0),
+              nextPayday.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+            ),
+            createdAt: now.toISOString(),
+          })
+        }
+      }
+    }
+  }
+
+  // 7. Unexpected / one-off income — an income transaction whose amount doesn't match the
+  // basic salary or any configured income source (within a small tolerance), logged this month.
+  // Auto-logged payday transactions always match exactly, so they're naturally excluded — this
+  // only catches genuinely extra money (a one-off gig, a gift, a refund).
+  {
+    const regularAmounts = [state.settings.monthlyIncome, ...state.incomeSources.map((s) => s.amount)].filter((a) => a > 0)
+    for (const tx of state.transactions) {
+      if (tx.type !== 'income') continue
+      const d = parseLocalDate(tx.date)
+      if (d < startOfMonth || d > now) continue
+      const matchesRegular = regularAmounts.some((amt) => Math.abs(amt - tx.amount) <= Math.max(amt * 0.01, 1))
+      if (matchesRegular) continue
+      insights.push({
+        id: `insight-unexpected-income-${tx.id}`,
+        tone: 'info',
+        title: t.insights.unexpectedIncomeTitle,
+        message: t.insights.unexpectedIncomeMessage(formatMoney(tx.amount, state.settings.currency)),
+        createdAt: now.toISOString(),
+      })
+    }
+  }
+
+  // 8. Savings-rate trend — a single so-so month matters less than the rate sliding for three
+  // in a row. Compares the two most recently completed months against this month's projected
+  // rate (same day-count extrapolation as the month-over-month insight above).
+  {
+    const startOfTwoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+    const endOfTwoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 1, 0)
+    const twoMonthsAgoIncome = sumInRange(state.transactions, 'income', startOfTwoMonthsAgo, endOfTwoMonthsAgo)
+    const twoMonthsAgoExpense = sumInRange(state.transactions, 'expense', startOfTwoMonthsAgo, endOfTwoMonthsAgo, true)
+    const lastMonthIncome = sumInRange(state.transactions, 'income', startOfLastMonth, endOfLastMonth)
+    const daysIntoMonth = daysBetween(startOfMonth, now) + 1
+    const daysInThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const projectedThisMonthExpense = (monthExpense / Math.max(daysIntoMonth, 1)) * daysInThisMonth
+    const projectedThisMonthIncome = monthIncome > 0 ? (monthIncome / Math.max(daysIntoMonth, 1)) * daysInThisMonth : monthIncome
+
+    if (twoMonthsAgoIncome > 0 && lastMonthIncome > 0 && projectedThisMonthIncome > 0) {
+      const rateTwoMonthsAgo = (twoMonthsAgoIncome - twoMonthsAgoExpense) / twoMonthsAgoIncome
+      const rateLastMonth = (lastMonthIncome - lastMonthExpense) / lastMonthIncome
+      const rateThisMonth = (projectedThisMonthIncome - projectedThisMonthExpense) / projectedThisMonthIncome
+      const STEP = 0.03 // at least 3 percentage points down each step, so noise doesn't trigger it
+      if (rateTwoMonthsAgo - rateLastMonth >= STEP && rateLastMonth - rateThisMonth >= STEP) {
+        insights.push({
+          id: `insight-savings-decline-${monthKey(startOfMonth)}`,
+          tone: 'warning',
+          title: t.insights.savingsDeclineTitle,
+          message: t.insights.savingsDeclineMessage(
+            Math.round(rateTwoMonthsAgo * 100),
+            Math.round(rateLastMonth * 100),
+            Math.round(rateThisMonth * 100)
+          ),
+          createdAt: now.toISOString(),
+        })
+      }
+    }
+  }
+
+  // 9. Balance milestone — a one-time-feeling celebration for the highest round number crossed.
+  // Stays visible for as long as the balance is above it (no separate "already celebrated"
+  // tracking needed — see lib note in smart-notifications memory for why that's fine here).
+  {
+    const balance = totals(state.transactions).net
+    const milestone = [...BALANCE_MILESTONES].reverse().find((m) => balance >= m)
+    if (milestone) {
+      insights.push({
+        id: `insight-milestone-${milestone}`,
+        tone: 'positive',
+        title: t.insights.milestoneTitle,
+        message: t.insights.milestoneMessage(formatMoney(milestone, state.settings.currency)),
         createdAt: now.toISOString(),
       })
     }
