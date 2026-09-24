@@ -103,7 +103,7 @@ export default function CategoryGridPicker({
             }`}
           >
             <CategoryIconGlyph icon={c.icon} size={19} />
-            <span className="text-[10.5px] leading-tight truncate w-full">{translateCategoryName(t, c.name)}</span>
+            <span className="text-[10.5px] leading-tight w-full break-words">{translateCategoryName(t, c.name)}</span>
           </button>
         )
       })}

@@ -65,18 +65,7 @@ export default function AddTransactionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-5 flex flex-col gap-4">
-          {initialType ? (
-            // Opened from one of the Dashboard's dedicated "+ Expense" / "+ Income" buttons —
-            // the type is already settled, so the segmented toggle would be redundant here.
-            // The submit action takes its place at the top instead of sitting below the fold
-            // at the bottom of the form.
-            <button
-              type="submit"
-              className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors"
-            >
-              {t.addTransactionModal.submitAdd}
-            </button>
-          ) : (
+          {!initialType && (
             <div className="flex bg-paper rounded p-1 border border-paper-line">
               {(['expense', 'income'] as TransactionType[]).map((typ) => (
                 <button
@@ -112,6 +101,15 @@ export default function AddTransactionModal({
             <CategoryGridPicker categories={categories} value={category} onChange={setCategory} onAddCategory={onAddCategory} />
           </div>
 
+          {error && <p className="text-sm text-clay-dark">{error}</p>}
+
+          <button
+            type="submit"
+            className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors"
+          >
+            {initial ? t.addTransactionModal.submitSaveChanges : t.addTransactionModal.submitAdd}
+          </button>
+
           <div>
             <label className="block text-xs font-medium text-ink-softer mb-1.5">{t.addTransactionModal.dateLabel}</label>
             <input
@@ -132,17 +130,6 @@ export default function AddTransactionModal({
               className="w-full px-3 min-h-[44px] border border-paper-line rounded text-sm focus:border-sage outline-none"
             />
           </div>
-
-          {error && <p className="text-sm text-clay-dark">{error}</p>}
-
-          {!initialType && (
-            <button
-              type="submit"
-              className="w-full min-h-[48px] bg-ink text-paper rounded font-medium text-sm hover:bg-ink-light transition-colors mt-1"
-            >
-              {initial ? t.addTransactionModal.submitSaveChanges : t.addTransactionModal.submitAdd}
-            </button>
-          )}
         </form>
       </div>
     </div>
